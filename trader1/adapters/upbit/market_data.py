@@ -363,6 +363,9 @@ def build_upbit_public_candle_fixture(
     elif profile == "PANIC":
         closes = ["1050000", "1030000", "990000", "940000", "900000", "860000"]
         volumes = ["5", "7", "11", "17", "24", "35"]
+    elif profile == "VOLATILITY_EXPANSION":
+        closes = ["1000000", "1008000", "1016000", "1024000", "1018000", "1046000"]
+        volumes = ["5", "6", "7", "8", "9", "18"]
     elif profile == "DOWNTREND":
         closes = ["1020000", "1012000", "1007000", "1001000", "996000", "990000"]
     else:

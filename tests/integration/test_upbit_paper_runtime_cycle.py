@@ -1484,6 +1484,41 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
             self.assertEqual(candidate["no_trade_reason"], "STRATEGY_NOT_ELIGIBLE")
         self.assertFalse(report["live_order_allowed"])
 
+    def test_volatility_expansion_routes_entry_review_to_breakout_only(self):
+        data = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="VOLATILITY_EXPANSION",
+        )
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-volatility-expansion-breakout-only",
+            market_data=data,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["feature_snapshot"]["market_state"], "VOLATILITY_EXPANSION")
+        self.assertEqual(report["feature_snapshot"]["volatility_expansion_status"], "ACTIVE")
+        candidates_by_strategy = {
+            candidate["strategy_family"]: candidate
+            for candidate in report["strategy_candidates"]
+        }
+        self.assertFalse(candidates_by_strategy["PULLBACK_TREND_LONG"]["strategy_regime_allowed"])
+        self.assertEqual(
+            candidates_by_strategy["PULLBACK_TREND_LONG"]["strategy_policy_reason"],
+            "VOLATILITY_EXPANSION_BREAKOUT_ONLY",
+        )
+        self.assertTrue(candidates_by_strategy["BREAKOUT_RETEST_LONG"]["strategy_regime_allowed"])
+        self.assertEqual(candidates_by_strategy["BREAKOUT_RETEST_LONG"]["strategy_policy_reason"], "PASS")
+        self.assertFalse(candidates_by_strategy["VWAP_MEAN_REVERSION"]["strategy_regime_allowed"])
+        self.assertEqual(
+            candidates_by_strategy["VWAP_MEAN_REVERSION"]["strategy_policy_reason"],
+            "VOLATILITY_EXPANSION_BREAKOUT_ONLY",
+        )
+        self.assertEqual(report["selected_candidate"]["strategy_family"], "BREAKOUT_RETEST_LONG")
+        self.assertIn(report["selected_candidate"]["decision"], {"PAPER_ENTRY_REVIEW", "NO_TRADE"})
+        self.assertFalse(report["live_order_allowed"])
+
     def test_selected_candidate_must_be_highest_net_ev_candidate(self):
         report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-wrong-selected")
         lower_ranked = report["strategy_candidates"][-1]

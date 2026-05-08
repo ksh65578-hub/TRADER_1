@@ -182,6 +182,8 @@ QUIET_RANGE_SIGNAL_PENALTY = Decimal("0.08")
 VOLATILITY_EXPANSION_MIN_VOLATILITY_PCT = Decimal("2.50")
 VOLATILITY_EXPANSION_MIN_VOLUME_RATIO = Decimal("1.20")
 VOLATILITY_EXPANSION_MIN_RANGE_BREAKOUT_PCT = Decimal("0.03")
+VOLATILITY_EXPANSION_NON_BREAKOUT_EDGE_PENALTY_BPS = Decimal("32")
+VOLATILITY_EXPANSION_NON_BREAKOUT_SIGNAL_PENALTY = Decimal("0.24")
 PANIC_MOMENTUM_PCT = Decimal("-6.00")
 PANIC_VOLATILITY_PCT = Decimal("6.00")
 UNCERTAIN_MAX_ABS_MOMENTUM_PCT = Decimal("0.15")
@@ -319,6 +321,8 @@ def _strategy_entry_policy_evaluation(
         ):
             return True, "QUIET_RANGE_LIMITED_VWAP_REVERSION"
         return False, "QUIET_RANGE_REQUIRES_DEEP_VWAP_DISLOCATION"
+    if market_state == "VOLATILITY_EXPANSION" and strategy_family != "BREAKOUT_RETEST_LONG":
+        return False, "VOLATILITY_EXPANSION_BREAKOUT_ONLY"
     if strategy_family == "PULLBACK_TREND_LONG":
         if (
             regime == "UPTREND"
@@ -1379,7 +1383,7 @@ def _feature_snapshot(market_data: dict[str, Any]) -> dict[str, Any]:
         "regime_detail_formula": (
             "Upbit KRW spot is long-only: DATA_BAD, PANIC, DOWNTREND/RISK_OFF, and UNCERTAIN block new entries; "
             "QUIET_RANGE blocks trend/breakout and permits only limited VWAP range candidates when abs(vwap_distance)>=0.55pct "
-            "and symbol_score>=0.60; VOLATILITY_EXPANSION enables breakout candidates when volatility>=2.50pct, "
+            "and symbol_score>=0.60; VOLATILITY_EXPANSION enables breakout candidates only, and only when volatility>=2.50pct, "
             "volume_expansion>=1.20, and range_breakout>=0.03pct"
         ),
         "trend_pullback_alignment_status": "PASS" if trend_pullback_alignment_reason == "PASS" else "FAIL",
@@ -2034,6 +2038,11 @@ def _build_candidates(
         pullback_signal = _clamp_decimal(pullback_signal - Decimal("0.20"))
         breakout_signal = _clamp_decimal(breakout_signal - Decimal("0.20"))
         mean_reversion_signal = _clamp_decimal(mean_reversion_signal - QUIET_RANGE_SIGNAL_PENALTY)
+    if market_state == "VOLATILITY_EXPANSION":
+        pullback_edge -= VOLATILITY_EXPANSION_NON_BREAKOUT_EDGE_PENALTY_BPS
+        mean_reversion_edge -= VOLATILITY_EXPANSION_NON_BREAKOUT_EDGE_PENALTY_BPS
+        pullback_signal = _clamp_decimal(pullback_signal - VOLATILITY_EXPANSION_NON_BREAKOUT_SIGNAL_PENALTY)
+        mean_reversion_signal = _clamp_decimal(mean_reversion_signal - VOLATILITY_EXPANSION_NON_BREAKOUT_SIGNAL_PENALTY)
     edge_shift = Decimal("-45") if edge_profile == "NEGATIVE" else Decimal("-25") if edge_profile == "WEAK" else Decimal("0")
     pullback_feedback = _recent_failure_feedback_for_candidate(
         symbol=symbol,
@@ -2954,7 +2963,7 @@ def build_upbit_paper_runtime_cycle_report(
             "regime_detail_formula": (
                 "Upbit KRW spot is long-only: DATA_BAD, PANIC, DOWNTREND/RISK_OFF, and UNCERTAIN block new entries; "
                 "QUIET_RANGE blocks trend/breakout and permits only limited VWAP range candidates when abs(vwap_distance)>=0.55pct "
-                "and symbol_score>=0.60; VOLATILITY_EXPANSION enables breakout candidates when volatility>=2.50pct, "
+                "and symbol_score>=0.60; VOLATILITY_EXPANSION enables breakout candidates only, and only when volatility>=2.50pct, "
                 "volume_expansion>=1.20, and range_breakout>=0.03pct"
             ),
         }
