@@ -7,7 +7,9 @@ from tools.run_profitability_maturity_rollup_refresh import (
     candidate_scorecard_runtime_membership_evidence,
     paper_shadow_next_required_evidence,
     refresh_current_scorecard_inputs,
+    robustness_source_type_evidence,
     scorecard_review_priority,
+    update_overfit_component,
     update_promotion_thresholds,
     update_strategy_scorecard_components,
 )
@@ -680,20 +682,25 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
 
         self.assertIn(
             source_evidence["sample_basis"],
-            {"REALIZED_CLOSED_PAPER_TRADES", "PUBLIC_REPLAY_EXPECTED_NET_EV_AFTER_COST"},
+            {"REALIZED_CLOSED_PAPER_TRADES", "PUBLIC_REPLAY_REALIZED_CLOSED_TRADE_PNL_BPS"},
         )
         self.assertEqual(
             source_evidence["preliminary_sample_basis"],
             "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE",
         )
-        self.assertEqual(
-            source_evidence["closed_trade_sample_deficit"],
-            max(
+        if source_evidence["sample_basis"] == "PUBLIC_REPLAY_REALIZED_CLOSED_TRADE_PNL_BPS":
+            expected_deficit = max(
+                rollup["promotion_threshold_evidence"]["min_replay_closed_trades"]
+                - rollup["promotion_threshold_evidence"]["replay_closed_trades"],
+                0,
+            )
+        else:
+            expected_deficit = max(
                 rollup["promotion_threshold_evidence"]["min_paper_closed_trades"]
                 - rollup["promotion_threshold_evidence"]["paper_closed_trades"],
                 0,
-            ),
-        )
+            )
+        self.assertEqual(source_evidence["closed_trade_sample_deficit"], expected_deficit)
         if source_evidence["status"] == "PASS":
             self.assertEqual(source_evidence["missing_source_types"], [])
             self.assertIsNone(source_evidence["primary_blocker_code"])
@@ -705,6 +712,87 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
             self.assertTrue(source_evidence["explicit_source_type_blocker"])
         self.assertFalse(rollup["live_order_allowed"])
         self.assertEqual(_profitability_evidence_maturity_rollup_errors(rollup), [])
+
+    def test_maturity_rollup_helper_rejects_public_replay_expected_edge_as_sample_basis(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        tampered["robustness_source_type_evidence"]["sample_basis"] = "PUBLIC_REPLAY_EXPECTED_NET_EV_AFTER_COST"
+        overfit_component = next(
+            component for component in tampered["components"] if component["component_id"] == "overfit_oos_walk_forward"
+        )
+        overfit_component["sample_basis"] = "PUBLIC_REPLAY_EXPECTED_NET_EV_AFTER_COST"
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(
+            any("PUBLIC_REPLAY_REALIZED_CLOSED_TRADE_PNL_BPS" in error or "not in enum" in error for error in errors),
+            errors,
+        )
+
+    def test_maturity_rollup_helper_rejects_public_replay_sample_count_not_closed_trade_count(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        tampered["promotion_threshold_evidence"]["replay_closed_trades"] = 1
+        tampered["promotion_threshold_evidence"]["min_replay_closed_trades"] = 100
+        tampered["robustness_source_type_evidence"]["sample_basis"] = "PUBLIC_REPLAY_REALIZED_CLOSED_TRADE_PNL_BPS"
+        tampered["robustness_source_type_evidence"]["sample_count"] = 415
+        tampered["robustness_source_type_evidence"]["closed_trade_sample_deficit"] = 99
+        overfit_component = next(
+            component for component in tampered["components"] if component["component_id"] == "overfit_oos_walk_forward"
+        )
+        overfit_component["sample_basis"] = "PUBLIC_REPLAY_REALIZED_CLOSED_TRADE_PNL_BPS"
+        overfit_component["sample_count"] = 415
+        overfit_component["closed_trade_sample_count"] = 1
+        overfit_component["closed_trade_sample_deficit"] = 99
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("public replay" in error and "sample_count" in error for error in errors), errors)
+
+    def test_maturity_rollup_public_replay_projection_uses_closed_trade_samples(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        scorecard = {
+            "replay_closed_trade_sample_count": 2,
+            "replay_closed_trade_status": "FAIL",
+            "closed_trade_sample_count": 30,
+            "min_closed_trade_sample_count": 30,
+            "source_evidence_ids": [
+                "public_replay_robustness:public-replay:test-cycle:KRW-BTC-candidate:" + "A" * 64
+            ],
+        }
+        overfit = {
+            "sample_count": 415,
+            "min_required_sample_count": 300,
+            "source_evidence_ids": [
+                "public_replay_robustness:public-replay:test-cycle:KRW-BTC-candidate:" + "A" * 64
+            ],
+            "oos_status": "FAIL",
+            "walk_forward_status": "FAIL",
+            "bootstrap_status": "FAIL",
+            "concentration_risk_status": "HIGH",
+            "preliminary_sample_count": 10,
+            "preliminary_exact_candidate_sample_count": 2,
+            "robustness_eligible": False,
+        }
+
+        update_promotion_thresholds(rollup, scorecard, overfit)
+        source_evidence = robustness_source_type_evidence(scorecard, overfit)
+        update_overfit_component(rollup, scorecard, overfit)
+        overfit_component = next(
+            component for component in rollup["components"] if component["component_id"] == "overfit_oos_walk_forward"
+        )
+
+        self.assertEqual(rollup["promotion_threshold_evidence"]["replay_closed_trades"], 2)
+        self.assertIn("REPLAY_CLOSED_TRADES_BELOW_MIN", rollup["promotion_threshold_evidence"]["missing_threshold_codes"])
+        self.assertEqual(source_evidence["sample_basis"], "PUBLIC_REPLAY_REALIZED_CLOSED_TRADE_PNL_BPS")
+        self.assertEqual(source_evidence["sample_count"], 2)
+        self.assertEqual(source_evidence["closed_trade_sample_deficit"], 98)
+        self.assertEqual(overfit_component["sample_basis"], "PUBLIC_REPLAY_REALIZED_CLOSED_TRADE_PNL_BPS")
+        self.assertEqual(overfit_component["sample_count"], 2)
+        self.assertEqual(overfit_component["closed_trade_sample_count"], 2)
+        self.assertEqual(overfit_component["closed_trade_sample_deficit"], 98)
+        self.assertFalse(overfit_component["paper_scorecard_input_eligible"])
+        self.assertFalse(rollup["promotion_threshold_evidence"]["live_order_allowed"])
 
     def test_maturity_rollup_review_priority_prefers_replay_validated_alternative(self):
         active_scorecard = {

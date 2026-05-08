@@ -391,7 +391,7 @@
         "sample_basis": {
           "enum": [
             "REALIZED_CLOSED_PAPER_TRADES",
-            "PUBLIC_REPLAY_EXPECTED_NET_EV_AFTER_COST"
+            "PUBLIC_REPLAY_REALIZED_CLOSED_TRADE_PNL_BPS"
           ]
         },
         "sample_count": {"type": "integer", "minimum": 0},
@@ -548,7 +548,7 @@
           "sample_basis": {
             "enum": [
               "REALIZED_CLOSED_PAPER_TRADES",
-              "PUBLIC_REPLAY_EXPECTED_NET_EV_AFTER_COST"
+              "PUBLIC_REPLAY_REALIZED_CLOSED_TRADE_PNL_BPS"
             ]
           },
           "closed_trade_sample_count": {"type": "integer", "minimum": 0},

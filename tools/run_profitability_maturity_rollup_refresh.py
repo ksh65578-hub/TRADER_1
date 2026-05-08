@@ -56,8 +56,9 @@ CONTRACT_GAP_PATH = (
 
 ROBUSTNESS_SOURCE_TYPES = ("OOS", "WALK_FORWARD", "BOOTSTRAP", "CONCENTRATION")
 OVERFIT_FULL_SAMPLE_BASIS = "REALIZED_CLOSED_PAPER_TRADES"
-OVERFIT_PUBLIC_REPLAY_SAMPLE_BASIS = "PUBLIC_REPLAY_EXPECTED_NET_EV_AFTER_COST"
+OVERFIT_PUBLIC_REPLAY_SAMPLE_BASIS = "PUBLIC_REPLAY_REALIZED_CLOSED_TRADE_PNL_BPS"
 OVERFIT_PRELIMINARY_SAMPLE_BASIS = "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE"
+MIN_PUBLIC_REPLAY_CLOSED_TRADES = 100
 STRATEGY_COMPONENT_IDS = (
     "strategy_entry_exit_no_trade",
     "symbol_selection_regime",
@@ -349,6 +350,17 @@ def source_type_counts(overfit: dict[str, Any]) -> dict[str, int]:
     }
 
 
+def public_replay_bound(source_evidence_ids: list[Any]) -> bool:
+    return any(str(item).startswith("public_replay_robustness:") for item in source_evidence_ids)
+
+
+def replay_closed_trade_count_from_scorecard(scorecard: dict[str, Any]) -> int:
+    explicit = safe_int(scorecard.get("replay_closed_trade_sample_count"), default=-1)
+    if explicit >= 0:
+        return explicit
+    return safe_int(scorecard.get("best_alternative_public_replay_closed_trade_sample_count"))
+
+
 def matching_overfit_path_for_scorecard(scorecard: dict[str, Any], scorecard_path: Path = SCORECARD_PATH) -> Path | None:
     candidate_id = str(scorecard.get("candidate_id") or "")
     candidate_path = OVERFIT_SNAPSHOT_DIR / (
@@ -469,10 +481,22 @@ def robustness_source_type_evidence(
 ) -> dict[str, Any]:
     counts = source_type_counts(overfit)
     min_required = 1
-    sample_count = safe_int(overfit.get("sample_count"))
-    min_required_sample_count = safe_int(overfit.get("min_required_sample_count"), 300)
+    source_ids = list(scorecard.get("source_evidence_ids") or [])
+    source_ids.extend(str(item) for item in overfit.get("source_evidence_ids") or [] if item)
+    is_public_replay = public_replay_bound(source_ids)
+    public_replay_closed_trade_count = replay_closed_trade_count_from_scorecard(scorecard)
+    sample_count = (
+        public_replay_closed_trade_count if is_public_replay else safe_int(overfit.get("sample_count"))
+    )
+    min_required_sample_count = safe_int(
+        overfit.get("min_required_sample_count"),
+        MIN_PUBLIC_REPLAY_CLOSED_TRADES if is_public_replay else 300,
+    )
     closed_trade_sample_count = safe_int(scorecard.get("closed_trade_sample_count"))
     min_closed_trade_sample_count = safe_int(scorecard.get("min_closed_trade_sample_count"), 30)
+    if is_public_replay:
+        closed_trade_sample_count = public_replay_closed_trade_count
+        min_closed_trade_sample_count = MIN_PUBLIC_REPLAY_CLOSED_TRADES
     preliminary_sample_count = safe_int(overfit.get("preliminary_sample_count"))
     preliminary_exact_candidate_sample_count = safe_int(overfit.get("preliminary_exact_candidate_sample_count"))
     present = [
@@ -488,11 +512,9 @@ def robustness_source_type_evidence(
     missing = [source_type for source_type in ROBUSTNESS_SOURCE_TYPES if source_type not in set(present)]
     cycle_id = str(scorecard.get("source_runtime_cycle_id") or "")
     cycle_hash = str(scorecard.get("source_runtime_cycle_hash") or "")
-    source_ids = list(scorecard.get("source_evidence_ids") or [])
-    source_ids.extend(str(item) for item in overfit.get("source_evidence_ids") or [] if item)
     sample_basis = (
         OVERFIT_PUBLIC_REPLAY_SAMPLE_BASIS
-        if any(str(item).startswith("public_replay_robustness:") for item in source_ids)
+        if is_public_replay
         else OVERFIT_FULL_SAMPLE_BASIS
     )
     if counts["concentration_count"] >= min_required and cycle_id and cycle_hash:
@@ -585,6 +607,19 @@ def update_promotion_thresholds(rollup: dict[str, Any], scorecard: dict[str, Any
     if overfit.get("oos_status") == "PASS" and overfit.get("walk_forward_status") == "PASS":
         thresholds["walk_forward_or_oos_coverage_pct"] = 100
         missing_codes.discard("WALK_FORWARD_OR_OOS_COVERAGE_BELOW_MIN")
+
+    replay_closed_trades = replay_closed_trade_count_from_scorecard(scorecard)
+    min_replay_closed_trades = safe_int(
+        thresholds.get("min_replay_closed_trades"),
+        default=MIN_PUBLIC_REPLAY_CLOSED_TRADES,
+    )
+    thresholds["replay_closed_trades"] = max(replay_closed_trades, 0)
+    thresholds["min_replay_closed_trades"] = min_replay_closed_trades
+    if scorecard.get("replay_closed_trade_status") == "PASS" and replay_closed_trades >= min_replay_closed_trades:
+        missing_codes.discard("REPLAY_CLOSED_TRADES_BELOW_MIN")
+    else:
+        missing_codes.add("REPLAY_CLOSED_TRADES_BELOW_MIN")
+
     net_ev = float(scorecard.get("net_ev_after_cost_bps") or 0.0)
     min_edge = float(scorecard.get("min_required_edge_bps") or 0.0)
     if net_ev >= min_edge and scorecard.get("cost_model_status") == "VALIDATED":
@@ -947,17 +982,25 @@ def update_overfit_component(
     scorecard_path: Path = SCORECARD_PATH,
     overfit_path: Path = OVERFIT_PATH,
 ) -> None:
-    sample_count = int(overfit.get("sample_count") or 0)
-    min_required = int(overfit.get("min_required_sample_count") or 300)
+    source_ids = [str(item) for item in overfit.get("source_evidence_ids") or [] if item]
+    is_public_replay = public_replay_bound([*source_ids, *list(scorecard.get("source_evidence_ids") or [])])
+    public_replay_closed_trade_count = replay_closed_trade_count_from_scorecard(scorecard)
+    sample_count = public_replay_closed_trade_count if is_public_replay else int(overfit.get("sample_count") or 0)
+    min_required = int(
+        overfit.get("min_required_sample_count")
+        or (MIN_PUBLIC_REPLAY_CLOSED_TRADES if is_public_replay else 300)
+    )
     closed_trade_sample_count = safe_int(scorecard.get("closed_trade_sample_count"))
     min_closed_trade_sample_count = safe_int(scorecard.get("min_closed_trade_sample_count"), default=30)
+    if is_public_replay:
+        closed_trade_sample_count = public_replay_closed_trade_count
+        min_closed_trade_sample_count = MIN_PUBLIC_REPLAY_CLOSED_TRADES
     preliminary_sample_count = safe_int(overfit.get("preliminary_sample_count"))
     preliminary_exact_candidate_sample_count = safe_int(overfit.get("preliminary_exact_candidate_sample_count"))
     robust = overfit.get("robustness_eligible") is True and sample_count >= min_required
-    source_ids = [str(item) for item in overfit.get("source_evidence_ids") or [] if item]
     sample_basis = (
         OVERFIT_PUBLIC_REPLAY_SAMPLE_BASIS
-        if any(item.startswith("public_replay_robustness:") for item in source_ids)
+        if is_public_replay
         else OVERFIT_FULL_SAMPLE_BASIS
     )
     for component in rollup.get("components", []):
@@ -995,7 +1038,7 @@ def update_overfit_component(
             component["paper_scorecard_input_eligible"] = True
             component["primary_blocker_code"] = "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
             basis_message = (
-                "OOS, walk-forward, bootstrap, and concentration checks pass from public read-only replay samples "
+                "OOS, walk-forward, bootstrap, and concentration checks pass from public read-only replay closed trades "
                 if sample_basis == OVERFIT_PUBLIC_REPLAY_SAMPLE_BASIS
                 else "OOS, walk-forward, bootstrap, and concentration checks pass from realized closed PAPER trades "
             )
