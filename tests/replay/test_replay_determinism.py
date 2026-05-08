@@ -6,6 +6,7 @@ from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
 from trader1.research.profitability.candidate_scorecard import candidate_scorecard_from_upbit_paper_runtime_cycle
 from trader1.research.profitability.overfit_diagnostic import overfit_diagnostic_from_upbit_paper_runtime
 from trader1.research.replay.replay_runner import (
+    build_public_replay_fetch_failure_report,
     build_replay_consistency_report,
     build_public_replay_robustness_report,
     public_replay_robustness_values_from_report,
@@ -182,6 +183,44 @@ class ReplayDeterminismTest(unittest.TestCase):
         self.assertIsNotNone(schema)
         result = validate_instance_against_schema(report, schema, schema_bundle)
         self.assertEqual(result.status, "PASS", result.errors)
+
+    def test_public_replay_fetch_failure_report_is_source_bound_and_contract_valid(self):
+        runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="public-replay-scorecard-fetch-failed-base",
+            symbol="KRW-AXL",
+            market_data=_public_replay_fixture(symbol="KRW-AXL", count=12),
+        )
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+        report = build_public_replay_fetch_failure_report(
+            candidate_scorecard=scorecard,
+            replay_id="public-replay-fetch-failed",
+            error_type="TimeoutError",
+            error_message="public candle read timed out",
+            target_count=80,
+            page_size=80,
+            timeout_seconds=3.0,
+            min_required_sample_count=1,
+        )
+        validation = validate_public_replay_robustness_report(report, candidate_scorecard=scorecard)
+        schema_bundle = load_schema_bundle(ROOT / "contracts" / "schema")
+        schema = schema_for_instance(report, schema_bundle)
+        schema_result = validate_instance_against_schema(report, schema, schema_bundle)
+
+        self.assertEqual(validation.status, "PASS")
+        self.assertEqual(schema_result.status, "PASS", schema_result.errors)
+        self.assertEqual(report["public_market_data_source"], "PUBLIC_REST_READ_ONLY_FETCH_FAILED")
+        self.assertEqual(report["public_market_data_fetch_status"], "FAILED")
+        self.assertEqual(report["replay_status"], "BLOCKED")
+        self.assertEqual(report["primary_blocker_code"], "DATA_QUALITY_INSUFFICIENT")
+        self.assertEqual(report["sample_count"], 0)
+        self.assertEqual(report["sample_rows"], [])
+        self.assertEqual(len(report["public_market_data_hash"]), 64)
+        self.assertFalse(report["credential_load_attempted"])
+        self.assertFalse(report["private_endpoint_called"])
+        self.assertFalse(report["order_endpoint_called"])
+        self.assertFalse(report["order_adapter_called"])
+        self.assertFalse(report["live_key_loaded"])
+        self.assertFalse(report["live_order_allowed"])
 
     def test_public_replay_robustness_hash_tamper_fails(self):
         runtime = build_upbit_paper_runtime_cycle_report(

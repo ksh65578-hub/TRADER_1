@@ -38,6 +38,7 @@ from trader1.research.profitability.overfit_diagnostic import (
     write_overfit_diagnostic_report,
 )
 from trader1.research.replay.replay_runner import (
+    build_public_replay_fetch_failure_report,
     build_public_replay_robustness_report,
     load_public_replay_robustness_report,
     validate_public_replay_robustness_report,
@@ -794,6 +795,7 @@ def _build_alternative_public_replay_evaluation(
 
     history_fetcher = public_replay_history_fetcher or fetch_upbit_public_candle_history_read_only
     symbol = str(alternative_scorecard["symbol"])
+    replay_id = f"public-replay-alternative:{alternative_scorecard['source_runtime_cycle_id']}:{alternative_scorecard['candidate_id']}"
     try:
         if symbol not in market_data_cache:
             market_data_cache[symbol] = history_fetcher(
@@ -806,22 +808,22 @@ def _build_alternative_public_replay_evaluation(
         replay_report = build_public_replay_robustness_report(
             candidate_scorecard=alternative_scorecard,
             market_data=market_data_cache[symbol],
-            replay_id=f"public-replay-alternative:{alternative_scorecard['source_runtime_cycle_id']}:{alternative_scorecard['candidate_id']}",
+            replay_id=replay_id,
             max_replay_windows=max_replay_windows,
             min_required_sample_count=min_required_sample_count,
         )
     except Exception as exc:
-        return {
-            "status": "BLOCKED",
-            "blocker_code": "DATA_QUALITY_INSUFFICIENT",
-            "message": f"candidate public replay could not collect read-only public candles: {type(exc).__name__}",
-            "candidate_id": candidate_id,
-            "candidate_index": candidate_index,
-            "symbol": symbol,
-            "robustness_eligible": False,
-            "scorecard": alternative_scorecard,
-            "source_runtime_cycle_report": source_runtime,
-        }
+        replay_report = build_public_replay_fetch_failure_report(
+            candidate_scorecard=alternative_scorecard,
+            replay_id=replay_id,
+            error_type=type(exc).__name__,
+            error_message=str(exc),
+            target_count=target_count,
+            page_size=page_size,
+            timeout_seconds=timeout_seconds,
+            max_replay_windows=max_replay_windows,
+            min_required_sample_count=min_required_sample_count,
+        )
 
     replay_validation = validate_public_replay_robustness_report(
         replay_report,
