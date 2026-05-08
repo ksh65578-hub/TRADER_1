@@ -72,6 +72,22 @@ class OptimizerGuardrailReportValidatorTest(unittest.TestCase):
 
         self.assertIn("PAPER_RANKING_ONLY output requires OPTIMIZER_PAPER_RANKING_ONLY scope", errors)
 
+    def test_paper_ranking_guardrail_requires_checked_performance_sources(self):
+        report = load_json(FIXTURE_DIR / "optimizer_guardrail_report_pass.json")
+        tampered = copy.deepcopy(report)
+        tampered["checked_artifact_ids"] = [
+            artifact_id
+            for artifact_id in tampered["checked_artifact_ids"]
+            if not artifact_id.startswith("performance_summary:")
+        ]
+
+        errors = _optimizer_guardrail_report_errors(tampered)
+
+        self.assertIn(
+            "PAPER_RANKING_ONLY guardrail requires checked candidate-scoped closed trade, execution quality, and performance summary source ids",
+            errors,
+        )
+
     def test_current_validator_fixtures_pass(self):
         result = optimizer_guardrail_report_validator().as_dict()
 
