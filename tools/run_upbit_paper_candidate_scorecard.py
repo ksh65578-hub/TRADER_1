@@ -13,8 +13,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from trader1.research.profitability.candidate_scorecard import (
+    candidate_generation_report_from_upbit_paper_runtime_cycle,
     candidate_scorecard_from_upbit_paper_runtime_cycle,
     performance_inputs_from_runtime_sample_history,
+    validate_candidate_generation_report,
+    write_upbit_paper_candidate_generation_report,
     write_upbit_paper_candidate_scorecard,
 )
 from trader1.research.profitability.convergence_memory import write_upbit_paper_convergence_memory_artifacts
@@ -275,6 +278,20 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
             "SCORECARD_SCHEMA_INVALID",
             scorecard_errors=scorecard_errors,
         )
+    candidate_generation_report = candidate_generation_report_from_upbit_paper_runtime_cycle(
+        runtime,
+        candidate_scorecard=scorecard,
+    )
+    generation_status, generation_message, generation_blocker = validate_candidate_generation_report(
+        candidate_generation_report,
+        candidate_scorecard=scorecard,
+    )
+    if generation_status != "PASS":
+        return _blocked_result(
+            "candidate generation report failed contract validation",
+            generation_blocker or "SCHEMA_IDENTITY_MISMATCH",
+            candidate_generation_errors=[generation_message],
+        )
 
     paper_shadow_binding = _paper_shadow_scorecard_binding(
         root=root,
@@ -284,6 +301,10 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
     history_path = write_upbit_paper_runtime_sample_history(root=root, history=history)
     diagnostic_path = write_overfit_diagnostic_report(root=root, report=diagnostic)
     scorecard_path = write_upbit_paper_candidate_scorecard(root=root, scorecard=scorecard)
+    candidate_generation_path = write_upbit_paper_candidate_generation_report(
+        root=root,
+        report=candidate_generation_report,
+    )
     convergence_memory = write_upbit_paper_convergence_memory_artifacts(
         root=root,
         scorecard=scorecard,
@@ -298,6 +319,7 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
         "runtime_sample_history_path": _relative_path(history_path, root),
         "overfit_diagnostic_path": _relative_path(diagnostic_path, root),
         "candidate_scorecard_path": _relative_path(scorecard_path, root),
+        "candidate_generation_report_path": _relative_path(candidate_generation_path, root),
         "strategy_performance_memory_path": _relative_path(convergence_memory["strategy_performance_memory_path"], root),
         "convergence_objective_profile_path": _relative_path(
             convergence_memory["convergence_objective_profile_path"],
@@ -331,6 +353,12 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
         "scorecard_scope": scorecard["scorecard_scope"],
         "ranking_eligible": scorecard["ranking_eligible"],
         "scorecard_blocker_codes": [blocker["code"] for blocker in scorecard["blockers"]],
+        "candidate_generation_status": candidate_generation_report["generation_status"],
+        "candidate_generation_primary_blocker_code": candidate_generation_report["primary_blocker_code"],
+        "candidate_generation_alternative_candidate_count": candidate_generation_report["alternative_candidate_count"],
+        "candidate_generation_best_alternative_candidate_id": candidate_generation_report["best_alternative_candidate_id"],
+        "candidate_generation_best_alternative_symbol": candidate_generation_report["best_alternative_symbol"],
+        "candidate_generation_next_action": candidate_generation_report["next_action"],
         "diagnostic_status": diagnostic["diagnostic_status"],
         "robustness_eligible": diagnostic["robustness_eligible"],
         "sample_count": diagnostic["sample_count"],
