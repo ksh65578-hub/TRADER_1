@@ -850,6 +850,7 @@ PROFITABILITY_PROMOTION_THRESHOLD_BLOCKER_CODES = {
     "SHADOW_SIGNAL_OPPORTUNITIES_BELOW_MIN",
     "NET_EV_AFTER_COST_NOT_PASS",
     "STRATEGY_EXIT_POLICY_NOT_PASS",
+    "REGIME_OUTCOME_NOT_PASS",
     "PROFIT_FACTOR_NOT_PASS",
     "MAX_DRAWDOWN_NOT_PASS",
     "FILL_QUALITY_NOT_PASS",
@@ -20210,6 +20211,7 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
         status_checks = [
             ("net_ev_after_cost_status", "NET_EV_AFTER_COST_NOT_PASS"),
             ("strategy_exit_policy_status", "STRATEGY_EXIT_POLICY_NOT_PASS"),
+            ("regime_outcome_status", "REGIME_OUTCOME_NOT_PASS"),
             ("profit_factor_status", "PROFIT_FACTOR_NOT_PASS"),
             ("max_drawdown_status", "MAX_DRAWDOWN_NOT_PASS"),
             ("fill_quality_status", "FILL_QUALITY_NOT_PASS"),
@@ -21466,6 +21468,7 @@ def _candidate_scorecard_net_ev_errors(scorecard: dict[str, Any]) -> list[str]:
             "overfit_status": "LOW",
             "closed_trade_status": "PASS",
             "strategy_exit_policy_status": "PASS",
+            "regime_outcome_status": "PASS",
             "profit_factor_status": "PASS",
             "max_drawdown_status": "PASS",
             "realized_vs_expected_edge_status": "PASS",
@@ -21493,6 +21496,33 @@ def _candidate_scorecard_net_ev_errors(scorecard: dict[str, Any]) -> list[str]:
             errors.append("expected_strategy_exit_variation must be a registered strategy exit variation before ranking eligibility")
         if int(scorecard.get("strategy_exit_reason_count", 0) or 0) < int(scorecard.get("closed_trade_sample_count", 0) or 0):
             errors.append("strategy exit reason count must cover every closed trade before ranking eligibility")
+        if int(scorecard.get("regime_outcome_sample_count", 0) or 0) < int(
+            scorecard.get("min_regime_outcome_sample_count", 1) or 1
+        ):
+            errors.append("regime outcome sample count must meet minimum before ranking eligibility")
+        if int(scorecard.get("regime_outcome_covered_count", 0) or 0) < int(
+            scorecard.get("min_regime_outcome_covered_count", 1) or 1
+        ):
+            errors.append("regime outcome coverage must include every required spot regime before ranking eligibility")
+        if int(scorecard.get("regime_outcome_mismatch_count", 0) or 0) > 0:
+            errors.append("regime outcome mismatch count must be zero before ranking eligibility")
+        regime_counts = {
+            item.get("regime"): item
+            for item in scorecard.get("regime_outcome_counts", [])
+            if isinstance(item, dict)
+        }
+        for required_regime in ("UPTREND", "RANGE", "DOWNTREND", "RISK_OFF"):
+            if required_regime not in regime_counts:
+                errors.append(f"regime_outcome_counts must include {required_regime} before ranking eligibility")
+        for blocked_regime in ("DOWNTREND", "RISK_OFF"):
+            regime_row = regime_counts.get(blocked_regime)
+            if isinstance(regime_row, dict):
+                if regime_row.get("trade_allowed") is True:
+                    errors.append(f"{blocked_regime} regime outcome must not allow Upbit spot long entries")
+                if int(regime_row.get("trade_count", 0) or 0) > 0:
+                    errors.append(f"{blocked_regime} regime outcome must have zero Upbit spot long trade count")
+                if int(regime_row.get("mismatch_count", 0) or 0) > 0:
+                    errors.append(f"{blocked_regime} regime outcome mismatch must be zero before ranking eligibility")
         if int(scorecard.get("realized_vs_expected_sample_count", 0) or 0) < int(
             scorecard.get("min_closed_trade_sample_count", 1) or 1
         ):

@@ -799,6 +799,70 @@ def _strategy_performance_status(scorecard: dict[str, Any], blockers: list[dict[
     return "COLLECTING"
 
 
+def _strategy_regime_performance_from_scorecard(
+    scorecard: dict[str, Any],
+    *,
+    fallback_sample_count: int,
+    fallback_trade_count: int,
+    fallback_no_trade_count: int,
+    net_ev: float,
+) -> list[dict[str, Any]]:
+    expected_regimes = ("UPTREND", "RANGE", "DOWNTREND", "RISK_OFF")
+    raw_counts = {
+        item.get("regime"): item
+        for item in scorecard.get("regime_outcome_counts", [])
+        if isinstance(item, dict) and item.get("regime") in expected_regimes
+    }
+    if raw_counts:
+        rows: list[dict[str, Any]] = []
+        for regime in expected_regimes:
+            item = raw_counts.get(regime, {})
+            trade_count = _int_value(item.get("trade_count"))
+            sample_count = _int_value(item.get("sample_count"))
+            no_trade_count = _int_value(item.get("no_trade_count"))
+            mismatch_count = _int_value(item.get("mismatch_count"))
+            blocked_regime = regime in {"DOWNTREND", "RISK_OFF"}
+            rows.append(
+                {
+                    "regime": regime,
+                    "sample_count": sample_count,
+                    "trade_count": trade_count,
+                    "no_trade_count": no_trade_count,
+                    "net_ev_after_cost": net_ev if trade_count > 0 and not blocked_regime else 0.0,
+                    "max_drawdown_pct": (
+                        _bounded_float(scorecard.get("max_drawdown_pct"), lower=0.0, upper=100.0)
+                        if trade_count > 0 and not blocked_regime
+                        else 0.0
+                    ),
+                    "trade_allowed": bool(item.get("trade_allowed")) and not blocked_regime and mismatch_count == 0,
+                    "primary_blocker_code": (
+                        "RISK_VETO"
+                        if regime == "RISK_OFF"
+                        else "REGIME_MISMATCH"
+                        if regime == "DOWNTREND" or mismatch_count > 0
+                        else item.get("primary_blocker_code")
+                    ),
+                }
+            )
+        return rows
+
+    regime_scope = str(scorecard.get("regime_scope") or "RISK_OFF")
+    allowed_regime = "UPTREND" if regime_scope == "TRENDING" else "RANGE" if regime_scope == "RANGE" else None
+    return [
+        {
+            "regime": regime,
+            "sample_count": fallback_sample_count if regime == allowed_regime else 0,
+            "trade_count": fallback_trade_count if regime == allowed_regime else 0,
+            "no_trade_count": fallback_no_trade_count if regime != allowed_regime else 0,
+            "net_ev_after_cost": net_ev if regime == allowed_regime else 0.0,
+            "max_drawdown_pct": _bounded_float(scorecard.get("max_drawdown_pct"), lower=0.0, upper=100.0) if regime == allowed_regime else 0.0,
+            "trade_allowed": regime in {"UPTREND", "RANGE"} and regime == allowed_regime,
+            "primary_blocker_code": None if regime == allowed_regime else ("RISK_VETO" if regime == "RISK_OFF" else "REGIME_MISMATCH"),
+        }
+        for regime in expected_regimes
+    ]
+
+
 def strategy_performance_memory_from_scorecard(
     scorecard: dict[str, Any],
     *,
@@ -818,8 +882,6 @@ def strategy_performance_memory_from_scorecard(
     impact_cost = _bounded_float(scorecard.get("expected_impact_bps"), lower=0.0)
     gross_pnl = _bounded_float(scorecard.get("gross_expected_edge_bps"))
     net_ev = min(_bounded_float(scorecard.get("net_ev_after_cost_bps")), gross_pnl - fee_cost - spread_cost - slippage_cost - impact_cost)
-    regime_scope = str(scorecard.get("regime_scope") or "RISK_OFF")
-    allowed_regime = "UPTREND" if regime_scope == "TRENDING" else "RANGE" if regime_scope == "RANGE" else None
     profit_factor = _bounded_float(scorecard.get("profit_factor"), lower=0.0)
     win_rate = profit_factor / (profit_factor + 1.0) if profit_factor > 0 else 0.0
     source_ids = [scorecard_artifact_id(scorecard), *[str(item) for item in scorecard.get("source_evidence_ids", [])]]
@@ -867,19 +929,13 @@ def strategy_performance_memory_from_scorecard(
         "max_drawdown_pct": _bounded_float(scorecard.get("max_drawdown_pct"), lower=0.0, upper=100.0),
         "win_rate": _bounded_float(win_rate, lower=0.0, upper=1.0),
         "profit_factor": profit_factor,
-        "regime_performance": [
-            {
-                "regime": regime,
-                "sample_count": sample_count if regime == allowed_regime else 0,
-                "trade_count": trade_count if regime == allowed_regime else 0,
-                "no_trade_count": no_trade_count if regime != allowed_regime else 0,
-                "net_ev_after_cost": net_ev if regime == allowed_regime else 0.0,
-                "max_drawdown_pct": _bounded_float(scorecard.get("max_drawdown_pct"), lower=0.0, upper=100.0) if regime == allowed_regime else 0.0,
-                "trade_allowed": regime in {"UPTREND", "RANGE"} and regime == allowed_regime,
-                "primary_blocker_code": None if regime == allowed_regime else ("RISK_VETO" if regime == "RISK_OFF" else "REGIME_MISMATCH"),
-            }
-            for regime in ("UPTREND", "RANGE", "DOWNTREND", "RISK_OFF")
-        ],
+        "regime_performance": _strategy_regime_performance_from_scorecard(
+            scorecard,
+            fallback_sample_count=sample_count,
+            fallback_trade_count=trade_count,
+            fallback_no_trade_count=no_trade_count,
+            net_ev=net_ev,
+        ),
         "downtrend_avoidance_enforced": True,
         "risk_off_no_trade_enforced": True,
         "cost_model_included": True,

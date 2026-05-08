@@ -399,6 +399,20 @@ def update_promotion_thresholds(rollup: dict[str, Any], scorecard: dict[str, Any
         thresholds["strategy_exit_policy_status"] = "PASS"
         missing_codes.discard("STRATEGY_EXIT_POLICY_NOT_PASS")
 
+    regime_outcome_samples = safe_int(scorecard.get("regime_outcome_sample_count"))
+    min_regime_outcome_samples = safe_int(scorecard.get("min_regime_outcome_sample_count"), default=4)
+    regime_outcome_coverage = safe_int(scorecard.get("regime_outcome_covered_count"))
+    min_regime_outcome_coverage = safe_int(scorecard.get("min_regime_outcome_covered_count"), default=4)
+    regime_outcome_mismatches = safe_int(scorecard.get("regime_outcome_mismatch_count"))
+    if (
+        scorecard.get("regime_outcome_status") == "PASS"
+        and regime_outcome_samples >= min_regime_outcome_samples
+        and regime_outcome_coverage >= min_regime_outcome_coverage
+        and regime_outcome_mismatches == 0
+    ):
+        thresholds["regime_outcome_status"] = "PASS"
+        missing_codes.discard("REGIME_OUTCOME_NOT_PASS")
+
     profit_factor = safe_float(scorecard.get("profit_factor"))
     min_profit_factor = safe_float(scorecard.get("min_profit_factor"), 1.0)
     if scorecard.get("profit_factor_status") == "PASS" and profit_factor >= min_profit_factor:
