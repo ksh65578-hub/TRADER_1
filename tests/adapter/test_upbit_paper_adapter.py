@@ -1,7 +1,13 @@
 import unittest
 
 from trader1.adapters.upbit.fee_model import build_upbit_fee_slippage_model
-from trader1.adapters.upbit.market_data import build_upbit_public_market_data_fixture, validate_upbit_public_market_data
+from trader1.adapters.upbit.market_data import (
+    build_upbit_krw_market_symbols_from_rest_payload,
+    build_upbit_public_market_data_fixture,
+    build_upbit_public_ticker_snapshot_from_rest_payload,
+    rank_upbit_krw_symbols_by_public_ticker,
+    validate_upbit_public_market_data,
+)
 from trader1.adapters.upbit.paper_broker import build_upbit_paper_dry_run_report, validate_upbit_paper_dry_run_report
 from trader1.adapters.upbit.symbol_rules import validate_upbit_krw_symbol
 
@@ -65,6 +71,40 @@ class UpbitPaperAdapterTest(unittest.TestCase):
         model = build_upbit_fee_slippage_model(public_market_data=data)
         self.assertEqual(model["fee_model_status"], "PASS")
         self.assertEqual(model["slippage_model_status"], "BLOCKED")
+
+    def test_public_symbol_discovery_uses_strict_upbit_symbol_rule(self):
+        payload = [
+            {"market": "KRW-BTC"},
+            {"market": "KRW-ETH"},
+            {"market": "KRW-btc"},
+            {"market": "KRW-"},
+            {"market": "KRW-KRW"},
+            {"market": "KRW-BTC-USDT"},
+            {"market": "BTC-USDT"},
+            {"market": " KRW-SOL"},
+        ]
+        symbols = build_upbit_krw_market_symbols_from_rest_payload(payload)
+        self.assertEqual(symbols, ["KRW-BTC", "KRW-ETH"])
+
+    def test_ticker_snapshot_and_ranking_skip_invalid_symbols(self):
+        requested = ["KRW-BTC", "KRW-BTC-USDT", "KRW-btc", "KRW-ETH"]
+        snapshot = build_upbit_public_ticker_snapshot_from_rest_payload(
+            payload=[
+                {"market": "KRW-BTC", "trade_price": "1000", "acc_trade_price_24h": "1000000000", "signed_change_rate": "0.02", "acc_trade_volume_24h": "100"},
+                {"market": "KRW-BTC-USDT", "trade_price": "1000", "acc_trade_price_24h": "900000000", "signed_change_rate": "0.05", "acc_trade_volume_24h": "90"},
+                {"market": "KRW-ETH", "trade_price": "900", "acc_trade_price_24h": "700000000", "signed_change_rate": "0.01", "acc_trade_volume_24h": "80"},
+            ],
+            requested_symbols=requested,
+            session_id="adapter-ranking",
+        )
+        self.assertEqual(sorted(snapshot["ticker_by_symbol"]), ["KRW-BTC", "KRW-ETH"])
+        ranking = rank_upbit_krw_symbols_by_public_ticker(
+            symbols=requested,
+            ticker_by_symbol=snapshot["ticker_by_symbol"],
+            session_id="adapter-ranking",
+        )
+        self.assertEqual(ranking["input_symbol_count"], 2)
+        self.assertNotIn("KRW-BTC-USDT", ranking["selected_symbols_for_candle_evaluation"])
 
     def test_paper_adapter_blocks_non_upbit_scope(self):
         report = build_upbit_paper_dry_run_report(
