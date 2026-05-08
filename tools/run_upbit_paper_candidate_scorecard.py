@@ -142,6 +142,10 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
         "overfit_diagnostic_path": _relative_path(diagnostic_path, root),
         "candidate_scorecard_path": _relative_path(scorecard_path, root),
         "strategy_performance_memory_path": _relative_path(convergence_memory["strategy_performance_memory_path"], root),
+        "convergence_objective_profile_path": _relative_path(
+            convergence_memory["convergence_objective_profile_path"],
+            root,
+        ),
         "optimizer_memory_state_path": _relative_path(convergence_memory["optimizer_memory_state_path"], root),
         "failure_analysis_path": (
             _relative_path(convergence_memory["failure_analysis_path"], root)
@@ -171,6 +175,7 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
         "performance_fill_quality_score": scorecard["fill_quality_score"],
         "strategy_performance_memory_status": convergence_memory["strategy_performance_memory"]["performance_status"],
         "strategy_performance_memory_scope": convergence_memory["strategy_performance_memory"]["performance_scope"],
+        "convergence_objective_profile_status": convergence_memory["convergence_objective_profile"]["objective_status"],
         "optimizer_memory_sequence_number": convergence_memory["optimizer_memory_state"]["memory_sequence_number"],
         "failure_analysis_status": (
             convergence_memory["failure_analysis"]["failure_status"]

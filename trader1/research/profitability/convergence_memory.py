@@ -14,6 +14,7 @@ from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_js
 
 ROOT = Path(__file__).resolve().parents[3]
 STRATEGY_PERFORMANCE_MEMORY_SCHEMA_ID = "trader1.strategy_performance_memory.v1"
+CONVERGENCE_OBJECTIVE_PROFILE_SCHEMA_ID = "trader1.convergence_objective_profile.v1"
 OPTIMIZER_MEMORY_STATE_SCHEMA_ID = "trader1.optimizer_memory_state.v1"
 FAILURE_ANALYSIS_SCHEMA_ID = "trader1.failure_analysis_report.v1"
 PROFIT_CONVERGENCE_CYCLE_SCHEMA_ID = "trader1.profit_convergence_cycle_report.v1"
@@ -182,14 +183,101 @@ def _performance_scope(source_modes: list[str]) -> str:
     return "PAPER_RUNTIME_SCORECARD_ONLY"
 
 
+def convergence_objective_profile_from_scorecard(
+    scorecard: dict[str, Any],
+    *,
+    strategy_memory: dict[str, Any] | None = None,
+    authority: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    source_modes = sorted(
+        set(str(item) for item in (strategy_memory or {}).get("source_modes", [scorecard.get("mode", "PAPER")]) if item != "LIVE")
+    )
+    source_modes = source_modes or ["PAPER"]
+    net_ev = _bounded_float(scorecard.get("net_ev_after_cost_bps"))
+    raw_edge = _bounded_float(scorecard.get("gross_expected_edge_bps"))
+    blockers = _dedupe_blockers(
+        [
+            *[blocker(str(item.get("code")), str(item.get("message")), str(item.get("severity") or "HIGH")) for item in scorecard.get("blockers", [])],
+            *[blocker(str(item.get("code")), str(item.get("message")), str(item.get("severity") or "HIGH")) for item in (strategy_memory or {}).get("blockers", [])],
+        ]
+    )
+    if "SHADOW" not in set(source_modes) and not any(item["code"] == "MEASUREMENT_MISSING" for item in blockers):
+        blockers.append(
+            blocker(
+                "MEASUREMENT_MISSING",
+                "Objective profile is derived from PAPER scorecard evidence only; SHADOW evidence is still required.",
+                "MEDIUM",
+            )
+        )
+    if raw_edge > 0 and net_ev <= 0 and not {"COST_AFTER_EDGE_UNVERIFIED", "FEE_EXCEEDS_EDGE"} & {item["code"] for item in blockers}:
+        blockers.append(
+            blocker(
+                "COST_AFTER_EDGE_UNVERIFIED",
+                "Objective profile blocks raw-PnL-only improvement because net EV after fee, slippage, and impact is not positive.",
+            )
+        )
+    hard_codes = {
+        "MIN_EDGE_FAIL",
+        "FEE_EXCEEDS_EDGE",
+        "COST_AFTER_EDGE_UNVERIFIED",
+        "DRAWDOWN_FREEZE_ACTIVE",
+        "OVERFIT_RISK_HIGH",
+        "EXECUTION_FEEDBACK_DIVERGENT",
+        "REGIME_MISMATCH",
+        "RISK_VETO",
+    }
+    objective_status = "BLOCKED" if ({item["code"] for item in blockers} & hard_codes or net_ev <= 0) else "EVALUATION_ONLY"
+    profile = {
+        "schema_id": CONVERGENCE_OBJECTIVE_PROFILE_SCHEMA_ID,
+        "generated_at_utc": utc_now(),
+        "project_id": "TRADER_1",
+        "authority": authority or current_authority_hashes(),
+        "exchange": scorecard["exchange"],
+        "market_type": scorecard["market_type"],
+        "mode": scorecard["mode"],
+        "status": objective_status,
+        "objective_profile_id": f"convergence_objective_profile:{scorecard.get('scorecard_id')}",
+        "objective_profile_version": "scorecard_runtime_v1",
+        "objective_status": objective_status,
+        "source_modes": source_modes,
+        "objective_components": [
+            {"component_id": "net_ev_after_cost", "component_kind": "NET_EV_AFTER_COST", "weight": 1.0, "required": True},
+            {"component_id": "drawdown_penalty", "component_kind": "DRAWDOWN_PENALTY", "weight": 0.35, "required": True},
+            {"component_id": "slippage_penalty", "component_kind": "SLIPPAGE_PENALTY", "weight": 0.25, "required": True},
+            {"component_id": "fee_penalty", "component_kind": "FEE_PENALTY", "weight": 0.25, "required": True},
+            {"component_id": "impact_penalty", "component_kind": "IMPACT_PENALTY", "weight": 0.2, "required": True},
+            {"component_id": "oos_robustness", "component_kind": "OOS_ROBUSTNESS", "weight": 0.4, "required": True},
+            {"component_id": "regime_fit", "component_kind": "REGIME_FIT", "weight": 0.25, "required": True},
+        ],
+        "net_ev_after_cost_required": True,
+        "raw_pnl_only_allowed": False,
+        "live_permission_created": False,
+        "live_config_mutation_allowed": False,
+        "writes_live_ready_snapshot": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "operator_warning": "Objective profile is evaluation-only, not LIVE_READY, and live orders blocked.",
+        "blockers": blockers,
+        "notes": "Generated from non-live scorecard evidence; objective remains research-only and cannot promote or write live config.",
+        "profile_hash": "0" * 64,
+    }
+    profile["profile_hash"] = sha256_json({key: value for key, value in profile.items() if key != "profile_hash"})
+    return profile
+
+
 def _normalized_dependency_statuses(
     dependency_statuses: dict[str, str] | None,
     *,
+    objective_profile: dict[str, Any] | None,
     strategy_memory: dict[str, Any] | None,
     optimizer_memory: dict[str, Any] | None,
     failure_analysis: dict[str, Any] | None,
 ) -> dict[str, str]:
     statuses = dict(DEFAULT_PROFIT_CYCLE_DEPENDENCY_STATUSES)
+    if objective_profile is not None:
+        statuses["convergence_objective_profile_validator_status"] = "PASS"
     if strategy_memory is not None:
         statuses["strategy_performance_memory_validator_status"] = "PASS"
     if optimizer_memory is not None:
@@ -223,11 +311,14 @@ def _dependency_blockers(statuses: dict[str, str]) -> list[dict[str, str]]:
 
 def _source_ids_for_cycle(
     scorecard: dict[str, Any],
+    objective_profile: dict[str, Any] | None,
     strategy_memory: dict[str, Any] | None,
     optimizer_memory: dict[str, Any] | None,
     failure_analysis: dict[str, Any] | None,
 ) -> list[str]:
     source_ids = [scorecard_artifact_id(scorecard), *[str(item) for item in scorecard.get("source_evidence_ids", [])]]
+    if objective_profile is not None:
+        source_ids.append(f"convergence_objective_profile:{objective_profile.get('objective_profile_id')}:{objective_profile.get('profile_hash')}")
     if strategy_memory is not None:
         source_ids.append(
             f"strategy_performance_memory:{strategy_memory.get('strategy_performance_memory_id')}:{sha256_json(strategy_memory)}"
@@ -245,6 +336,7 @@ def _source_ids_for_cycle(
 def profit_convergence_cycle_from_scorecard(
     scorecard: dict[str, Any],
     *,
+    objective_profile: dict[str, Any] | None = None,
     strategy_memory: dict[str, Any] | None,
     optimizer_memory: dict[str, Any] | None,
     failure_analysis: dict[str, Any] | None = None,
@@ -258,6 +350,7 @@ def profit_convergence_cycle_from_scorecard(
 
     statuses = _normalized_dependency_statuses(
         dependency_statuses,
+        objective_profile=objective_profile,
         strategy_memory=strategy_memory,
         optimizer_memory=optimizer_memory,
         failure_analysis=failure_analysis,
@@ -345,7 +438,7 @@ def profit_convergence_cycle_from_scorecard(
         "timeframe_scope": scorecard["timeframe_scope"],
         "regime_scope": scorecard["regime_scope"],
         "source_modes": source_modes,
-        "source_evidence_ids": _source_ids_for_cycle(scorecard, strategy_memory, optimizer_memory, failure_analysis),
+        "source_evidence_ids": _source_ids_for_cycle(scorecard, objective_profile, strategy_memory, optimizer_memory, failure_analysis),
         **statuses,
         "required_dependency_count": len(PROFIT_CONVERGENCE_CYCLE_DEPENDENCY_FIELDS),
         "dependency_pass_count": pass_count,
@@ -723,6 +816,7 @@ def write_upbit_paper_convergence_memory_artifacts(
         raise ValueError("convergence memory writer refuses live or scale-up permission")
 
     memory = strategy_performance_memory_from_scorecard(scorecard)
+    objective_profile = convergence_objective_profile_from_scorecard(scorecard, strategy_memory=memory)
     failure = failure_analysis_from_scorecard(scorecard, previous_failure_reports=previous_failure_reports)
     optimizer_memory = optimizer_memory_state_from_scorecard(
         scorecard,
@@ -731,6 +825,7 @@ def write_upbit_paper_convergence_memory_artifacts(
     )
     profit_cycle = profit_convergence_cycle_from_scorecard(
         scorecard,
+        objective_profile=objective_profile,
         strategy_memory=memory,
         optimizer_memory=optimizer_memory,
         failure_analysis=failure,
@@ -746,9 +841,11 @@ def write_upbit_paper_convergence_memory_artifacts(
         / "convergence"
     )
     strategy_memory_path = base / "strategy_performance_memory.json"
+    objective_profile_path = base / "convergence_objective_profile.json"
     optimizer_memory_path = base / "optimizer_memory_state.json"
     profit_cycle_path = base / "profit_convergence_cycle_report.json"
     durable_atomic_write_json(strategy_memory_path, memory)
+    durable_atomic_write_json(objective_profile_path, objective_profile)
     durable_atomic_write_json(optimizer_memory_path, optimizer_memory)
     durable_atomic_write_json(profit_cycle_path, profit_cycle)
     failure_path = None
@@ -761,10 +858,12 @@ def write_upbit_paper_convergence_memory_artifacts(
         durable_atomic_write_json(failure_path, failure)
     return {
         "strategy_performance_memory": memory,
+        "convergence_objective_profile": objective_profile,
         "optimizer_memory_state": optimizer_memory,
         "failure_analysis": failure,
         "profit_convergence_cycle_report": profit_cycle,
         "strategy_performance_memory_path": strategy_memory_path,
+        "convergence_objective_profile_path": objective_profile_path,
         "optimizer_memory_state_path": optimizer_memory_path,
         "failure_analysis_path": failure_path,
         "profit_convergence_cycle_report_path": profit_cycle_path,
