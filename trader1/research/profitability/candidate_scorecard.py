@@ -614,11 +614,12 @@ def performance_inputs_from_runtime_sample_history(
 
         if sell_policy_observed and runtime.get("final_decision") == "EXIT_POSITION":
             direct_realized_delta = _paper_sell_fill_realized_delta(fill, lifecycle)
-            realized_delta = (
-                direct_realized_delta
-                if direct_realized_delta is not None
-                else current_realized - (candidate_realized_pnl_baseline if candidate_realized_pnl_baseline is not None else Decimal("0"))
-            )
+            if direct_realized_delta is not None:
+                realized_delta = direct_realized_delta
+            elif candidate_realized_pnl_baseline is not None:
+                realized_delta = current_realized - candidate_realized_pnl_baseline
+            else:
+                continue
             closed_trade_count += 1
             if realized_delta >= 0:
                 gross_profit += realized_delta

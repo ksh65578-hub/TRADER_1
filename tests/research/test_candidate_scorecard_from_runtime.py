@@ -1023,6 +1023,51 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertAlmostEqual(unrelated_first_metrics["max_drawdown_pct"], target_only_metrics["max_drawdown_pct"])
         self.assertAlmostEqual(target_first_metrics["max_drawdown_pct"], target_only_metrics["max_drawdown_pct"])
 
+    def test_runtime_performance_unscoped_legacy_closed_trade_does_not_claim_pnl(self):
+        target_entry_runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="scorecard-performance-unscoped-target-entry",
+            symbol="KRW-BTC",
+        )
+        target_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(target_entry_runtime)
+        target_runtime = _closed_trade_runtime_for_candidate(
+            symbol="KRW-BTC",
+            cycle_id="scorecard-performance-unscoped-target-exit",
+        )
+        target_runtime["position_management_decision"].pop("managed_position_quantity", None)
+        target_runtime["position_management_decision"].pop("managed_position_cost_basis", None)
+        target_runtime["cycle_hash"] = upbit_paper_runtime_cycle_hash(target_runtime)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            runtime_dir = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp4_upbit_paper_runtime"
+            runtime_dir.mkdir(parents=True)
+            runtime_path = runtime_dir / f"{target_runtime['cycle_id']}.runtime_cycle.json"
+            runtime_path.write_text(json.dumps(target_runtime, sort_keys=True), encoding="utf-8")
+            statuses, metrics, source_ids = performance_inputs_from_runtime_sample_history(
+                candidate_scorecard=target_scorecard,
+                runtime_sample_history={
+                    "history_id": "candidate-unscoped-legacy-history",
+                    "history_hash": "C" * 64,
+                    "samples": [
+                        {
+                            "source_runtime_cycle_path": runtime_path.relative_to(root).as_posix(),
+                            "source_runtime_cycle_hash": target_runtime["cycle_hash"],
+                        }
+                    ],
+                },
+                root=root,
+            )
+
+        target_key = safe_candidate_scorecard_filename(target_scorecard["candidate_id"])
+        self.assertEqual(metrics["closed_trade_sample_count"], 0)
+        self.assertEqual(metrics["realized_vs_expected_sample_count"], 0)
+        self.assertEqual(metrics["strategy_exit_policy_sample_count"], 1)
+        self.assertEqual(metrics["fill_quality_sample_count"], 1)
+        self.assertEqual(statuses["closed_trade_status"], "UNTESTED")
+        self.assertEqual(statuses["profit_factor_status"], "UNTESTED")
+        self.assertEqual(statuses["realized_vs_expected_edge_status"], "UNTESTED")
+        self.assertTrue(all(f":{target_key}:" in source_id for source_id in source_ids))
+
     def test_partial_sell_counts_strategy_exit_policy_without_closed_trade_claim(self):
         weak_btc = build_upbit_public_candle_fixture(
             symbol="KRW-BTC",
