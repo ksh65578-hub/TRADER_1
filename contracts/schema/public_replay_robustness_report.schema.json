@@ -54,7 +54,7 @@
     "strategy_id": {"type": "string", "minLength": 1},
     "strategy_build_id": {"type": "string", "minLength": 1},
     "parameter_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
-    "value_source": {"const": "PUBLIC_REST_REPLAY_EXPECTED_NET_EV_AFTER_COST_BPS"},
+    "value_source": {"const": "PUBLIC_REST_REPLAY_DECISION_ADJUSTED_NET_EV_AFTER_COST_BPS"},
     "public_market_data_source": {"const": "PUBLIC_REST_READ_ONLY"},
     "public_market_data_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
     "window_size": {"type": "integer", "minimum": 5},
@@ -93,12 +93,17 @@
         "strategy_id",
         "candidate_id",
         "decision",
+        "executed_trade",
+        "replay_return_basis",
         "regime",
         "strategy_policy_reason",
         "no_trade_reason",
         "net_ev_after_cost_bps",
         "gross_expected_edge_bps",
-        "total_execution_cost_bps"
+        "total_execution_cost_bps",
+        "opportunity_net_ev_after_cost_bps",
+        "opportunity_gross_expected_edge_bps",
+        "opportunity_total_execution_cost_bps"
       ],
       "additionalProperties": false,
       "properties": {
@@ -118,12 +123,22 @@
         "strategy_id": {"type": "string", "minLength": 1},
         "candidate_id": {"type": "string", "minLength": 1},
         "decision": {"enum": ["PAPER_ENTRY_REVIEW", "NO_TRADE"]},
+        "executed_trade": {"type": "boolean"},
+        "replay_return_basis": {
+          "enum": [
+            "EXECUTED_ENTRY_REVIEW_NET_EV_AFTER_COST",
+            "FLAT_NO_TRADE_CASH_RETURN"
+          ]
+        },
         "regime": {"enum": ["UPTREND", "RANGE", "RISK_OFF"]},
         "strategy_policy_reason": {"type": ["string", "null"]},
         "no_trade_reason": {"type": ["string", "null"]},
         "net_ev_after_cost_bps": {"type": "number"},
         "gross_expected_edge_bps": {"type": "number"},
-        "total_execution_cost_bps": {"type": "number"}
+        "total_execution_cost_bps": {"type": "number"},
+        "opportunity_net_ev_after_cost_bps": {"type": "number"},
+        "opportunity_gross_expected_edge_bps": {"type": "number"},
+        "opportunity_total_execution_cost_bps": {"type": "number"}
       }
     }
   }

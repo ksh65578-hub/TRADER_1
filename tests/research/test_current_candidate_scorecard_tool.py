@@ -289,7 +289,13 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
                 min_required_sample_count=300,
             )
             for row in replay_report["sample_rows"]:
-                row["net_ev_after_cost_bps"] = -25.0
+                if row["decision"] == "PAPER_ENTRY_REVIEW":
+                    row["net_ev_after_cost_bps"] = -25.0
+                    row["gross_expected_edge_bps"] = -25.0
+                    row["total_execution_cost_bps"] = 0.0
+                    row["opportunity_net_ev_after_cost_bps"] = -25.0
+                    row["opportunity_gross_expected_edge_bps"] = -25.0
+                    row["opportunity_total_execution_cost_bps"] = 0.0
             replay_report["report_hash"] = public_replay_robustness_report_hash(replay_report)
             write_public_replay_robustness_report(root=root, report=replay_report)
 
