@@ -18514,6 +18514,7 @@ def _model_drift_errors(report: dict[str, Any]) -> list[str]:
     max_data_age = float(report.get("max_data_age_seconds", 0))
     drift_status = report.get("drift_status")
     convergence_claim_after = report.get("convergence_claim_after")
+    source_evidence_ids = [str(item) for item in report.get("source_evidence_ids", []) if isinstance(item, str)]
 
     if data_status != "FRESH" or data_age > max_data_age:
         if drift_status == "NO_DRIFT":
@@ -18531,6 +18532,12 @@ def _model_drift_errors(report: dict[str, Any]) -> list[str]:
             errors.append("NO_DRIFT requires evaluation_sample_count >= min_required_sample_count")
         if float(report.get("drift_score", 0)) > float(report.get("max_allowed_drift_score", 0)):
             errors.append("NO_DRIFT requires drift_score <= max_allowed_drift_score")
+        if not has_required_robustness_source_ids(source_evidence_ids):
+            errors.append("NO_DRIFT requires OOS, walk-forward, and bootstrap source evidence ids")
+        if _candidate_scoped_performance_source_binding_count(source_evidence_ids) <= 0:
+            errors.append(
+                "NO_DRIFT requires candidate-scoped closed trade, execution quality, and performance summary source ids"
+            )
 
     if drift_status in {"DRIFT_SUSPECTED", "DRIFT_DETECTED", "BLOCKED"}:
         if report.get("blocks_promotion") is not True:
@@ -18613,7 +18620,7 @@ def model_drift_validator() -> ValidatorResult:
 
     return pass_result(
         "model_drift_validator",
-        "model drift report requires fresh scoped evidence, OOS/walk-forward/bootstrap PASS for strong claims, drift blocking, and false live/scale flags",
+        "model drift report requires fresh scoped evidence, OOS/walk-forward/bootstrap and candidate-scoped performance sources for NO_DRIFT, drift blocking, and false live/scale flags",
         paths,
     )
 
