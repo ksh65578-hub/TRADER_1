@@ -9600,6 +9600,8 @@ def _overfit_diagnostic_projection(
         "overfit_diagnostic_status": "NOT_LOADED",
         "overfit_diagnostic_sample_count": 0,
         "overfit_diagnostic_min_required_sample_count": 300,
+        "overfit_diagnostic_closed_trade_sample_deficit": 300,
+        "overfit_diagnostic_sample_basis": "REALIZED_CLOSED_PAPER_TRADES",
         "overfit_diagnostic_robustness_eligible": False,
         "overfit_diagnostic_oos_status": "UNTESTED",
         "overfit_diagnostic_walk_forward_status": "UNTESTED",
@@ -9608,6 +9610,8 @@ def _overfit_diagnostic_projection(
         "overfit_preliminary_robustness_status": "INSUFFICIENT_PRELIMINARY_SAMPLE",
         "overfit_preliminary_min_required_sample_count": 20,
         "overfit_preliminary_sample_count": 0,
+        "overfit_preliminary_exact_candidate_sample_count": 0,
+        "overfit_preliminary_sample_basis": "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE",
         "overfit_preliminary_oos_status": "UNTESTED",
         "overfit_preliminary_walk_forward_status": "UNTESTED",
         "overfit_preliminary_bootstrap_status": "UNTESTED",
@@ -9645,15 +9649,25 @@ def _overfit_diagnostic_projection(
     ]
     first_blocker = blocker_codes[0] if blocker_codes else "LIVE_READY_MISSING"
     status = str(overfit_diagnostic_report.get("diagnostic_status") or "UNTESTED")
+    full_sample_count = safe_int(overfit_diagnostic_report.get("sample_count"))
+    full_min_required_sample_count = safe_int(overfit_diagnostic_report.get("min_required_sample_count"), 300)
+    preliminary_sample_count = safe_int(
+        overfit_diagnostic_report.get("preliminary_sample_count") or overfit_diagnostic_report.get("sample_count")
+    )
+    preliminary_exact_candidate_sample_count = safe_int(
+        overfit_diagnostic_report.get("preliminary_exact_candidate_sample_count")
+    )
     projection = {
         **base,
         "overfit_diagnostic_source": "overfit_diagnostic_report.json",
         "overfit_diagnostic_status": status if status in OVERFIT_DIAGNOSTIC_STATUSES else "BLOCKED",
-        "overfit_diagnostic_sample_count": safe_int(overfit_diagnostic_report.get("sample_count")),
-        "overfit_diagnostic_min_required_sample_count": safe_int(
-            overfit_diagnostic_report.get("min_required_sample_count"),
-            300,
+        "overfit_diagnostic_sample_count": full_sample_count,
+        "overfit_diagnostic_min_required_sample_count": full_min_required_sample_count,
+        "overfit_diagnostic_closed_trade_sample_deficit": max(
+            0,
+            full_min_required_sample_count - full_sample_count,
         ),
+        "overfit_diagnostic_sample_basis": "REALIZED_CLOSED_PAPER_TRADES",
         "overfit_diagnostic_robustness_eligible": overfit_diagnostic_report.get("robustness_eligible") is True,
         "overfit_diagnostic_oos_status": str(overfit_diagnostic_report.get("oos_status") or "UNTESTED"),
         "overfit_diagnostic_walk_forward_status": str(overfit_diagnostic_report.get("walk_forward_status") or "UNTESTED"),
@@ -9667,9 +9681,9 @@ def _overfit_diagnostic_projection(
             overfit_diagnostic_report.get("preliminary_min_required_sample_count"),
             20,
         ),
-        "overfit_preliminary_sample_count": safe_int(
-            overfit_diagnostic_report.get("preliminary_sample_count") or overfit_diagnostic_report.get("sample_count")
-        ),
+        "overfit_preliminary_sample_count": preliminary_sample_count,
+        "overfit_preliminary_exact_candidate_sample_count": preliminary_exact_candidate_sample_count,
+        "overfit_preliminary_sample_basis": "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE",
         "overfit_preliminary_oos_status": str(overfit_diagnostic_report.get("preliminary_oos_status") or "UNTESTED"),
         "overfit_preliminary_walk_forward_status": str(
             overfit_diagnostic_report.get("preliminary_walk_forward_status") or "UNTESTED"
@@ -9712,7 +9726,7 @@ def _overfit_diagnostic_projection(
         "overfit_diagnostic_primary_blocker_code": first_blocker,
         "overfit_diagnostic_blocker_summary": ", ".join(blocker_codes[:4]) if blocker_codes else "PAPER robustness review only; live remains blocked.",
         "overfit_diagnostic_next_action": (
-            "Collect PAPER samples until OOS, walk-forward, bootstrap, and stability checks pass; do not treat this as LIVE_READY."
+            "Collect realized closed PAPER trades until OOS, walk-forward, bootstrap, and stability checks pass; do not treat this as LIVE_READY."
         ),
     }
     live_flag_drift = any(
@@ -24573,11 +24587,31 @@ def validate_read_only_dashboard_shell(
     for numeric_field in (
         "overfit_diagnostic_sample_count",
         "overfit_diagnostic_min_required_sample_count",
+        "overfit_diagnostic_closed_trade_sample_deficit",
         "overfit_preliminary_min_required_sample_count",
         "overfit_preliminary_sample_count",
+        "overfit_preliminary_exact_candidate_sample_count",
     ):
         if not isinstance(maturity.get(numeric_field), int):
             return DashboardValidationResult("FAIL", f"overfit diagnostic {numeric_field} must be integer", "SCHEMA_IDENTITY_MISMATCH")
+    if maturity.get("overfit_diagnostic_sample_basis") != "REALIZED_CLOSED_PAPER_TRADES":
+        return DashboardValidationResult("FAIL", "overfit full robustness sample basis must be realized closed PAPER trades", "SCHEMA_IDENTITY_MISMATCH")
+    if maturity.get("overfit_preliminary_sample_basis") != "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE":
+        return DashboardValidationResult("FAIL", "overfit preliminary sample basis must remain preliminary expected-edge diagnostics", "SCHEMA_IDENTITY_MISMATCH")
+    expected_deficit = max(
+        0,
+        int(maturity.get("overfit_diagnostic_min_required_sample_count"))
+        - int(maturity.get("overfit_diagnostic_sample_count")),
+    )
+    if maturity.get("overfit_diagnostic_closed_trade_sample_deficit") != expected_deficit:
+        return DashboardValidationResult("FAIL", "overfit closed trade sample deficit mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        overfit_source_loaded
+        and overfit_status == "BLOCKED_FOR_ROBUSTNESS"
+        and expected_deficit > 0
+        and "closed PAPER trade" not in maturity.get("overfit_diagnostic_next_action", "")
+    ):
+        return DashboardValidationResult("FAIL", "overfit blocked display must explain closed PAPER trade requirement", "HARD_TRUTH_MISSING")
     if not isinstance(maturity.get("overfit_diagnostic_robustness_eligible"), bool):
         return DashboardValidationResult("FAIL", "overfit diagnostic robustness flag must be boolean", "SCHEMA_IDENTITY_MISMATCH")
     if maturity.get("overfit_preliminary_robustness_status") not in OVERFIT_PRELIMINARY_ROBUSTNESS_STATUSES:
@@ -24594,9 +24628,11 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("FAIL", f"overfit diagnostic {numeric_or_null_field} must be numeric or null", "SCHEMA_IDENTITY_MISMATCH")
     for text_field in (
         "overfit_diagnostic_oos_status",
+        "overfit_diagnostic_sample_basis",
         "overfit_diagnostic_walk_forward_status",
         "overfit_diagnostic_bootstrap_status",
         "overfit_diagnostic_overfit_status",
+        "overfit_preliminary_sample_basis",
         "overfit_preliminary_oos_status",
         "overfit_preliminary_walk_forward_status",
         "overfit_preliminary_bootstrap_status",
@@ -26955,10 +26991,14 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"best alternative={safe_text(maturity.get('candidate_scorecard_best_alternative_symbol') or 'none')} / "
         f"{safe_text(maturity.get('candidate_scorecard_best_alternative_candidate_id') or 'none')} / "
         f"netEV={safe_text(maturity.get('candidate_scorecard_best_alternative_net_ev_after_cost_bps', 'n/a'))}<br>"
-        f"Overfit: {safe_text(maturity.get('overfit_diagnostic_status', 'NOT_LOADED'))} "
-        f"({safe_text(maturity.get('overfit_diagnostic_sample_count', 0))}/{safe_text(maturity.get('overfit_diagnostic_min_required_sample_count', 300))} samples), "
+        f"Overfit full robustness: {safe_text(maturity.get('overfit_diagnostic_status', 'NOT_LOADED'))} "
+        f"({safe_text(maturity.get('overfit_diagnostic_sample_count', 0))}/{safe_text(maturity.get('overfit_diagnostic_min_required_sample_count', 300))} realized closed PAPER trades, "
+        f"deficit={safe_text(maturity.get('overfit_diagnostic_closed_trade_sample_deficit', 0))}), "
         f"blocker={safe_text(maturity.get('overfit_diagnostic_primary_blocker_code', 'SAMPLE_INSUFFICIENT'))}<br>"
         f"Early robustness: {safe_text(maturity.get('overfit_preliminary_robustness_status', 'INSUFFICIENT_PRELIMINARY_SAMPLE'))}, "
+        f"samples={safe_text(maturity.get('overfit_preliminary_sample_count', 0))}/"
+        f"{safe_text(maturity.get('overfit_preliminary_min_required_sample_count', 20))}, "
+        f"exact candidate={safe_text(maturity.get('overfit_preliminary_exact_candidate_sample_count', 0))}; "
         f"OOS={safe_text(maturity.get('overfit_preliminary_oos_status', 'UNTESTED'))}, "
         f"WF={safe_text(maturity.get('overfit_preliminary_walk_forward_status', 'UNTESTED'))}, "
         f"bootstrap={safe_text(maturity.get('overfit_preliminary_bootstrap_status', 'UNTESTED'))}<br>"

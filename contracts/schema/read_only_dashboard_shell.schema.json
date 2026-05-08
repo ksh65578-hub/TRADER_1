@@ -7398,6 +7398,13 @@
           "type": "integer",
           "minimum": 0
         },
+        "overfit_diagnostic_closed_trade_sample_deficit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "overfit_diagnostic_sample_basis": {
+          "const": "REALIZED_CLOSED_PAPER_TRADES"
+        },
         "overfit_diagnostic_robustness_eligible": {
           "type": "boolean"
         },
@@ -7415,6 +7422,13 @@
         "overfit_preliminary_sample_count": {
           "type": "integer",
           "minimum": 0
+        },
+        "overfit_preliminary_exact_candidate_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "overfit_preliminary_sample_basis": {
+          "const": "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE"
         },
         "overfit_preliminary_oos_status": {
           "type": "string",

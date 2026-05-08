@@ -3992,17 +3992,28 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(maturity["overfit_diagnostic_status"], "BLOCKED_FOR_ROBUSTNESS")
         self.assertEqual(maturity["overfit_diagnostic_sample_count"], 12)
         self.assertEqual(maturity["overfit_diagnostic_min_required_sample_count"], 300)
+        self.assertEqual(maturity["overfit_diagnostic_closed_trade_sample_deficit"], 288)
+        self.assertEqual(maturity["overfit_diagnostic_sample_basis"], "REALIZED_CLOSED_PAPER_TRADES")
+        self.assertEqual(
+            maturity["overfit_preliminary_sample_basis"],
+            "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE",
+        )
+        self.assertEqual(maturity["overfit_preliminary_exact_candidate_sample_count"], 0)
         self.assertEqual(maturity["overfit_preliminary_robustness_status"], "INSUFFICIENT_PRELIMINARY_SAMPLE")
         self.assertEqual(maturity["overfit_preliminary_primary_blocker_code"], "PRELIMINARY_SAMPLE_INSUFFICIENT")
+        self.assertIn("closed PAPER trades", maturity["overfit_diagnostic_next_action"])
         self.assertFalse(maturity["overfit_diagnostic_robustness_eligible"])
         self.assertEqual(maturity["overfit_diagnostic_primary_blocker_code"], "SAMPLE_INSUFFICIENT")
         sources = [source for source in dashboard["source_artifacts"] if source["artifact_id"] == "OVERFIT_DIAGNOSTIC"]
         self.assertEqual(len(sources), 1)
         self.assertEqual(sources[0]["filename"], "overfit_diagnostic_report.json")
         html = render_dashboard_html(dashboard)
-        self.assertIn("Overfit: BLOCKED_FOR_ROBUSTNESS", html)
+        self.assertIn("Overfit full robustness: BLOCKED_FOR_ROBUSTNESS", html)
+        self.assertIn("12/300 realized closed PAPER trades", html)
+        self.assertIn("deficit=288", html)
         self.assertIn("Early robustness", html)
-        self.assertIn("12/300 samples", html)
+        self.assertIn("samples=12/20", html)
+        self.assertIn("exact candidate=0", html)
         self.assertFalse(maturity["live_order_allowed"])
 
     def test_dashboard_blocks_overfit_diagnostic_live_flag_drift_in_display(self):
@@ -4018,6 +4029,19 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(maturity["overfit_diagnostic_primary_blocker_code"], "LIVE_FINAL_GUARD_FAILED")
         self.assertFalse(maturity["overfit_diagnostic_robustness_eligible"])
         self.assertFalse(maturity["live_order_allowed"])
+
+    def test_dashboard_rejects_overfit_sample_basis_drift(self):
+        scorecard = candidate_scorecard_fixture()
+        diagnostic = overfit_diagnostic_fixture(scorecard)
+        dashboard = build_dashboard(candidate_scorecard=scorecard, overfit_diagnostic_report=diagnostic)
+        dashboard["profitability_maturity"]["overfit_diagnostic_sample_basis"] = "EXPECTED_ENTRY_NET_EV"
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+        self.assertIn("sample basis", result.message)
 
     def test_dashboard_blocks_candidate_scorecard_live_flag_drift(self):
         scorecard = candidate_scorecard_fixture()
