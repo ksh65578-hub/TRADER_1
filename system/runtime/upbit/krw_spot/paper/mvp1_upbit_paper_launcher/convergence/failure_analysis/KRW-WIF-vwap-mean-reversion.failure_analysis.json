@@ -1,0 +1,68 @@
+{
+  "audit_hash": "C022240D35BD1E80D38606604E66438BFADE8E004F214E57CF0EFE92C83EF6FA",
+  "audit_prev_hash": null,
+  "authority": {
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B"
+  },
+  "blockers": [
+    {
+      "code": "STRATEGY_NOT_ELIGIBLE",
+      "message": "Candidate scorecard cannot promote; failure analysis keeps ranking, live orders, and scale-up blocked.",
+      "severity": "HIGH"
+    }
+  ],
+  "blocks_live_order": true,
+  "blocks_promotion": true,
+  "can_live_trade": false,
+  "candidate_id": "KRW-WIF-vwap-mean-reversion",
+  "dashboard_display_truth_only": true,
+  "exchange": "UPBIT",
+  "failure_analysis_id": "failure_analysis:scorecard:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:KRW-WIF-vwap-mean-reversion:1",
+  "failure_event_id": "scorecard_failure:scorecard:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:KRW-WIF-vwap-mean-reversion",
+  "failure_status": "ANALYZED",
+  "generated_at_utc": "2026-05-08T08:40:40Z",
+  "live_affecting": true,
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "market_type": "KRW_SPOT",
+  "memory_write_required": true,
+  "memory_write_status": "APPEND_ONLY_RECORDED",
+  "mode": "PAPER",
+  "notes": "Generated from non-live candidate scorecard evidence only.",
+  "optimizer_ranking_action": "BLOCK_RANKING",
+  "parameter_hash": "7CDCBE5F17A72D285683359BC58D7BED5581ED228B8C9BDEE6D84C61681E2FEA",
+  "previous_failure_analysis_ids": [],
+  "primary_root_cause_code": "STRATEGY_RULE_GAP",
+  "project_id": "TRADER_1",
+  "promotion_eligible": false,
+  "recommended_response": "PENALIZE_RANKING",
+  "regime_scope": "TRENDING",
+  "repeated_failure_count": 1,
+  "repeated_failure_same_root_cause": false,
+  "root_cause_status": "KNOWN",
+  "scale_up_allowed": false,
+  "schema_id": "trader1.failure_analysis_report.v1",
+  "secondary_root_cause_codes": [
+    "OVERFIT_RISK_HIGH",
+    "OVERFIT_RISK_HIGH",
+    "OVERFIT_RISK_HIGH",
+    "OVERFIT_RISK_HIGH",
+    "REGIME_MISMATCH",
+    "RISK_EXPOSURE_BREACH",
+    "EXECUTION_FEEDBACK_DIVERGENT",
+    "EXECUTION_FEEDBACK_DIVERGENT"
+  ],
+  "session_id": "mvp1_upbit_paper_launcher",
+  "source_evidence_ids": [
+    "candidate_scorecard:scorecard:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:KRW-WIF-vwap-mean-reversion:2642516E6FFD666029041A70E9114E0696641BA9A04A4C84EE78799933E42BEC",
+    "closed_trades:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
+    "execution_quality:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
+    "performance_summary:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
+    "upbit_paper_runtime_cycle:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:8EE101172113BAC51FD2CCCC039E2F595C4DD164D63C7A5B51B1728C9CA4295A"
+  ],
+  "strategy_build_id": "upbit_paper_runtime_cycle_v1",
+  "strategy_id": "vwap_mean_reversion",
+  "symbol": "KRW-WIF",
+  "timeframe_scope": "runtime_cycle_fixture_or_public_collection"
+}

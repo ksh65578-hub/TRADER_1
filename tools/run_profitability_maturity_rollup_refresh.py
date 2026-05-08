@@ -91,6 +91,12 @@ def sha256_json(data: Any) -> str:
     return hashlib.sha256(encoded).hexdigest().upper()
 
 
+def refresh_current_scorecard_inputs(*, root: Path = ROOT, session_id: str = "mvp1_upbit_paper_launcher") -> dict[str, Any]:
+    from tools.run_upbit_paper_candidate_scorecard import build_current_upbit_paper_candidate_scorecard
+
+    return build_current_upbit_paper_candidate_scorecard(root=root, session_id=session_id)
+
+
 def safe_int(value: Any, default: int = 0) -> int:
     try:
         return int(value)
@@ -1069,6 +1075,24 @@ def main() -> int:
         "trader1_sha256": sha256_file(ROOT / "TRADER_1.md"),
         "agents_sha256": sha256_file(ROOT / "AGENTS.md"),
     }
+    scorecard_refresh = refresh_current_scorecard_inputs(root=ROOT, session_id="mvp1_upbit_paper_launcher")
+    if scorecard_refresh.get("status") != "PASS":
+        result = {
+            "status": "BLOCKED",
+            "blocker_code": scorecard_refresh.get("blocker_code") or "CURRENT_SCORECARD_REFRESH_BLOCKED",
+            "message": scorecard_refresh.get("message") or "Current candidate scorecard refresh did not pass.",
+            "scorecard_refresh_status": scorecard_refresh.get("status"),
+            "runtime_sample_history_status": scorecard_refresh.get("runtime_sample_history_status"),
+            "runtime_sample_status": scorecard_refresh.get("runtime_sample_status"),
+            "accepted_cycle_sample_count": scorecard_refresh.get("accepted_cycle_sample_count"),
+            "invalid_source_count": scorecard_refresh.get("invalid_source_count"),
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+        print(json.dumps(result, indent=2))
+        return 1
     scorecard = load_json(SCORECARD_PATH)
     overfit = load_json(OVERFIT_PATH)
     paper_shadow_evidence = load_json(PAPER_SHADOW_EVIDENCE_PATH) if PAPER_SHADOW_EVIDENCE_PATH.is_file() else None
@@ -1099,6 +1123,9 @@ def main() -> int:
         "rollup_path": rel(ROLLUP_PATH),
         "fixture_path": rel(ROLLUP_FIXTURE_PATH),
         "contract_gap_path": rel(CONTRACT_GAP_PATH),
+        "scorecard_refresh_status": scorecard_refresh.get("status"),
+        "scorecard_refresh_source_runtime_cycle_path": scorecard_refresh.get("source_runtime_cycle_path"),
+        "scorecard_refresh_source_runtime_cycle_hash": scorecard_refresh.get("source_runtime_cycle_hash"),
         "scorecard_id": scorecard.get("scorecard_id"),
         "sample_count": overfit.get("sample_count"),
         "robustness_source_type_status": refreshed_rollup["robustness_source_type_evidence"]["status"],

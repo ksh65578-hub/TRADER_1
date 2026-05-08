@@ -1,20 +1,123 @@
 {
   "accepted_cycle_sample_count": 2,
-  "accepted_loop_report_count": 2,
+  "accepted_loop_report_count": 42,
+  "active_candidate_scope": {
+    "can_live_trade": false,
+    "candidate_count_total": 60,
+    "candidate_id": "KRW-AXL-pullback-trend-long",
+    "candidate_scope_id": "UPBIT:KRW_SPOT:PAPER:KRW-AXL-pullback-trend-long:trend_pullback:B513FAA110ECC3C688258DE32FDFAB637C438F6C07A716040C8B4039F72836E1",
+    "entry_reason_count": 1,
+    "exchange": "UPBIT",
+    "exit_reason_count": 2,
+    "first_sample_at_utc": "2026-05-08T04:37:24Z",
+    "latest_candidate_decision": "PAPER_ENTRY_REVIEW",
+    "latest_cycle_id": "upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1",
+    "latest_final_decision": "EXIT_POSITION",
+    "latest_loop_id": "upbit-paper-runner-1778215027-39712-cycle-000001",
+    "latest_runtime_cycle_hash": "03C49200365098990E75084EA0EDC3CD2F6A9846140F509551EF0D863EF13A00",
+    "latest_sample_at_utc": "2026-05-08T04:37:24Z",
+    "latest_sample_hash": "CF6987040F37D37371C1EFF1D20D6E9058D21A9E979D3D5EB9883388CF2FA439",
+    "live_order_allowed": false,
+    "live_order_ready": false,
+    "market_type": "KRW_SPOT",
+    "min_required_sample_count": 30,
+    "mode": "PAPER",
+    "next_collection_action": "RUN_MORE_PAPER_SAMPLE_WINDOWS",
+    "next_operator_action": "Collect 29 more PAPER samples for candidate KRW-AXL-pullback-trend-long with strategy trend_pullback and parameter hash B513FAA110ECC3C688258DE32FDFAB637C438F6C07A716040C8B4039F72836E1.",
+    "no_trade_reason_count": 1,
+    "parameter_hash": "B513FAA110ECC3C688258DE32FDFAB637C438F6C07A716040C8B4039F72836E1",
+    "sample_count": 1,
+    "sample_deficit": 29,
+    "scale_up_allowed": false,
+    "scope_progress_status": "COLLECT_PAPER_SCOPE_SAMPLES",
+    "strategy_id": "trend_pullback",
+    "symbol": "KRW-AXL"
+  },
+  "active_candidate_scope_next_action": "Collect 29 more PAPER samples for candidate KRW-AXL-pullback-trend-long with strategy trend_pullback and parameter hash B513FAA110ECC3C688258DE32FDFAB637C438F6C07A716040C8B4039F72836E1.",
+  "active_candidate_scope_sample_count": 1,
+  "active_candidate_scope_sample_deficit": 29,
+  "active_candidate_scope_status": "COLLECT_PAPER_SCOPE_SAMPLES",
   "actual_long_run_evidence_created": false,
   "can_live_trade": false,
+  "candidate_scope_sample_summaries": [
+    {
+      "can_live_trade": false,
+      "candidate_count_total": 60,
+      "candidate_id": "KRW-AXL-pullback-trend-long",
+      "candidate_scope_id": "UPBIT:KRW_SPOT:PAPER:KRW-AXL-pullback-trend-long:trend_pullback:B513FAA110ECC3C688258DE32FDFAB637C438F6C07A716040C8B4039F72836E1",
+      "entry_reason_count": 1,
+      "exchange": "UPBIT",
+      "exit_reason_count": 2,
+      "first_sample_at_utc": "2026-05-08T04:37:24Z",
+      "latest_candidate_decision": "PAPER_ENTRY_REVIEW",
+      "latest_cycle_id": "upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1",
+      "latest_final_decision": "EXIT_POSITION",
+      "latest_loop_id": "upbit-paper-runner-1778215027-39712-cycle-000001",
+      "latest_runtime_cycle_hash": "03C49200365098990E75084EA0EDC3CD2F6A9846140F509551EF0D863EF13A00",
+      "latest_sample_at_utc": "2026-05-08T04:37:24Z",
+      "latest_sample_hash": "CF6987040F37D37371C1EFF1D20D6E9058D21A9E979D3D5EB9883388CF2FA439",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "market_type": "KRW_SPOT",
+      "min_required_sample_count": 30,
+      "mode": "PAPER",
+      "next_collection_action": "RUN_MORE_PAPER_SAMPLE_WINDOWS",
+      "next_operator_action": "Collect 29 more PAPER samples for candidate KRW-AXL-pullback-trend-long with strategy trend_pullback and parameter hash B513FAA110ECC3C688258DE32FDFAB637C438F6C07A716040C8B4039F72836E1.",
+      "no_trade_reason_count": 1,
+      "parameter_hash": "B513FAA110ECC3C688258DE32FDFAB637C438F6C07A716040C8B4039F72836E1",
+      "sample_count": 1,
+      "sample_deficit": 29,
+      "scale_up_allowed": false,
+      "scope_progress_status": "COLLECT_PAPER_SCOPE_SAMPLES",
+      "strategy_id": "trend_pullback",
+      "symbol": "KRW-AXL"
+    },
+    {
+      "can_live_trade": false,
+      "candidate_count_total": 60,
+      "candidate_id": "KRW-WIF-vwap-mean-reversion",
+      "candidate_scope_id": "UPBIT:KRW_SPOT:PAPER:KRW-WIF-vwap-mean-reversion:vwap_mean_reversion:7CDCBE5F17A72D285683359BC58D7BED5581ED228B8C9BDEE6D84C61681E2FEA",
+      "entry_reason_count": 0,
+      "exchange": "UPBIT",
+      "exit_reason_count": 0,
+      "first_sample_at_utc": "2026-05-08T04:56:09Z",
+      "latest_candidate_decision": "NO_TRADE",
+      "latest_cycle_id": "upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1",
+      "latest_final_decision": "NO_TRADE",
+      "latest_loop_id": "upbit-paper-runner-1778216154-23376-cycle-000001",
+      "latest_runtime_cycle_hash": "8EE101172113BAC51FD2CCCC039E2F595C4DD164D63C7A5B51B1728C9CA4295A",
+      "latest_sample_at_utc": "2026-05-08T04:56:09Z",
+      "latest_sample_hash": "1C37F6B3394336E9363DA32CE9D089CAB67B9CCF66620518BE4C3079EBB7629C",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "market_type": "KRW_SPOT",
+      "min_required_sample_count": 30,
+      "mode": "PAPER",
+      "next_collection_action": "RUN_MORE_PAPER_SAMPLE_WINDOWS",
+      "next_operator_action": "Collect 29 more PAPER samples for candidate KRW-WIF-vwap-mean-reversion with strategy vwap_mean_reversion and parameter hash 7CDCBE5F17A72D285683359BC58D7BED5581ED228B8C9BDEE6D84C61681E2FEA.",
+      "no_trade_reason_count": 1,
+      "parameter_hash": "7CDCBE5F17A72D285683359BC58D7BED5581ED228B8C9BDEE6D84C61681E2FEA",
+      "sample_count": 1,
+      "sample_deficit": 29,
+      "scale_up_allowed": false,
+      "scope_progress_status": "COLLECT_PAPER_SCOPE_SAMPLES",
+      "strategy_id": "vwap_mean_reversion",
+      "symbol": "KRW-WIF"
+    }
+  ],
+  "candidate_scope_sample_summary_count": 2,
   "credential_load_attempted": false,
   "cycle_floor_met": false,
   "dashboard_truth_only": false,
   "duplicate_cycle_hash_count": 0,
   "exchange": "UPBIT",
   "execution_truth": false,
-  "first_sample_at_utc": "2026-05-07T16:10:05Z",
-  "generated_at_utc": "2026-05-07T16:21:25Z",
+  "first_sample_at_utc": "2026-05-08T04:37:24Z",
+  "generated_at_utc": "2026-05-08T08:40:40Z",
   "history_evidence_role": "PAPER_RUNTIME_SAMPLE_HISTORY_NOT_LONG_RUN_EVIDENCE",
-  "history_hash": "44DF7484588C06B37622614CA37C5052EE0B14DF9133B68E706E9B75FA5BF08B",
+  "history_hash": "2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
   "history_id": "upbit-paper-runtime-sample-history",
-  "invalid_source_count": 122,
+  "invalid_source_count": 168,
   "invalid_sources": [
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/debug-profile-schema-mismatch-20260506T124140Z.persistent_loop_report.json",
@@ -357,6 +460,190 @@
       "reason": "SCHEMA_IDENTITY_MISMATCH"
     },
     {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778189388-34608-cycle-000001-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778189388-34608-cycle-000002-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778189522-5792-cycle-000001-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778189894-5396-cycle-000001-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778190473-1660-cycle-000001-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778190473-1660-cycle-000002-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778190855-6180-cycle-000001-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778190855-6180-cycle-000002-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778191293-39328-cycle-000001-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778191293-39328-cycle-000002-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778192309-18684-cycle-000001-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778192309-18684-cycle-000002-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778193338-21164-cycle-000001-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778193338-21164-cycle-000002-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778193929-14032-cycle-000001-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778193929-14032-cycle-000002-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778194312-32712-cycle-000001-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778194312-32712-cycle-000002-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778194312-32712-cycle-000003-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778194688-492-cycle-000001-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778194688-492-cycle-000002-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000001-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000002-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000003-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000004-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000005-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000006-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000007-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000008-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000009-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000010-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000011-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000012-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000013-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000014-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000015-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000016-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000017-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778195850-35928-cycle-000018-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit-paper-runner-1778201238-2024-cycle-000001.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit-paper-runner-1778202321-31704-cycle-000001.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit-paper-runner-1778202847-27536-cycle-000001.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778203190-29228-cycle-000001-cycle-1.runtime_cycle.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit-paper-runner-1778214115-25152-cycle-000001.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit-paper-runner-1778214221-31008-cycle-000001.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit-paper-runner-1778214546-3868-cycle-000001.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit-paper-runtime-evidence-profile-20260506T173429Z.persistent_loop_report.json",
       "reason": "SCHEMA_IDENTITY_MISMATCH"
     },
@@ -505,7 +792,7 @@
       "reason": "SCHEMA_IDENTITY_MISMATCH"
     }
   ],
-  "latest_sample_at_utc": "2026-05-07T16:21:23Z",
+  "latest_sample_at_utc": "2026-05-08T04:56:09Z",
   "live_key_loaded": false,
   "live_order_allowed": false,
   "live_order_ready": false,
@@ -515,8 +802,9 @@
   "market_type": "KRW_SPOT",
   "min_actual_long_run_cycle_count": 2880,
   "min_actual_long_run_span_seconds": 86400,
+  "min_profitability_scope_sample_count": 30,
   "mode": "PAPER",
-  "observed_span_seconds": 678,
+  "observed_span_seconds": 1125,
   "order_adapter_called": false,
   "order_endpoint_called": false,
   "primary_blocker_code": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
@@ -528,115 +816,154 @@
   "samples": [
     {
       "can_live_trade": false,
-      "candidate_count": 48,
-      "cycle_id": "upbit-paper-runner-1778170197-16824-cycle-000001-cycle-1",
-      "entry_reason_count": 0,
+      "candidate_count": 60,
+      "cycle_id": "upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1",
+      "entry_reason_count": 1,
       "exchange": "UPBIT",
-      "exit_reason_count": 5,
-      "final_decision": "HOLD_POSITION",
-      "generated_at_utc": "2026-05-07T16:10:05Z",
+      "exit_reason_count": 2,
+      "final_decision": "EXIT_POSITION",
+      "generated_at_utc": "2026-05-08T04:37:24Z",
       "live_order_allowed": false,
       "live_order_ready": false,
-      "loop_id": "upbit-paper-runner-1778170197-16824-cycle-000001",
+      "loop_id": "upbit-paper-runner-1778215027-39712-cycle-000001",
       "market_type": "KRW_SPOT",
       "mode": "PAPER",
-      "no_trade_reason_count": 4,
-      "paper_entry_review_candidate_count": 0,
-      "paper_entry_review_candidate_ids": [],
-      "paper_entry_review_symbol_count": 0,
-      "paper_entry_review_symbols": [],
-      "paper_ledger_head_hash": "4A04A8EFD976F5C3C31D08F325FA82006696E3C8850949535050BCB671D603CE",
-      "paper_portfolio_snapshot_hash": "8797F228CEB8C61D84167381124FA5B6C50D6A3E63936B5FDAC15431A606234F",
+      "no_trade_reason_count": 1,
+      "paper_entry_review_candidate_count": 1,
+      "paper_entry_review_candidate_ids": [
+        "KRW-AXL-pullback-trend-long"
+      ],
+      "paper_entry_review_symbol_count": 1,
+      "paper_entry_review_symbols": [
+        "KRW-AXL"
+      ],
+      "paper_ledger_head_hash": "355D6A52CAB764A8D03851B18B4731573AB2B9B795579AA5B5485225939DC72E",
+      "paper_portfolio_snapshot_hash": "2198AF83D61DA8910C51A3B326EF5C7532DF93BE9C18D1F9576A8999D9683B5D",
       "previous_sample_hash": null,
       "project_id": "TRADER_1",
       "runtime_input_role": "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION",
-      "sample_hash": "EC280D8162660A676A5C8916E35832936F34BE3C2A2D227A1D2596DE7C0FF722",
+      "sample_hash": "CF6987040F37D37371C1EFF1D20D6E9058D21A9E979D3D5EB9883388CF2FA439",
       "scale_up_allowed": false,
       "schema_id": "trader1.upbit_paper_runtime_sample.v1",
-      "scorecard_candidate_decision": "NO_TRADE",
-      "scorecard_candidate_id": "KRW-BTC-vwap-mean-reversion",
+      "scorecard_candidate_decision": "PAPER_ENTRY_REVIEW",
+      "scorecard_candidate_id": "KRW-AXL-pullback-trend-long",
       "scorecard_candidate_identity_binding_status": "BOUND",
       "scorecard_candidate_identity_source": "SELECTED_CANDIDATE",
       "scorecard_candidate_live_flags_clear": true,
-      "scorecard_candidate_net_ev_after_cost_bps": "-14.03201527293355592854833781",
-      "scorecard_candidate_selection_score": "0.3002",
-      "scorecard_expected_cost_bps": "8.334415272933555928548337814",
-      "scorecard_expected_edge_bps": "-5.6976",
-      "scorecard_parameter_hash": "6C56D34CB77FF3CCDC3760EB2A7F0E18301942B100849CB7CE0B0F7391A27714",
-      "scorecard_strategy_family": "VWAP_MEAN_REVERSION",
-      "scorecard_strategy_id": "vwap_mean_reversion",
-      "scorecard_symbol": "KRW-BTC",
+      "scorecard_candidate_net_ev_after_cost_bps": "22.63223113205938891476646004",
+      "scorecard_candidate_selection_score": "0.641",
+      "scorecard_expected_cost_bps": "14.45941308791816439612018418",
+      "scorecard_expected_edge_bps": "37.09164421997755331088664422",
+      "scorecard_parameter_hash": "B513FAA110ECC3C688258DE32FDFAB637C438F6C07A716040C8B4039F72836E1",
+      "scorecard_strategy_family": "PULLBACK_TREND_LONG",
+      "scorecard_strategy_id": "trend_pullback",
+      "scorecard_symbol": "KRW-AXL",
       "session_id": "mvp1_upbit_paper_launcher",
-      "source_loop_report_hash": "81863F33F674F2E49DF278C302A79B02FD3970F6F090CD3BDA2483D5F6E0E824",
-      "source_loop_report_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit-paper-runner-1778170197-16824-cycle-000001.persistent_loop_report.json",
-      "source_runtime_cycle_hash": "A5DE46DC0AEBD9B89187AF5756247ABB19A16C8B3F0A340DAA37F86703634EC2",
-      "source_runtime_cycle_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778170197-16824-cycle-000001-cycle-1.runtime_cycle.json",
-      "symbol_evidence_scorecard_count": 16
+      "source_loop_report_hash": "EE1C44F38C9B00F4208C48ED6FEF20D47A1E5879A47CD7310FB80987F9E13434",
+      "source_loop_report_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit-paper-runner-1778215027-39712-cycle-000001.persistent_loop_report.json",
+      "source_runtime_cycle_hash": "03C49200365098990E75084EA0EDC3CD2F6A9846140F509551EF0D863EF13A00",
+      "source_runtime_cycle_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1.runtime_cycle.json",
+      "symbol_evidence_scorecard_count": 20
     },
     {
       "can_live_trade": false,
       "candidate_count": 60,
-      "cycle_id": "upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1",
-      "entry_reason_count": 2,
+      "cycle_id": "upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1",
+      "entry_reason_count": 0,
       "exchange": "UPBIT",
-      "exit_reason_count": 4,
-      "final_decision": "REDUCE_POSITION",
-      "generated_at_utc": "2026-05-07T16:21:23Z",
+      "exit_reason_count": 0,
+      "final_decision": "NO_TRADE",
+      "generated_at_utc": "2026-05-08T04:56:09Z",
       "live_order_allowed": false,
       "live_order_ready": false,
-      "loop_id": "upbit-paper-runner-1778170876-27864-cycle-000001",
+      "loop_id": "upbit-paper-runner-1778216154-23376-cycle-000001",
       "market_type": "KRW_SPOT",
       "mode": "PAPER",
-      "no_trade_reason_count": 2,
-      "paper_entry_review_candidate_count": 2,
-      "paper_entry_review_candidate_ids": [
-        "KRW-B3-breakout-retest-long",
-        "KRW-B3-pullback-trend-long"
-      ],
-      "paper_entry_review_symbol_count": 1,
-      "paper_entry_review_symbols": [
-        "KRW-B3"
-      ],
-      "paper_ledger_head_hash": "D3C92B1D63D81B2F993839F753B85899D8745C254991EEA7D3F9D55BC5880D27",
-      "paper_portfolio_snapshot_hash": "F34C2F871C323ABDF70085492FEB657646BCB87E56B447E0DD64906DDA610D53",
-      "previous_sample_hash": "EC280D8162660A676A5C8916E35832936F34BE3C2A2D227A1D2596DE7C0FF722",
+      "no_trade_reason_count": 1,
+      "paper_entry_review_candidate_count": 0,
+      "paper_entry_review_candidate_ids": [],
+      "paper_entry_review_symbol_count": 0,
+      "paper_entry_review_symbols": [],
+      "paper_ledger_head_hash": "355D6A52CAB764A8D03851B18B4731573AB2B9B795579AA5B5485225939DC72E",
+      "paper_portfolio_snapshot_hash": "6D2B53AC1BE32CB0C816CA78A5005D500444F921E46ED06807D931BAE7EC0AA9",
+      "previous_sample_hash": "CF6987040F37D37371C1EFF1D20D6E9058D21A9E979D3D5EB9883388CF2FA439",
       "project_id": "TRADER_1",
       "runtime_input_role": "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION",
-      "sample_hash": "6269C212D2A16539B1405FFB3FB47A9C7C979587D7027E3BA428BC26485EC7B5",
+      "sample_hash": "1C37F6B3394336E9363DA32CE9D089CAB67B9CCF66620518BE4C3079EBB7629C",
       "scale_up_allowed": false,
       "schema_id": "trader1.upbit_paper_runtime_sample.v1",
-      "scorecard_candidate_decision": "PAPER_ENTRY_REVIEW",
-      "scorecard_candidate_id": "KRW-B3-breakout-retest-long",
+      "scorecard_candidate_decision": "NO_TRADE",
+      "scorecard_candidate_id": "KRW-WIF-vwap-mean-reversion",
       "scorecard_candidate_identity_binding_status": "BOUND",
-      "scorecard_candidate_identity_source": "PAPER_ENTRY_REVIEW_CANDIDATE",
+      "scorecard_candidate_identity_source": "SELECTED_CANDIDATE",
       "scorecard_candidate_live_flags_clear": true,
-      "scorecard_candidate_net_ev_after_cost_bps": "29.11256451564101333636859641",
-      "scorecard_candidate_selection_score": "0.777",
-      "scorecard_expected_cost_bps": "9.118561921140595859033702437",
-      "scorecard_expected_edge_bps": "38.23112643678160919540229885",
-      "scorecard_parameter_hash": "402D8ECE22B4BA0CEB54146BEEEB930A4A8E46D9436D920F74BA76C57D80A22C",
-      "scorecard_strategy_family": "BREAKOUT_RETEST_LONG",
-      "scorecard_strategy_id": "breakout_retest",
-      "scorecard_symbol": "KRW-B3",
+      "scorecard_candidate_net_ev_after_cost_bps": "-12.36079902779731812359117906",
+      "scorecard_candidate_selection_score": "0.4199",
+      "scorecard_expected_cost_bps": "10.60559902779731812359117906",
+      "scorecard_expected_edge_bps": "-1.7552",
+      "scorecard_parameter_hash": "7CDCBE5F17A72D285683359BC58D7BED5581ED228B8C9BDEE6D84C61681E2FEA",
+      "scorecard_strategy_family": "VWAP_MEAN_REVERSION",
+      "scorecard_strategy_id": "vwap_mean_reversion",
+      "scorecard_symbol": "KRW-WIF",
       "session_id": "mvp1_upbit_paper_launcher",
-      "source_loop_report_hash": "9520AB9A2230E476E14AB167DC7037A4D5C41FC1C65E9A0535792FD6A671A1B5",
-      "source_loop_report_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit-paper-runner-1778170876-27864-cycle-000001.persistent_loop_report.json",
-      "source_runtime_cycle_hash": "932EE03E397835C5942E0764BE15B2B8E0DD2D4DF08075771BD4EBBEB9BC35C5",
-      "source_runtime_cycle_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1.runtime_cycle.json",
+      "source_loop_report_hash": "F087133E8CB819C825E70A3F97D5E4F446DEEDABB303672C2823714030B5A218",
+      "source_loop_report_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit-paper-runner-1778216154-23376-cycle-000001.persistent_loop_report.json",
+      "source_runtime_cycle_hash": "8EE101172113BAC51FD2CCCC039E2F595C4DD164D63C7A5B51B1728C9CA4295A",
+      "source_runtime_cycle_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1.runtime_cycle.json",
       "symbol_evidence_scorecard_count": 20
     }
   ],
   "scale_up_allowed": false,
   "schema_id": "trader1.upbit_paper_runtime_sample_history.v1",
   "session_id": "mvp1_upbit_paper_launcher",
-  "source_loop_report_count": 124,
+  "source_loop_report_count": 170,
   "source_loop_report_hashes": [
-    "81863F33F674F2E49DF278C302A79B02FD3970F6F090CD3BDA2483D5F6E0E824",
-    "9520AB9A2230E476E14AB167DC7037A4D5C41FC1C65E9A0535792FD6A671A1B5"
+    "533EF3620388F13F03674834EAB773F4CB964E1F8D4040E3489E4A80D7BBAC44",
+    "3A961B34EFE5A016FAA3A871403A252921D5AA62C7CFDC33EFFC398A3E80BB76",
+    "B643FB5443CD4B517F99F786047E5B8C70B2957F5C61086EA9D2A9F5601ABF9D",
+    "6816E56A19409B2E74B203A44F2E66AA67552812C0FCE6484187358360B5BA30",
+    "428839AF96C16AF32C0BA63CDAFFCD668D1D6EC150631891BEE270502AF80485",
+    "AEE479F0D607791B7A26EC5EDA7D217EE782E3642780A2BC50B2324A24FF18DC",
+    "A0C493EA6053B8049ABFE58978A36E8F97591CE7127770B2353944B35FE2979B",
+    "4DBFE35726A9A16151A9502FE26A62C7B31AE423BC6DFDB69C2BCD4E71BA8FDE",
+    "DEE0A60221EB1C008214029536D77D5EAA753B3D0EF64D375A5189974926C929",
+    "7A67A35BA4DCF4A095C2AC93D79BC40F97A6B42BAC9E13444F7D0F9C86A20811",
+    "779A7D63F667230B521CAB8C9D38A9CA014416AABF43D5FEECCBDD64DA9EE40A",
+    "CC1FD2B5A26E28AD9981BB1D0AE59686F974F183EF564C2BC27B344FEC15C60E",
+    "A6D5C3446448DC6DC57CECCEB4C2B8317509F5F174BF5D126474C928FE4DE530",
+    "06B186179FFB0ACE3CBC98E5CA09A8AE42C01444264C2A9318A09407AEAEACD4",
+    "2FE4E9611DF0E01CD2E297FB2C55F52217C3B9A106F5D334E149457522FC6A80",
+    "B3007C50B4A653AF7F900A3790A84183F6A347B8552BFF45D902B7CAB0E8741C",
+    "383C203723172AE8EB385ECC971FBAF6DB0B8214252053A112DDBFEF40C9F830",
+    "9539083A20DCB2B3ED9969A728EDF131AA02092A59349C51386E5797639EA1E1",
+    "57679AF345394480E9F9A5BCCBE15547C541160C51EC88D923B42337CF5AC25E",
+    "56A08DFCA556C99F6FA159E52134B2535A861845FE63E015160894082E3300BE",
+    "DC9D2DE93C3B8CBF9D47480D5ABAF7CD492AE55FB9139E44DB79E75B075E6107",
+    "7D4848758371FF5596F6DA7BCFDFE0FE3FCAF0BEC879C8D9CF7B7E10ED4539AA",
+    "5DD5326D1DC07CF08950B5C8939889CEF0D0E2380532187435F7128D262B90AF",
+    "A74BA2A25AC020C530DF06718C0FE536E66B0C0EBC1C93210DEBF279559E8899",
+    "2825B97969449818AE248CCCAEC66DC9D3EB6EE0EDEC70D5167B60C9255EFEDE",
+    "D28F4F093B2A8E999E3732FB462EA45F6C8C2A5A2FE2FD2C82ADCA2C54C2AB8E",
+    "C184A773A1AC3BF7F4E1C7E6C4C5CEB527DCB9B51A7B145BB8894B9D74FC2961",
+    "C031D93D6B0C86BC856BFDF4B52B2D51EB596A07EF9DF387F81BB7364F6AEC82",
+    "26F67AB3C48498D1F7BD00DB432715D54C63C94D2BB4C95DCB0592A1D08A1B31",
+    "E7B10C4BA6971BACA86E18134AEF86405252B10406BDEEDA4FCAC18B2FB955F9",
+    "7E527CF1B6C3E948966D854AA3424A5985502B0211FAA41CD3DAAE7E9A3FE4B8",
+    "A83A7D1761212500B276B41B3A0190C6B8A01C8B1382B43118A22008215C91D4",
+    "44972556CDB0AF0A5FE74B4119D82C63284743AD7F6F4CBDF66E67097574C252",
+    "09DBE53DA5BF9983723BE930F8D7CDA8BF1C577041F9FFE60EA752C9AA0DD733",
+    "3287BF6A060955BB4A79AF797C96798F33DFC224DE08D57899114D0980C7F7DB",
+    "A1474F00D98C621149E31F9B583E3C07299478737CC4332C5A7C24AF13F0A5B6",
+    "50CD679777F2D349402596B837EBE145004D42F922A429862BDBB298FCF807DC",
+    "F982A6AA2ADDE5CBAB2191964E2160107B9F217B361B96517306C1E8B94116B4",
+    "BC3B08BA6BBC307EF2CD1C56E66FF16D12DB1DFE67BB96E738B96B56A210FB4F",
+    "252032D51D3B4ABC3DA69A39EA3DAD6AA7B25F8808DB59F11019E3BB504CF83E",
+    "EE1C44F38C9B00F4208C48ED6FEF20D47A1E5879A47CD7310FB80987F9E13434",
+    "F087133E8CB819C825E70A3F97D5E4F446DEEDABB303672C2823714030B5A218"
   ],
   "source_runtime_cycle_hashes": [
-    "A5DE46DC0AEBD9B89187AF5756247ABB19A16C8B3F0A340DAA37F86703634EC2",
-    "932EE03E397835C5942E0764BE15B2B8E0DD2D4DF08075771BD4EBBEB9BC35C5"
+    "03C49200365098990E75084EA0EDC3CD2F6A9846140F509551EF0D863EF13A00",
+    "8EE101172113BAC51FD2CCCC039E2F595C4DD164D63C7A5B51B1728C9CA4295A"
   ],
   "span_floor_met": false,
   "truth_role": "paper_runtime_analysis_truth",
