@@ -34,6 +34,10 @@ class UpbitPaperDryRunTest(unittest.TestCase):
         symbol_reason = next(item for item in report["entry_reasons"] if item["reason_code"] == "SYMBOL_RULE_PASS")
         self.assertIn("UPBIT_KRW_SPOT_SYMBOL_RULE_V1", symbol_reason["message"])
         self.assertNotIn("scaffold", symbol_reason["message"].lower())
+        cost_reason = next(item for item in report["entry_reasons"] if item["reason_code"] == "FEE_SLIPPAGE_MODEL_PASS")
+        self.assertIn("public bid/ask spread", cost_reason["message"])
+        self.assertEqual(report["fee_rate"], "0.0005")
+        self.assertEqual(report["slippage_bps"], "5")
         self.assertFalse(report["live_key_loaded"])
         self.assertFalse(report["live_order_ready"])
         self.assertFalse(report["live_order_allowed"])
@@ -64,6 +68,29 @@ class UpbitPaperDryRunTest(unittest.TestCase):
         result = validate_upbit_paper_dry_run_report(report, allowed_blockers())
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_bad_fee_or_slippage_inputs_block_entry(self):
+        bad_fee = build_upbit_paper_dry_run_report(paper_run_id="paper-bad-fee", fee_rate="0.01")
+        bad_fee_result = validate_upbit_paper_dry_run_report(bad_fee, allowed_blockers())
+        self.assertEqual(bad_fee_result.status, "BLOCKED")
+        self.assertEqual(bad_fee["primary_blocker_code"], "FEE_MODEL_UNVERIFIED")
+
+        data = build_upbit_public_market_data_fixture(symbol="KRW-BTC", session_id="mvp2_upbit_paper")
+        data["volume_24h"] = "0"
+        bad_slippage = build_upbit_paper_dry_run_report(paper_run_id="paper-bad-slippage", public_market_data=data)
+        bad_slippage_result = validate_upbit_paper_dry_run_report(bad_slippage, allowed_blockers())
+        self.assertEqual(bad_slippage_result.status, "BLOCKED")
+        self.assertEqual(bad_slippage["primary_blocker_code"], "MEASUREMENT_MISSING")
+
+    def test_slippage_tamper_below_public_minimum_fails(self):
+        data = build_upbit_public_market_data_fixture(symbol="KRW-BTC", session_id="mvp2_upbit_paper")
+        data["best_ask"] = "1015000"
+        report = build_upbit_paper_dry_run_report(paper_run_id="paper-slippage-tamper", public_market_data=data)
+        report["slippage_bps"] = "0.25"
+        report["dry_run_hash"] = upbit_paper_dry_run_hash(report)
+        result = validate_upbit_paper_dry_run_report(report, allowed_blockers())
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
     def test_live_permission_mutation_is_blocked(self):
         report = build_upbit_paper_dry_run_report(paper_run_id="paper-live")

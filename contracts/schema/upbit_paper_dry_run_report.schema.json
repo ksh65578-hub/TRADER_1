@@ -151,7 +151,8 @@
               "PAPER_DRY_RUN_ENTRY",
               "PUBLIC_DATA_AVAILABLE",
               "SYMBOL_RULE_PASS",
-              "FEE_SLIPPAGE_BASELINE_PASS"
+              "FEE_SLIPPAGE_BASELINE_PASS",
+              "FEE_SLIPPAGE_MODEL_PASS"
             ]
           },
           "message": {
