@@ -23774,6 +23774,7 @@ def _optimizer_guardrail_report_errors(report: dict[str, Any]) -> list[str]:
     dependency_statuses = [item.get("status") for item in report.get("dependency_results", []) if isinstance(item, dict)]
     dependency_non_pass = [status for status in dependency_statuses if status != "PASS"]
     blockers = report.get("blockers", [])
+    checked_artifact_ids = [str(item) for item in report.get("checked_artifact_ids", []) if isinstance(item, str)]
     guardrail_status = report.get("guardrail_status")
     summary_status = report.get("dependency_summary_status")
     decision = report.get("guardrail_decision")
@@ -23801,6 +23802,10 @@ def _optimizer_guardrail_report_errors(report: dict[str, Any]) -> list[str]:
             errors.append("PAPER_RANKING_ONLY output requires OPTIMIZER_PAPER_RANKING_ONLY scope")
         if guardrail_status != "PASS_NO_LIVE_PERMISSION":
             errors.append("PAPER_RANKING_ONLY output requires PASS_NO_LIVE_PERMISSION guardrail status")
+        if _candidate_scoped_performance_source_binding_count(checked_artifact_ids) <= 0:
+            errors.append(
+                "PAPER_RANKING_ONLY guardrail requires checked candidate-scoped closed trade, execution quality, and performance summary source ids"
+            )
     if decision == "ALLOW_SCALE_DOWN_ONLY" and ranking_scope != "NONE":
         errors.append("ALLOW_SCALE_DOWN_ONLY requires output_ranking_scope=NONE")
 

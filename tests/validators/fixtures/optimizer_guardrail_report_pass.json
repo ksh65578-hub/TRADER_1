@@ -35,7 +35,10 @@
   ],
   "checked_artifact_ids": [
     "optimizer_run_pass",
-    "optimizer_recommendation_pass"
+    "optimizer_recommendation_pass",
+    "closed_trades:candidate_trend_pullback_krw_btc_001:optimizer-run-performance-history-001:1111111111111111111111111111111111111111111111111111111111111111",
+    "execution_quality:candidate_trend_pullback_krw_btc_001:optimizer-run-performance-history-001:1111111111111111111111111111111111111111111111111111111111111111",
+    "performance_summary:candidate_trend_pullback_krw_btc_001:optimizer-run-performance-history-001:1111111111111111111111111111111111111111111111111111111111111111"
   ],
   "source_modes": [
     "PAPER",
