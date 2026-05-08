@@ -31,6 +31,12 @@
     "best_alternative_symbol",
     "best_alternative_strategy_id",
     "best_alternative_net_ev_after_cost_bps",
+    "best_alternative_public_replay_status",
+    "best_alternative_public_replay_replay_id",
+    "best_alternative_public_replay_report_hash",
+    "best_alternative_public_replay_sample_count",
+    "best_alternative_public_replay_primary_blocker_code",
+    "best_alternative_public_replay_source_evidence_ids",
     "generation_status",
     "status",
     "primary_blocker_code",
@@ -183,9 +189,50 @@
         "null"
       ]
     },
+    "best_alternative_public_replay_status": {
+      "enum": [
+        "NOT_RUN",
+        "PASS",
+        "BLOCKED"
+      ]
+    },
+    "best_alternative_public_replay_replay_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "best_alternative_public_replay_report_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "best_alternative_public_replay_sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "best_alternative_public_replay_primary_blocker_code": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "best_alternative_public_replay_source_evidence_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
     "generation_status": {
       "enum": [
         "ALTERNATIVE_REVIEW_READY",
+        "ALTERNATIVE_PUBLIC_REPLAY_VALIDATED",
+        "ALTERNATIVE_PUBLIC_REPLAY_BLOCKED",
         "NO_ALTERNATIVE_READY",
         "BLOCKED_LIVE_FLAG"
       ]

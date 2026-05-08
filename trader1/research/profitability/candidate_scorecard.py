@@ -16,6 +16,7 @@ from trader1.runtime.paper.upbit_paper_runtime import (
     validate_upbit_paper_runtime_cycle_report,
 )
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
+from trader1.research.replay.replay_runner import public_replay_robustness_report_hash
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -96,6 +97,7 @@ CANDIDATE_FAILURE_TRIGGER_BLOCKERS = {
     "OVERFIT_RISK_HIGH",
     "EXECUTION_FEEDBACK_DIVERGENT",
 }
+CANDIDATE_GENERATION_PASS_STATUSES = {"ALTERNATIVE_REVIEW_READY", "ALTERNATIVE_PUBLIC_REPLAY_VALIDATED"}
 
 
 def utc_now() -> str:
@@ -1154,6 +1156,73 @@ def _dedupe_candidate_generation_items(items: list[dict[str, Any]]) -> list[dict
     return deduped
 
 
+def _public_replay_source_evidence_ids(report: dict[str, Any]) -> list[str]:
+    replay_id = str(report.get("replay_id") or "")
+    report_hash = str(report.get("report_hash") or "").upper()
+    symbol = str(report.get("symbol") or "")
+    market_hash = str(report.get("public_market_data_hash") or "").upper()
+    source_ids: list[str] = []
+    if replay_id and len(report_hash) == 64:
+        source_ids.append(f"public_replay_robustness:{replay_id}:{report_hash}")
+    if symbol and len(market_hash) == 64:
+        source_ids.append(f"public_market_data:{symbol}:{market_hash}")
+    return source_ids
+
+
+def _best_alternative_replay_binding(
+    *,
+    best: dict[str, Any] | None,
+    replay_report: dict[str, Any] | None,
+) -> tuple[dict[str, Any], dict[str, str] | None]:
+    binding = {
+        "best_alternative_public_replay_status": "NOT_RUN",
+        "best_alternative_public_replay_replay_id": None,
+        "best_alternative_public_replay_report_hash": None,
+        "best_alternative_public_replay_sample_count": 0,
+        "best_alternative_public_replay_primary_blocker_code": None,
+        "best_alternative_public_replay_source_evidence_ids": [],
+    }
+    if replay_report is None:
+        return binding, None
+    binding.update(
+        {
+            "best_alternative_public_replay_status": "BLOCKED",
+            "best_alternative_public_replay_replay_id": replay_report.get("replay_id"),
+            "best_alternative_public_replay_report_hash": replay_report.get("report_hash"),
+            "best_alternative_public_replay_sample_count": int(replay_report.get("sample_count") or 0),
+            "best_alternative_public_replay_primary_blocker_code": replay_report.get("primary_blocker_code"),
+            "best_alternative_public_replay_source_evidence_ids": _public_replay_source_evidence_ids(replay_report),
+        }
+    )
+    if best is None:
+        return binding, blocker("SNAPSHOT_SCOPE_MISMATCH", "Alternative replay was supplied without a best alternative candidate.")
+    if any(replay_report.get(flag) is True for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
+        return binding, blocker("LIVE_FINAL_GUARD_FAILED", "Alternative replay attempted live or scale-up permission.")
+    if replay_report.get("exchange") != "UPBIT" or replay_report.get("market_type") != "KRW_SPOT" or replay_report.get("mode") != "REPLAY":
+        return binding, blocker("SNAPSHOT_SCOPE_MISMATCH", "Alternative replay report is outside UPBIT/KRW_SPOT/REPLAY scope.")
+    if replay_report.get("replay_status") != "PASS":
+        return binding, blocker(
+            str(replay_report.get("primary_blocker_code") or "PUBLIC_REPLAY_ROBUSTNESS_FAILED"),
+            "Best alternative public replay robustness did not pass.",
+        )
+    expected_parameter_hash = stable_hash(f"{best['candidate_id']}:{best['strategy_family']}:{best['symbol']}")
+    for report_field, expected in (
+        ("candidate_id", best["candidate_id"]),
+        ("symbol", best["symbol"]),
+        ("strategy_id", best["strategy_id"]),
+        ("parameter_hash", expected_parameter_hash),
+    ):
+        if str(replay_report.get(report_field) or "") != str(expected):
+            return binding, blocker("SNAPSHOT_SCOPE_MISMATCH", f"Alternative replay candidate scope mismatch: {report_field}.")
+    if str(replay_report.get("report_hash") or "").upper() != public_replay_robustness_report_hash(replay_report):
+        return binding, blocker("SCHEMA_IDENTITY_MISMATCH", "Alternative replay report hash mismatch.")
+    if int(replay_report.get("sample_count") or 0) < int(replay_report.get("min_required_sample_count") or 1):
+        return binding, blocker("SAMPLE_INSUFFICIENT", "Alternative replay sample count is below the required minimum.")
+    binding["best_alternative_public_replay_status"] = "PASS"
+    binding["best_alternative_public_replay_primary_blocker_code"] = None
+    return binding, None
+
+
 def candidate_generation_report_from_upbit_paper_runtime_cycle(
     runtime_cycle_report: dict[str, Any],
     *,
@@ -1161,6 +1230,7 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
     candidate_budget: int = CANDIDATE_GENERATION_ITEM_LIMIT,
     authority: dict[str, str] | None = None,
     additional_runtime_cycle_reports: list[dict[str, Any]] | None = None,
+    best_alternative_public_replay_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if any(candidate_scorecard.get(flag) is True for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
         raise ValueError("candidate generation refuses scorecard live or scale-up permission")
@@ -1306,14 +1376,21 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
     review_ready_items = [item for item in sorted_items if item["candidate_status"] == "REVIEW_READY"]
     best = review_ready_items[0] if review_ready_items else None
     blocked_count = sum(1 for item in sorted_items if item["candidate_status"] in {"BLOCKED_NO_TRADE", "REJECTED_LIVE_FLAG"})
+    alternative_replay_binding, alternative_replay_blocker = _best_alternative_replay_binding(
+        best=best,
+        replay_report=best_alternative_public_replay_report,
+    )
+    alternative_replay_passed = alternative_replay_binding["best_alternative_public_replay_status"] == "PASS"
     blockers = []
-    if failed_current_candidate:
+    if failed_current_candidate and not alternative_replay_passed:
         blockers.append(
             blocker(
                 "PUBLIC_REPLAY_ROBUSTNESS_FAILED" if "PUBLIC_REPLAY_ROBUSTNESS_FAILED" in blocker_codes else blocker_codes[0],
                 "Current candidate is retired from ranking review until fresh robustness and performance evidence pass.",
             )
         )
+    if alternative_replay_blocker is not None:
+        blockers.append(alternative_replay_blocker)
     if live_flag_drift_count:
         blockers.append(blocker("LIVE_FINAL_GUARD_FAILED", "Candidate generation rejected a candidate with live or scale-up permission drift."))
     blockers.extend(discovery_blockers)
@@ -1330,6 +1407,10 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
     generation_status = (
         "BLOCKED_LIVE_FLAG"
         if live_flag_drift_count
+        else "ALTERNATIVE_PUBLIC_REPLAY_BLOCKED"
+        if best is not None and alternative_replay_blocker is not None
+        else "ALTERNATIVE_PUBLIC_REPLAY_VALIDATED"
+        if best is not None and alternative_replay_passed
         else "ALTERNATIVE_REVIEW_READY"
         if best is not None
         else "NO_ALTERNATIVE_READY"
@@ -1345,6 +1426,7 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
         if cycle_id and len(cycle_hash) == 64:
             source_ids.append(runtime_cycle_source_evidence_id(cycle_id, cycle_hash))
     source_ids.extend(str(item) for item in candidate_scorecard.get("source_evidence_ids", []) if item)
+    source_ids.extend(str(item) for item in alternative_replay_binding["best_alternative_public_replay_source_evidence_ids"] if item)
     report = {
         "schema_id": CANDIDATE_GENERATION_SCHEMA_ID,
         "generated_at_utc": utc_now(),
@@ -1373,13 +1455,17 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
         "best_alternative_symbol": best.get("symbol") if best else None,
         "best_alternative_strategy_id": best.get("strategy_id") if best else None,
         "best_alternative_net_ev_after_cost_bps": best.get("net_ev_after_cost_bps") if best else None,
+        **alternative_replay_binding,
         "generation_status": generation_status,
-        "status": "PASS" if generation_status == "ALTERNATIVE_REVIEW_READY" else "BLOCKED",
+        "status": "PASS" if generation_status in CANDIDATE_GENERATION_PASS_STATUSES else "BLOCKED",
         "primary_blocker_code": blockers[0]["code"] if blockers else None,
         "blockers": blockers,
         "candidate_items": sorted_items,
         "source_evidence_ids": sorted(set(source_ids)),
         "next_action": (
+            "Alternative public replay passed; keep live blocked and bind this candidate into the next PAPER ranking review only after remaining scorecard gates pass."
+            if generation_status == "ALTERNATIVE_PUBLIC_REPLAY_VALIDATED"
+            else
             "Run bounded public replay robustness for the best alternative candidate before any PAPER ranking review."
             if best is not None
             else "Widen bounded public discovery across the fresh KRW universe and strategy families; do not run long PAPER until an alternative candidate is review-ready."
@@ -1487,10 +1573,21 @@ def validate_candidate_generation_report(
     review_ready_count = sum(1 for item in items if isinstance(item, dict) and item.get("candidate_status") == "REVIEW_READY")
     if review_ready_count != report.get("review_ready_candidate_count"):
         return "FAIL", "candidate generation review-ready count mismatch", "SCHEMA_IDENTITY_MISMATCH"
-    if report.get("generation_status") == "ALTERNATIVE_REVIEW_READY" and not report.get("best_alternative_candidate_id"):
+    if report.get("generation_status") in CANDIDATE_GENERATION_PASS_STATUSES and not report.get("best_alternative_candidate_id"):
         return "FAIL", "alternative-ready report requires best alternative candidate", "SCHEMA_IDENTITY_MISMATCH"
-    if report.get("generation_status") != "ALTERNATIVE_REVIEW_READY" and report.get("status") != "BLOCKED":
+    if report.get("generation_status") == "ALTERNATIVE_PUBLIC_REPLAY_VALIDATED":
+        if report.get("best_alternative_public_replay_status") != "PASS":
+            return "FAIL", "alternative public replay validated report requires replay PASS binding", "SCHEMA_IDENTITY_MISMATCH"
+        if not report.get("best_alternative_public_replay_source_evidence_ids"):
+            return "FAIL", "alternative public replay validated report requires source evidence binding", "SCHEMA_IDENTITY_MISMATCH"
+        if report.get("primary_blocker_code") is not None:
+            return "FAIL", "alternative public replay validated report cannot keep stale primary blocker", "SCHEMA_IDENTITY_MISMATCH"
+    if report.get("generation_status") == "ALTERNATIVE_PUBLIC_REPLAY_BLOCKED" and report.get("best_alternative_public_replay_status") != "BLOCKED":
+        return "FAIL", "alternative public replay blocked report requires BLOCKED replay status", "SCHEMA_IDENTITY_MISMATCH"
+    if report.get("generation_status") not in CANDIDATE_GENERATION_PASS_STATUSES and report.get("status") != "BLOCKED":
         return "FAIL", "non-ready candidate generation report must stay BLOCKED", "SCHEMA_IDENTITY_MISMATCH"
+    if report.get("generation_status") in CANDIDATE_GENERATION_PASS_STATUSES and report.get("status") != "PASS":
+        return "FAIL", "ready candidate generation report must be PASS", "SCHEMA_IDENTITY_MISMATCH"
     if candidate_scorecard is not None:
         for report_field, scorecard_field in (
             ("session_id", "session_id"),

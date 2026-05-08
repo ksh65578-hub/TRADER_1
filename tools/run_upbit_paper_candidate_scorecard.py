@@ -208,6 +208,7 @@ def _alternative_replay_context(
     replay_status: str | None = None,
     sample_count: int = 0,
     primary_blocker_code: str | None = None,
+    report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "status": status,
@@ -219,6 +220,7 @@ def _alternative_replay_context(
         "replay_status": replay_status,
         "sample_count": sample_count,
         "primary_blocker_code": primary_blocker_code,
+        "report": report,
         "credential_load_attempted": False,
         "private_endpoint_called": False,
         "order_endpoint_called": False,
@@ -358,23 +360,32 @@ def _build_and_write_alternative_public_replay(
             message="alternative public replay candidate scope did not match the candidate generation best alternative",
             candidate_id=str(alternative_scorecard.get("candidate_id") or ""),
             symbol=str(alternative_scorecard.get("symbol") or ""),
-        )
+    )
 
     history_fetcher = public_replay_history_fetcher or fetch_upbit_public_candle_history_read_only
-    market_data = history_fetcher(
-        symbol=str(alternative_scorecard["symbol"]),
-        session_id=session_id,
-        target_count=target_count,
-        page_size=page_size,
-        timeout_seconds=timeout_seconds,
-    )
-    replay_report = build_public_replay_robustness_report(
-        candidate_scorecard=alternative_scorecard,
-        market_data=market_data,
-        replay_id=f"public-replay-alternative:{alternative_scorecard['source_runtime_cycle_id']}:{alternative_scorecard['candidate_id']}",
-        max_replay_windows=max_replay_windows,
-        min_required_sample_count=min_required_sample_count,
-    )
+    try:
+        market_data = history_fetcher(
+            symbol=str(alternative_scorecard["symbol"]),
+            session_id=session_id,
+            target_count=target_count,
+            page_size=page_size,
+            timeout_seconds=timeout_seconds,
+        )
+        replay_report = build_public_replay_robustness_report(
+            candidate_scorecard=alternative_scorecard,
+            market_data=market_data,
+            replay_id=f"public-replay-alternative:{alternative_scorecard['source_runtime_cycle_id']}:{alternative_scorecard['candidate_id']}",
+            max_replay_windows=max_replay_windows,
+            min_required_sample_count=min_required_sample_count,
+        )
+    except Exception as exc:
+        return _alternative_replay_context(
+            status="BLOCKED",
+            blocker_code="DATA_QUALITY_INSUFFICIENT",
+            message=f"alternative public replay could not collect read-only public candles: {type(exc).__name__}",
+            candidate_id=str(alternative_scorecard.get("candidate_id") or ""),
+            symbol=str(alternative_scorecard.get("symbol") or ""),
+        )
     replay_validation = validate_public_replay_robustness_report(
         replay_report,
         candidate_scorecard=alternative_scorecard,
@@ -390,6 +401,7 @@ def _build_and_write_alternative_public_replay(
         replay_status=str(replay_report.get("replay_status") or ""),
         sample_count=int(replay_report.get("sample_count") or 0),
         primary_blocker_code=replay_report.get("primary_blocker_code"),
+        report=replay_report,
     )
 
 
@@ -596,6 +608,27 @@ def build_current_upbit_paper_candidate_scorecard(
         min_required_sample_count=alternative_replay_min_required_sample_count,
         public_replay_history_fetcher=public_replay_history_fetcher,
     )
+    if isinstance(alternative_replay_context.get("report"), dict):
+        candidate_generation_report = candidate_generation_report_from_upbit_paper_runtime_cycle(
+            runtime,
+            candidate_scorecard=scorecard,
+            additional_runtime_cycle_reports=(
+                [candidate_discovery_runtime]
+                if candidate_discovery_runtime is not None
+                else None
+            ),
+            best_alternative_public_replay_report=alternative_replay_context["report"],
+        )
+        generation_status, generation_message, generation_blocker = validate_candidate_generation_report(
+            candidate_generation_report,
+            candidate_scorecard=scorecard,
+        )
+        if generation_status != "PASS":
+            return _blocked_result(
+                "candidate generation report failed post-replay contract validation",
+                generation_blocker or "SCHEMA_IDENTITY_MISMATCH",
+                candidate_generation_errors=[generation_message],
+            )
 
     paper_shadow_binding = _paper_shadow_scorecard_binding(
         root=root,
@@ -686,6 +719,12 @@ def build_current_upbit_paper_candidate_scorecard(
         "candidate_generation_alternative_candidate_count": candidate_generation_report["alternative_candidate_count"],
         "candidate_generation_best_alternative_candidate_id": candidate_generation_report["best_alternative_candidate_id"],
         "candidate_generation_best_alternative_symbol": candidate_generation_report["best_alternative_symbol"],
+        "candidate_generation_best_alternative_public_replay_status": candidate_generation_report[
+            "best_alternative_public_replay_status"
+        ],
+        "candidate_generation_best_alternative_public_replay_sample_count": candidate_generation_report[
+            "best_alternative_public_replay_sample_count"
+        ],
         "candidate_generation_next_action": candidate_generation_report["next_action"],
         "diagnostic_status": diagnostic["diagnostic_status"],
         "robustness_eligible": diagnostic["robustness_eligible"],
