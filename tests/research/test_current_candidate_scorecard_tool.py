@@ -16,6 +16,7 @@ from trader1.research.profitability.overfit_diagnostic import (
     overfit_diagnostic_from_upbit_paper_runtime,
     overfit_diagnostic_report_hash,
 )
+from trader1.research.shadow.shadow_runner import build_paper_shadow_evidence_accumulation_report
 from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
 from trader1.validation.mvp0_validators import (
     _candidate_scorecard_net_ev_errors,
@@ -46,6 +47,19 @@ def _run_short_paper(root: Path) -> None:
         root=root,
         loop_id="current-scorecard-short-runtime",
         requested_cycle_count=2,
+    )
+
+
+def _paper_shadow_evidence_path(root: Path) -> Path:
+    return (
+        root
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / "mvp1_upbit_paper_launcher"
+        / "paper_shadow_evidence_accumulation_report.json"
     )
 
 
@@ -377,6 +391,43 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
             exploration_policy = _load_written(root, result, "exploration_exploitation_policy_path")
             optimizer_memory = _load_written(root, result, "optimizer_memory_state_path")
             profit_cycle = _load_written(root, result, "profit_convergence_cycle_report_path")
+            matched_shadow = build_paper_shadow_evidence_accumulation_report(
+                evidence_report_id="matched-current-scorecard-shadow",
+                candidate_id=scorecard["candidate_id"],
+                strategy_id=scorecard["strategy_id"],
+                strategy_build_id=scorecard["strategy_build_id"],
+                parameter_hash=scorecard["parameter_hash"],
+                exchange=scorecard["exchange"],
+                market_type=scorecard["market_type"],
+                paper_session_id="mvp1_upbit_paper_launcher",
+                shadow_session_id="mvp1_upbit_paper_launcher_shadow",
+                paper_sample_count=30,
+                shadow_sample_count=30,
+                evidence_window_count=2,
+                evidence_span_hours=4,
+                entry_reason_count=5,
+                no_trade_reason_count=5,
+                cost_evidence_count=5,
+            )
+            shadow_path = _paper_shadow_evidence_path(root)
+            shadow_path.parent.mkdir(parents=True, exist_ok=True)
+            shadow_path.write_text(json.dumps(matched_shadow, indent=2, sort_keys=True), encoding="utf-8")
+
+            with patch(
+                "tools.run_upbit_paper_candidate_scorecard.overfit_diagnostic_from_upbit_paper_runtime",
+                side_effect=robust_diagnostic,
+            ), patch(
+                "tools.run_upbit_paper_candidate_scorecard.performance_inputs_from_runtime_sample_history",
+                side_effect=strong_performance,
+            ):
+                shadow_bound_result = build_current_upbit_paper_candidate_scorecard(
+                    root=root,
+                    session_id="mvp1_upbit_paper_launcher",
+                )
+            shadow_strategy_memory = _load_written(root, shadow_bound_result, "strategy_performance_memory_path")
+            shadow_optimizer_memory = _load_written(root, shadow_bound_result, "optimizer_memory_state_path")
+            shadow_exploration_policy = _load_written(root, shadow_bound_result, "exploration_exploitation_policy_path")
+            shadow_profit_cycle = _load_written(root, shadow_bound_result, "profit_convergence_cycle_report_path")
 
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(_candidate_scorecard_net_ev_errors(scorecard), [])
@@ -393,6 +444,7 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(exploration_policy["policy_status"], "ACTIVE_ANALYSIS_ONLY")
         self.assertEqual(exploration_policy["transition_decision"], "KEEP_EXPLORING")
         self.assertIn("MEASUREMENT_MISSING", {blocker["code"] for blocker in exploration_policy["blockers"]})
+        self.assertEqual(result["paper_shadow_scorecard_binding_status"], "MISSING")
         self.assertEqual(profit_cycle["cycle_status"], "COLLECTING")
         self.assertEqual(profit_cycle["exploration_exploitation_policy_validator_status"], "PASS")
         self.assertEqual(profit_cycle["convergence_claim"], "NO_CLAIM")
@@ -404,6 +456,20 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(scorecard["fill_quality_sample_count"], 42)
         self.assertEqual(scorecard["profit_factor_status"], "PASS")
         self.assertFalse(scorecard["live_order_allowed"])
+        self.assertEqual(shadow_bound_result["status"], "PASS")
+        self.assertEqual(shadow_bound_result["paper_shadow_scorecard_binding_status"], "PASS")
+        self.assertEqual(_strategy_performance_memory_errors(shadow_strategy_memory), [])
+        self.assertEqual(_optimizer_memory_state_errors(shadow_optimizer_memory), [])
+        self.assertEqual(_exploration_exploitation_policy_errors(shadow_exploration_policy), [])
+        self.assertEqual(_profit_convergence_cycle_errors(shadow_profit_cycle), [])
+        self.assertEqual(shadow_strategy_memory["performance_scope"], "PAPER_SHADOW_RESEARCH_ONLY")
+        self.assertEqual(shadow_strategy_memory["performance_status"], "IMPROVING_AFTER_COST")
+        self.assertEqual(shadow_strategy_memory["source_modes"], ["PAPER", "SHADOW"])
+        self.assertEqual(shadow_optimizer_memory["source_modes"], ["PAPER", "SHADOW"])
+        self.assertTrue(shadow_strategy_memory["paper_shadow_separated"])
+        self.assertEqual(shadow_profit_cycle["paper_shadow_evidence_accumulation_validator_status"], "PASS")
+        self.assertFalse(shadow_profit_cycle["candidate_ranking_allowed_for_paper"])
+        self.assertFalse(shadow_profit_cycle["live_order_allowed"])
 
 
 if __name__ == "__main__":
