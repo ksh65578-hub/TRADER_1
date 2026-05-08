@@ -385,7 +385,9 @@ def _strategy_exit_policy_sample(
     exit_variation = str(lifecycle.get("strategy_exit_variation") or "")
     entry_exit_variation = str(lifecycle.get("entry_strategy_exit_variation") or "")
     reason_code = str(lifecycle.get("strategy_exit_reason_code") or lifecycle.get("position_exit_reason_code") or "")
-    action = str(lifecycle.get("strategy_exit_action") or "")
+    nested_evaluation = lifecycle.get("position_exit_evaluation")
+    nested_evaluation = nested_evaluation if isinstance(nested_evaluation, dict) else {}
+    action = str(lifecycle.get("strategy_exit_action") or nested_evaluation.get("strategy_exit_action") or "")
     strategy_reason = str(lifecycle.get("strategy_exit_reason_code") or "")
     if strategy_reason == "NONE":
         strategy_reason = ""
@@ -530,7 +532,7 @@ def performance_inputs_from_runtime_sample_history(
             isinstance(fill, dict)
             and fill.get("side") in {"BUY", "SELL"}
             and candidate_fill
-            and runtime.get("final_decision") in {"ENTER_LONG", "EXIT_POSITION"}
+            and runtime.get("final_decision") in {"ENTER_LONG", "EXIT_POSITION", "REDUCE_POSITION"}
         )
         if isinstance(runtime_candidate, dict):
             _record_regime_outcome_sample(
@@ -553,23 +555,15 @@ def performance_inputs_from_runtime_sample_history(
             realized_total_cost_values.append(execution_cost["realized_total_execution_cost_bps"])
             execution_cost_delta_values.append(cost_delta)
 
-        if (
+        sell_policy_observed = (
             isinstance(fill, dict)
             and isinstance(lifecycle, dict)
             and fill.get("side") == "SELL"
-            and runtime.get("final_decision") == "EXIT_POSITION"
+            and runtime.get("final_decision") in {"EXIT_POSITION", "REDUCE_POSITION"}
             and candidate_fill
-        ):
-            realized_delta = current_realized - (previous_realized_pnl if previous_realized_pnl is not None else Decimal("0"))
-            closed_trade_count += 1
-            if realized_delta >= 0:
-                gross_profit += realized_delta
-            else:
-                gross_loss += abs(realized_delta)
-            filled_notional = max(Decimal("1"), decimal_value(fill.get("filled_notional")))
-            realized_bps = realized_delta / filled_notional * Decimal("10000")
-            closed_candidate = _candidate_for_closed_trade(runtime, lifecycle)
-            expected_bps = decimal_value(closed_candidate.get("net_ev_after_cost_bps")) if isinstance(closed_candidate, dict) else Decimal("0")
+        )
+        closed_candidate = _candidate_for_closed_trade(runtime, lifecycle) if sell_policy_observed else None
+        if sell_policy_observed:
             expected_exit_variation = _expected_strategy_exit_variation(
                 closed_candidate.get("strategy_family") if isinstance(closed_candidate, dict) else None
             )
@@ -584,6 +578,17 @@ def performance_inputs_from_runtime_sample_history(
                 strategy_exit_policy_mismatch_count += 1
             if exit_reason:
                 strategy_exit_reason_counts[exit_reason] = strategy_exit_reason_counts.get(exit_reason, 0) + 1
+
+        if sell_policy_observed and runtime.get("final_decision") == "EXIT_POSITION":
+            realized_delta = current_realized - (previous_realized_pnl if previous_realized_pnl is not None else Decimal("0"))
+            closed_trade_count += 1
+            if realized_delta >= 0:
+                gross_profit += realized_delta
+            else:
+                gross_loss += abs(realized_delta)
+            filled_notional = max(Decimal("1"), decimal_value(fill.get("filled_notional")))
+            realized_bps = realized_delta / filled_notional * Decimal("10000")
+            expected_bps = decimal_value(closed_candidate.get("net_ev_after_cost_bps")) if isinstance(closed_candidate, dict) else Decimal("0")
             realized_vs_expected_values.append(realized_bps - expected_bps)
             candidate_cumulative_realized_pnl += realized_delta
             candidate_realized_pnl_peak = max(candidate_realized_pnl_peak, candidate_cumulative_realized_pnl)

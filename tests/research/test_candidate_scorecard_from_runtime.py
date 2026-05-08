@@ -705,6 +705,82 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertLessEqual(metrics["execution_cost_delta_bps"], metrics["max_allowed_execution_cost_delta_bps"])
         self.assertTrue(all(f":{target_key}:" in source_id for source_id in source_ids))
 
+    def test_partial_sell_counts_strategy_exit_policy_without_closed_trade_claim(self):
+        weak_btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="WEAK_RANGE",
+        )
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(strong_eth["candles"], start=1):
+            candle["volume"] = str(8 + index * 2)
+        mark_price = weak_btc["candles"][-1]["close"]
+        portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.3",
+            fill_price=mark_price,
+            mark_price=mark_price,
+            fee_amount="150",
+            source_runtime_cycle_id="prior-paper-entry",
+            source_paper_ledger_head_hash="B" * 64,
+        )
+        partial_runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="scorecard-performance-partial-strategy-exit",
+            market_data_universe=[weak_btc, strong_eth],
+            current_paper_portfolio_snapshot=portfolio,
+            paper_cash_available=portfolio["cash_available"],
+            paper_equity=portfolio["equity"],
+            paper_position_market_value=portfolio["position_market_value"],
+        )
+        lifecycle = partial_runtime["position_management_decision"]
+        target_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(partial_runtime)
+        target_scorecard["candidate_id"] = lifecycle["entry_candidate_id"]
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            runtime_dir = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp4_upbit_paper_runtime"
+            runtime_dir.mkdir(parents=True)
+            runtime_path = runtime_dir / f"{partial_runtime['cycle_id']}.runtime_cycle.json"
+            runtime_path.write_text(json.dumps(partial_runtime, sort_keys=True), encoding="utf-8")
+            history = {
+                "history_id": "partial-strategy-exit-policy-history",
+                "history_hash": "E" * 64,
+                "samples": [
+                    {
+                        "source_runtime_cycle_path": runtime_path.relative_to(root).as_posix(),
+                        "source_runtime_cycle_hash": partial_runtime["cycle_hash"],
+                    }
+                ],
+            }
+
+            statuses, metrics, _source_ids = performance_inputs_from_runtime_sample_history(
+                candidate_scorecard=target_scorecard,
+                runtime_sample_history=history,
+                root=root,
+            )
+
+        self.assertEqual(partial_runtime["final_decision"], "REDUCE_POSITION")
+        self.assertEqual(lifecycle["requested_position_decision"], "EXIT_POSITION")
+        self.assertEqual(lifecycle["execution_adjusted_position_decision_reason"], "PARTIAL_EXIT_FILL")
+        self.assertEqual(lifecycle["strategy_exit_action"], "FULL_EXIT")
+        self.assertEqual(partial_runtime["paper_fill"]["side"], "SELL")
+        self.assertEqual(metrics["closed_trade_sample_count"], 0)
+        self.assertEqual(metrics["strategy_exit_policy_sample_count"], 1)
+        self.assertEqual(metrics["strategy_exit_policy_match_count"], 1)
+        self.assertEqual(metrics["strategy_exit_policy_mismatch_count"], 0)
+        self.assertEqual(metrics["strategy_exit_reason_count"], 1)
+        self.assertEqual(statuses["closed_trade_status"], "UNTESTED")
+        self.assertEqual(statuses["strategy_exit_policy_status"], "FAIL")
+        self.assertEqual(statuses["profit_factor_status"], "UNTESTED")
+
     def test_runtime_performance_inputs_collect_regime_outcome_coverage(self):
         target_entry_runtime = build_upbit_paper_runtime_cycle_report(
             cycle_id="scorecard-regime-outcome-target-entry",
