@@ -225,7 +225,13 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
             session_id="mvp4_upbit_paper_runtime",
             profile="UPTREND_PULLBACK",
         )
+        orca_closes = ["980000", "988000", "1004000", "997000", "1009000", "1002050"]
         for index, candle in enumerate(focus_orca["candles"], start=1):
+            price = int(orca_closes[index - 1])
+            candle["open"] = str(price - 1200)
+            candle["high"] = str(price + 2500)
+            candle["low"] = str(price - 2500)
+            candle["close"] = orca_closes[index - 1]
             candle["volume"] = str(1 + index * 0.1)
         mark_price = weak_btc["candles"][-1]["close"]
         current_portfolio = build_paper_portfolio_snapshot_from_fill(
@@ -311,17 +317,18 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
 
         self.assertEqual(errors, [])
         self.assertEqual(scorecard["evaluated_symbol_count"], 2)
-        self.assertEqual(scorecard["paper_entry_review_symbol_count"], 2)
+        self.assertEqual(scorecard["paper_entry_review_symbol_count"], 1)
         self.assertEqual(len(scorecard["top_symbol_evidence_scorecards"]), 2)
-        self.assertGreaterEqual(scorecard["alternative_candidate_count"], 1)
-        self.assertNotEqual(scorecard["best_alternative_candidate_id"], scorecard["candidate_id"])
-        self.assertIn(scorecard["best_alternative_symbol"], {"KRW-BTC", "KRW-ETH"})
-        self.assertIsInstance(scorecard["best_alternative_net_ev_after_cost_bps"], float)
-        self.assertTrue(scorecard["rotation_review_required"])
-        self.assertEqual(
-            scorecard["rotation_review_reason_code"],
-            "SELECTED_CANDIDATE_ROBUSTNESS_BLOCKED_WITH_ALTERNATIVE",
-        )
+        self.assertEqual(scorecard["alternative_candidate_count"], 0)
+        self.assertIsNone(scorecard["best_alternative_candidate_id"])
+        self.assertIsNone(scorecard["best_alternative_symbol"])
+        self.assertIsNone(scorecard["best_alternative_net_ev_after_cost_bps"])
+        self.assertFalse(scorecard["rotation_review_required"])
+        self.assertEqual(scorecard["rotation_review_reason_code"], "NONE")
+        top_by_symbol = {item["symbol"]: item for item in scorecard["top_symbol_evidence_scorecards"]}
+        self.assertEqual(top_by_symbol["KRW-BTC"]["correlation_cluster_status"], "LEADER")
+        self.assertEqual(top_by_symbol["KRW-ETH"]["correlation_cluster_status"], "DIVERSIFICATION_FILTERED")
+        self.assertIn("CLUSTER_RISK", top_by_symbol["KRW-ETH"]["no_trade_reasons"])
         for symbol_scorecard in scorecard["top_symbol_evidence_scorecards"]:
             self.assertFalse(symbol_scorecard["live_order_ready"])
             self.assertFalse(symbol_scorecard["live_order_allowed"])

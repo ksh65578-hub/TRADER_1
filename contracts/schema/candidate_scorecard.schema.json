@@ -366,6 +366,18 @@
           "best_decision",
           "best_net_ev_after_cost_bps",
           "symbol_selection_score",
+          "base_symbol_selection_score",
+          "correlation_cluster_status",
+          "correlation_cluster_leader_symbol",
+          "correlation_cluster_rank",
+          "correlation_max_peer_symbol",
+          "correlation_max_abs",
+          "correlation_penalty",
+          "adaptive_top_n",
+          "rank_after_correlation",
+          "adaptive_top_n_filter_status",
+          "eligible_after_correlation",
+          "no_trade_reasons",
           "paper_entry_review_candidate_count",
           "live_order_ready",
           "live_order_allowed",
@@ -406,6 +418,63 @@
           "symbol_selection_score": {
             "type": "number",
             "minimum": 0
+          },
+          "base_symbol_selection_score": {
+            "type": "number",
+            "minimum": 0
+          },
+          "correlation_cluster_status": {
+            "enum": [
+              "LEADER",
+              "DIVERSIFICATION_FILTERED"
+            ]
+          },
+          "correlation_cluster_leader_symbol": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "correlation_cluster_rank": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "correlation_max_peer_symbol": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "correlation_max_abs": {
+            "type": "number",
+            "minimum": 0
+          },
+          "correlation_penalty": {
+            "type": "number",
+            "minimum": 0
+          },
+          "adaptive_top_n": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "rank_after_correlation": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "adaptive_top_n_filter_status": {
+            "enum": [
+              "IN_TOP_N",
+              "OUTSIDE_ADAPTIVE_TOP_N"
+            ]
+          },
+          "eligible_after_correlation": {
+            "type": "boolean"
+          },
+          "no_trade_reasons": {
+            "type": "array",
+            "items": {
+              "$ref": "common.defs.schema.json#/$defs/no_trade_reason"
+            }
           },
           "paper_entry_review_candidate_count": {
             "type": "integer",

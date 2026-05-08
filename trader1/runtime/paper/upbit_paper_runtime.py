@@ -51,6 +51,10 @@ UPBIT_KRW_PAPER_MIN_ENTRY_NOTIONAL = Decimal("5000")
 MIN_SYMBOL_SELECTION_SCORE = Decimal("0.60")
 MIN_ENTRY_NET_EV_BPS = Decimal("5")
 MIN_ENTRY_SIGNAL_STRENGTH = Decimal("0.55")
+SYMBOL_CORRELATION_CLUSTER_THRESHOLD = Decimal("0.92")
+SYMBOL_CORRELATION_CLUSTER_PENALTY = Decimal("0.18")
+SYMBOL_ADAPTIVE_TOP_N_MIN = 2
+SYMBOL_ADAPTIVE_TOP_N_MAX = 5
 PAPER_SCOPE_CONTINUITY_POLICY_ID = "PAPER_SCOPE_CONTINUITY_V1"
 PAPER_SCOPE_CONTINUITY_MAX_SCORE_GAP = Decimal("0.1000")
 PAPER_SCOPE_CONTINUITY_MAX_NET_EV_GAP_BPS = Decimal("12")
@@ -80,10 +84,12 @@ TREND_EXHAUSTION_FEATURE_PROJECTION_FIELDS = frozenset(
 REGIME_DETAIL_FEATURE_PROJECTION_FIELDS = frozenset(
     {"market_state", "quiet_range_status", "volatility_expansion_status", "regime_detail_formula"}
 )
+CORRELATION_FEATURE_PROJECTION_FIELDS = frozenset({"return_signature", "return_signature_formula"})
 CURRENT_FEATURE_PROJECTION_UPGRADE_FIELDS = (
     TREND_EXHAUSTION_FEATURE_PROJECTION_FIELDS
     | TREND_PULLBACK_ALIGNMENT_FEATURE_PROJECTION_FIELDS
     | REGIME_DETAIL_FEATURE_PROJECTION_FIELDS
+    | CORRELATION_FEATURE_PROJECTION_FIELDS
 )
 BREAKOUT_CONFIRMATION_MIN_VOLUME_EXPANSION = Decimal("1.20")
 BREAKOUT_CONFIRMATION_MIN_RANGE_BREAKOUT_PCT = Decimal("0.03")
@@ -96,7 +102,13 @@ VOLATILITY_LIQUIDITY_EDGE_PENALTY_BPS = Decimal("8")
 ROTATION_EXIT_MIN_NET_EV_ADVANTAGE_BPS = Decimal("8")
 ROTATION_EXIT_MIN_SYMBOL_SCORE_BUFFER = Decimal("0.05")
 ROTATION_EXIT_MAX_POSITIVE_RETURN_PCT = Decimal("0.25")
-ROTATION_EXIT_WEAK_NO_TRADE_REASONS = {"REGIME_MISMATCH", "SYMBOL_SELECTION_BIAS", "STRATEGY_CONFIDENCE_LOW"}
+ROTATION_EXIT_WEAK_NO_TRADE_REASONS = {
+    "REGIME_MISMATCH",
+    "SYMBOL_SELECTION_BIAS",
+    "STRATEGY_CONFIDENCE_LOW",
+    "CLUSTER_RISK",
+    "UNIVERSE_FILTERED",
+}
 ROTATION_SUPERSEDED_BY_HIGHER_PRIORITY_EXIT_REASONS = {
     "HARD_STOP",
     "REGIME_REVERSAL",
@@ -423,7 +435,12 @@ def _paper_scope_continuity_decision(
     paper_scope_focus: dict[str, Any] | None,
     managed_position_symbol: str | None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    best_candidate = max(candidates, key=_candidate_rank_key)
+    entry_review_candidates = [
+        candidate
+        for candidate in candidates
+        if isinstance(candidate, dict) and candidate.get("decision") == "PAPER_ENTRY_REVIEW"
+    ]
+    best_candidate = max(entry_review_candidates or candidates, key=_candidate_rank_key)
     requested_candidate_id = (
         str(paper_scope_focus.get("candidate_id") or "") if isinstance(paper_scope_focus, dict) else ""
     )
@@ -1138,6 +1155,14 @@ def _feature_snapshot(market_data: dict[str, Any]) -> dict[str, Any]:
     low = min(closes)
     volatility_pct = Decimal("0") if last <= 0 else ((high - low) / last * Decimal("100"))
     momentum_pct = Decimal("0") if first <= 0 else ((last - first) / first * Decimal("100"))
+    return_signature = [
+        _decimal_text(
+            Decimal("0")
+            if closes[index - 1] <= 0
+            else ((closes[index] - closes[index - 1]) / closes[index - 1] * Decimal("100")).quantize(Decimal("0.0001"))
+        )
+        for index in range(1, len(closes))
+    ]
     average_prior_volume = sum(volumes[:-1], Decimal("0")) / Decimal(max(1, len(volumes) - 1))
     volume_expansion_ratio = Decimal("0") if average_prior_volume <= 0 else volumes[-1] / average_prior_volume
     vwap_distance_pct = Decimal("0") if last <= 0 else ((last - vwap) / last * Decimal("100"))
@@ -1218,6 +1243,8 @@ def _feature_snapshot(market_data: dict[str, Any]) -> dict[str, Any]:
         "ema_slow": _decimal_text(ema_slow),
         "volatility_pct": _decimal_text(volatility_pct),
         "momentum_pct": _decimal_text(momentum_pct),
+        "return_signature": return_signature,
+        "return_signature_formula": "close_to_close_return_pct over the runtime candle window, used only for PAPER symbol correlation clustering",
         "total_quote_volume": _decimal_text(total_quote_volume),
         "volume_expansion_ratio": _decimal_text(volume_expansion_ratio),
         "vwap_distance_pct": _decimal_text(vwap_distance_pct),
@@ -1471,7 +1498,49 @@ def _volatility_score(volatility_pct: Decimal) -> Decimal:
     return Decimal("0")
 
 
-def _symbol_selection_score(features: dict[str, Any]) -> dict[str, str]:
+def _return_signature_correlation(left: list[Any], right: list[Any]) -> Decimal:
+    left_values = [_decimal(value) for value in left]
+    right_values = [_decimal(value) for value in right]
+    count = min(len(left_values), len(right_values))
+    if count < 3:
+        return Decimal("0")
+    left_values = left_values[-count:]
+    right_values = right_values[-count:]
+    left_mean = sum(left_values, Decimal("0")) / Decimal(count)
+    right_mean = sum(right_values, Decimal("0")) / Decimal(count)
+    numerator = sum(
+        (left_values[index] - left_mean) * (right_values[index] - right_mean)
+        for index in range(count)
+    )
+    left_variance = sum((value - left_mean) ** 2 for value in left_values)
+    right_variance = sum((value - right_mean) ** 2 for value in right_values)
+    if left_variance <= 0 or right_variance <= 0:
+        return Decimal("0")
+    denominator = (left_variance.sqrt() * right_variance.sqrt())
+    if denominator <= 0:
+        return Decimal("0")
+    return _clamp_decimal(numerator / denominator, low=Decimal("-1"), high=Decimal("1"))
+
+
+def _adaptive_symbol_top_n(symbol_count: int) -> int:
+    if symbol_count <= 0:
+        return 0
+    if symbol_count <= SYMBOL_ADAPTIVE_TOP_N_MIN:
+        return symbol_count
+    # Conservative square-root growth keeps the PAPER review set broad enough to rotate,
+    # but bounded so weak tail symbols do not become entry candidates.
+    sqrt_ceiling = 1
+    while sqrt_ceiling * sqrt_ceiling < symbol_count:
+        sqrt_ceiling += 1
+    top_n = sqrt_ceiling + 1
+    return max(SYMBOL_ADAPTIVE_TOP_N_MIN, min(SYMBOL_ADAPTIVE_TOP_N_MAX, symbol_count, top_n))
+
+
+def _symbol_selection_score(
+    features: dict[str, Any],
+    *,
+    correlation_context: dict[str, Any] | None = None,
+) -> dict[str, str | bool | int | None]:
     regime = str(features.get("regime"))
     regime_fit = {
         "UPTREND": Decimal("1.00"),
@@ -1491,16 +1560,128 @@ def _symbol_selection_score(features: dict[str, Any]) -> dict[str, str]:
         + Decimal("0.10") * volume_expansion_score
         + Decimal("0.10") * regime_fit
     )
+    context = correlation_context or {}
+    correlation_penalty = _decimal(context.get("correlation_penalty", "0"))
+    adjusted_score = max(Decimal("0"), score - correlation_penalty)
     return {
-        "symbol_selection_score": _decimal_text(score.quantize(Decimal("0.0001"))),
+        "symbol_selection_score": _decimal_text(adjusted_score.quantize(Decimal("0.0001"))),
+        "base_symbol_selection_score": _decimal_text(score.quantize(Decimal("0.0001"))),
         "liquidity_score": _decimal_text(liquidity_score.quantize(Decimal("0.0001"))),
         "volatility_score": _decimal_text(volatility_score.quantize(Decimal("0.0001"))),
         "relative_strength_score": _decimal_text(relative_strength_score.quantize(Decimal("0.0001"))),
         "spread_quality_score": _decimal_text(spread_quality_score.quantize(Decimal("0.0001"))),
         "volume_expansion_score": _decimal_text(volume_expansion_score.quantize(Decimal("0.0001"))),
         "regime_fit_score": _decimal_text(regime_fit.quantize(Decimal("0.0001"))),
+        "correlation_cluster_id": context.get("correlation_cluster_id") or f"cluster:{features.get('symbol')}",
+        "correlation_cluster_rank": int(context.get("correlation_cluster_rank", 1) or 1),
+        "correlation_cluster_status": context.get("correlation_cluster_status") or "LEADER",
+        "correlation_cluster_leader_symbol": context.get("correlation_cluster_leader_symbol") or features.get("symbol"),
+        "correlation_max_peer_symbol": context.get("correlation_max_peer_symbol"),
+        "correlation_max_abs": _decimal_text(_decimal(context.get("correlation_max_abs", "0")).quantize(Decimal("0.0001"))),
+        "correlation_penalty": _decimal_text(correlation_penalty.quantize(Decimal("0.0001"))),
+        "correlation_cluster_threshold": _decimal_text(SYMBOL_CORRELATION_CLUSTER_THRESHOLD),
+        "adaptive_top_n": int(context.get("adaptive_top_n", 1) or 1),
+        "rank_after_correlation": int(context.get("rank_after_correlation", 1) or 1),
+        "adaptive_top_n_filter_status": context.get("adaptive_top_n_filter_status") or "IN_TOP_N",
+        "eligible_after_correlation": bool(context.get("eligible_after_correlation", True)),
         "minimum_symbol_selection_score": _decimal_text(MIN_SYMBOL_SELECTION_SCORE),
     }
+
+
+def _symbol_selection_scores_for_universe(
+    feature_snapshots_by_symbol: dict[str, dict[str, Any]]
+) -> dict[str, dict[str, str | bool | int | None]]:
+    if not feature_snapshots_by_symbol:
+        return {}
+    base_scores = {
+        symbol: _decimal(_symbol_selection_score(features).get("base_symbol_selection_score"))
+        for symbol, features in feature_snapshots_by_symbol.items()
+    }
+    ordered_symbols = sorted(
+        feature_snapshots_by_symbol,
+        key=lambda item: (
+            -base_scores[item],
+            -_decimal(feature_snapshots_by_symbol[item].get("momentum_pct")),
+            -_decimal(feature_snapshots_by_symbol[item].get("total_quote_volume")),
+            item,
+        ),
+    )
+    clusters: list[dict[str, Any]] = []
+    contexts: dict[str, dict[str, Any]] = {}
+    for symbol in ordered_symbols:
+        features = feature_snapshots_by_symbol[symbol]
+        signature = list(features.get("return_signature") or [])
+        best_cluster: dict[str, Any] | None = None
+        best_correlation = Decimal("0")
+        best_peer: str | None = None
+        for cluster in clusters:
+            correlation = abs(_return_signature_correlation(signature, cluster["return_signature"]))
+            if correlation > best_correlation:
+                best_correlation = correlation
+                best_cluster = cluster
+                best_peer = str(cluster["leader_symbol"])
+        if best_cluster is not None and best_correlation >= SYMBOL_CORRELATION_CLUSTER_THRESHOLD:
+            best_cluster["members"].append(symbol)
+            contexts[symbol] = {
+                "correlation_cluster_id": best_cluster["cluster_id"],
+                "correlation_cluster_rank": len(best_cluster["members"]),
+                "correlation_cluster_status": "DIVERSIFICATION_FILTERED",
+                "correlation_cluster_leader_symbol": best_cluster["leader_symbol"],
+                "correlation_max_peer_symbol": best_peer,
+                "correlation_max_abs": best_correlation,
+                "correlation_penalty": SYMBOL_CORRELATION_CLUSTER_PENALTY,
+            }
+        else:
+            cluster_id = f"cluster:{len(clusters) + 1}:{symbol}"
+            clusters.append(
+                {
+                    "cluster_id": cluster_id,
+                    "leader_symbol": symbol,
+                    "return_signature": signature,
+                    "members": [symbol],
+                }
+            )
+            contexts[symbol] = {
+                "correlation_cluster_id": cluster_id,
+                "correlation_cluster_rank": 1,
+                "correlation_cluster_status": "LEADER",
+                "correlation_cluster_leader_symbol": symbol,
+                "correlation_max_peer_symbol": best_peer,
+                "correlation_max_abs": best_correlation,
+                "correlation_penalty": Decimal("0"),
+            }
+
+    adaptive_top_n = _adaptive_symbol_top_n(len(feature_snapshots_by_symbol))
+    preliminary = {
+        symbol: _symbol_selection_score(features, correlation_context={**contexts[symbol], "adaptive_top_n": adaptive_top_n})
+        for symbol, features in feature_snapshots_by_symbol.items()
+    }
+    ranked_after_correlation = sorted(
+        preliminary,
+        key=lambda item: (
+            -_decimal(preliminary[item].get("symbol_selection_score")),
+            -_decimal(feature_snapshots_by_symbol[item].get("momentum_pct")),
+            -_decimal(feature_snapshots_by_symbol[item].get("total_quote_volume")),
+            item,
+        ),
+    )
+    rank_by_symbol = {symbol: index for index, symbol in enumerate(ranked_after_correlation, start=1)}
+    final: dict[str, dict[str, str | bool | int | None]] = {}
+    for symbol, features in feature_snapshots_by_symbol.items():
+        rank = rank_by_symbol[symbol]
+        cluster_filtered = contexts[symbol]["correlation_cluster_status"] == "DIVERSIFICATION_FILTERED"
+        outside_top_n = rank > adaptive_top_n
+        final[symbol] = _symbol_selection_score(
+            features,
+            correlation_context={
+                **contexts[symbol],
+                "adaptive_top_n": adaptive_top_n,
+                "rank_after_correlation": rank,
+                "adaptive_top_n_filter_status": "OUTSIDE_ADAPTIVE_TOP_N" if outside_top_n else "IN_TOP_N",
+                "eligible_after_correlation": not cluster_filtered and not outside_top_n,
+            },
+        )
+    return final
 
 
 def _setup_confirmation_scores(features: dict[str, Any]) -> dict[str, Decimal]:
@@ -1552,11 +1733,15 @@ def _candidate(
         net_ev_bps=net_ev,
         signal_strength=signal_strength,
     )
+    correlation_filtered = symbol_selection.get("correlation_cluster_status") == "DIVERSIFICATION_FILTERED"
+    adaptive_top_n_filtered = symbol_selection.get("adaptive_top_n_filter_status") == "OUTSIDE_ADAPTIVE_TOP_N"
     threshold_passed = (
         net_ev > MIN_ENTRY_NET_EV_BPS
         and signal_strength >= MIN_ENTRY_SIGNAL_STRENGTH
         and symbol_score >= MIN_SYMBOL_SELECTION_SCORE
         and regime != "RISK_OFF"
+        and not correlation_filtered
+        and not adaptive_top_n_filtered
     )
     market_state = str(features.get("market_state") or regime)
     volume_expansion = _decimal(features.get("volume_expansion_ratio"))
@@ -1599,6 +1784,12 @@ def _candidate(
     elif cooldown_active:
         decision = "NO_TRADE"
         no_trade_reason = "COOLDOWN"
+    elif correlation_filtered:
+        decision = "NO_TRADE"
+        no_trade_reason = "CLUSTER_RISK"
+    elif adaptive_top_n_filtered:
+        decision = "NO_TRADE"
+        no_trade_reason = "UNIVERSE_FILTERED"
     elif not strategy_regime_allowed:
         no_trade_reason = "REGIME_MISMATCH" if strategy_policy_reason.endswith("_BLOCK") else "STRATEGY_NOT_ELIGIBLE"
     elif symbol_score < MIN_SYMBOL_SELECTION_SCORE:
@@ -1656,11 +1847,12 @@ def _build_candidates(
     features: dict[str, Any],
     *,
     edge_profile: str,
+    symbol_selection: dict[str, Any] | None = None,
     recent_failure_feedback: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     regime = str(features["regime"])
     cost_breakdown_bps = _paper_candidate_cost_breakdown(features)
-    symbol_selection = _symbol_selection_score(features)
+    symbol_selection = symbol_selection or _symbol_selection_score(features)
     symbol_score = _decimal(symbol_selection["symbol_selection_score"])
     momentum = _decimal(features.get("momentum_pct"))
     volume_expansion = _decimal(features.get("volume_expansion_ratio"))
@@ -1812,7 +2004,14 @@ def _symbol_selection_policy(*, runtime_input_role: str, symbol_count: int) -> d
         "runtime_input_role": runtime_input_role,
         "symbol_scope": "KRW_UNIVERSE" if symbol_count > 1 else "SINGLE_SYMBOL_FALLBACK",
         "evaluated_symbol_count": symbol_count,
-        "selection_formula": "0.25*liquidity+0.20*volatility+0.20*relative_strength+0.15*spread_quality+0.10*volume_expansion+0.10*regime_fit",
+        "adaptive_top_n": _adaptive_symbol_top_n(symbol_count),
+        "correlation_cluster_threshold": _decimal_text(SYMBOL_CORRELATION_CLUSTER_THRESHOLD),
+        "correlation_cluster_penalty": _decimal_text(SYMBOL_CORRELATION_CLUSTER_PENALTY),
+        "selection_formula": (
+            "base=0.25*liquidity+0.20*volatility+0.20*relative_strength+0.15*spread_quality"
+            "+0.10*volume_expansion+0.10*regime_fit; "
+            "symbol_selection_score=max(0,base-correlation_cluster_penalty)"
+        ),
         "candidate_formula": (
             "edge=strategy_base+symbol_score+trend_or_breakout_or_mean_reversion_confirmation"
             "-pullback_alignment_weak_trend_false_breakout_failed_mean_reversion_trend_exhaustion_recent_failure_penalties; "
@@ -1828,10 +2027,18 @@ def _symbol_selection_policy(*, runtime_input_role: str, symbol_count: int) -> d
             "volume>=1.20 and range_breakout>=0.03 for breakout, RANGE and VWAP distance>=0.35 for mean reversion; "
             "trend exhaustion guard volatility>=3.00pct and momentum>=3.00pct and volume>=1.50 applies -42bps edge; "
             "recent negative PAPER closed loss applies 3-cycle symbol cooldown and ranking penalty; "
-            "preliminary robustness/OOS failure applies evidence-backed candidate/symbol cooldown before more PAPER entry review"
+            "preliminary robustness/OOS failure applies evidence-backed candidate/symbol cooldown before more PAPER entry review; "
+            "correlation clusters use close-to-close return Pearson abs>=0.92, keep the strongest leader, "
+            "filter duplicate cluster members with CLUSTER_RISK, and keep only adaptive top-N symbols eligible for entry review"
         ),
-        "fallback_behavior": "Use configured single symbol when no universe is supplied; block with RISK_OFF/MEASUREMENT_MISSING when no valid public candle source exists.",
-        "acceptance_condition": "Every evaluated symbol must have one PAPER_SYMBOL_EVIDENCE_ONLY scorecard and all live/order flags false.",
+        "fallback_behavior": (
+            "Use configured single symbol when no universe is supplied; block with RISK_OFF/MEASUREMENT_MISSING "
+            "when no valid public candle source exists; symbols outside adaptive top-N or duplicate correlation clusters remain PAPER evidence only."
+        ),
+        "acceptance_condition": (
+            "Every evaluated symbol must have one PAPER_SYMBOL_EVIDENCE_ONLY scorecard, correlation/top-N reason fields, "
+            "and all live/order flags false."
+        ),
         "live_order_ready": False,
         "live_order_allowed": False,
         "can_live_trade": False,
@@ -1883,6 +2090,18 @@ def _build_symbol_evidence_scorecard(
         "spread_bps": features.get("spread_bps"),
         "symbol_selection": symbol_selection,
         "symbol_selection_score": symbol_selection.get("symbol_selection_score"),
+        "base_symbol_selection_score": symbol_selection.get("base_symbol_selection_score"),
+        "correlation_cluster_id": symbol_selection.get("correlation_cluster_id"),
+        "correlation_cluster_rank": symbol_selection.get("correlation_cluster_rank"),
+        "correlation_cluster_status": symbol_selection.get("correlation_cluster_status"),
+        "correlation_cluster_leader_symbol": symbol_selection.get("correlation_cluster_leader_symbol"),
+        "correlation_max_peer_symbol": symbol_selection.get("correlation_max_peer_symbol"),
+        "correlation_max_abs": symbol_selection.get("correlation_max_abs"),
+        "correlation_penalty": symbol_selection.get("correlation_penalty"),
+        "adaptive_top_n": symbol_selection.get("adaptive_top_n"),
+        "rank_after_correlation": symbol_selection.get("rank_after_correlation"),
+        "adaptive_top_n_filter_status": symbol_selection.get("adaptive_top_n_filter_status"),
+        "eligible_after_correlation": symbol_selection.get("eligible_after_correlation"),
         "candidate_count": len(symbol_candidates),
         "paper_entry_review_candidate_count": paper_entry_review_count,
         "no_trade_candidate_count": len(symbol_candidates) - paper_entry_review_count,
@@ -2045,6 +2264,9 @@ def _validate_candidate_costs(
         net_ev_bps=reported_net_ev,
         signal_strength=signal_strength,
     )
+    symbol_selection = candidate.get("symbol_selection") if isinstance(candidate.get("symbol_selection"), dict) else {}
+    correlation_filtered = symbol_selection.get("correlation_cluster_status") == "DIVERSIFICATION_FILTERED"
+    adaptive_top_n_filtered = symbol_selection.get("adaptive_top_n_filter_status") == "OUTSIDE_ADAPTIVE_TOP_N"
     component_cost = sum((_decimal(breakdown[field]) for field in sorted(cost_fields)), Decimal("0"))
     if require_adaptive_cost_model and isinstance(features, dict):
         expected_breakdown = _paper_candidate_cost_breakdown(features)
@@ -2078,6 +2300,8 @@ def _validate_candidate_costs(
         and candidate.get("regime") != "RISK_OFF"
         and strategy_regime_allowed
         and not cooldown_active
+        and not correlation_filtered
+        and not adaptive_top_n_filtered
     )
     no_trade_reason = candidate.get("no_trade_reason")
     if candidate.get("decision") == "PAPER_ENTRY_REVIEW":
@@ -2106,6 +2330,10 @@ def _validate_candidate_costs(
             expected_reason = "REGIME_MISMATCH"
         elif cooldown_active:
             expected_reason = "COOLDOWN"
+        elif correlation_filtered:
+            expected_reason = "CLUSTER_RISK"
+        elif adaptive_top_n_filtered:
+            expected_reason = "UNIVERSE_FILTERED"
         elif not strategy_regime_allowed:
             expected_reason = (
                 "REGIME_MISMATCH"
@@ -2466,6 +2694,7 @@ def build_upbit_paper_runtime_cycle_report(
 
     feature_snapshots_by_symbol: dict[str, dict[str, Any]] = {}
     market_data_by_symbol: dict[str, dict[str, Any]] = {}
+    valid_symbol_rows: list[tuple[int, str, dict[str, Any]]] = []
     symbol_selection_universe: list[dict[str, Any]] = []
     symbol_evidence_scorecards: list[dict[str, Any]] = []
     candidates: list[dict[str, Any]] = []
@@ -2484,15 +2713,20 @@ def build_upbit_paper_runtime_cycle_report(
             blockers.append(_blocker(symbol_blocker, symbol_message))
             continue
         candidate_features = _feature_snapshot(candidate_market_data)
-        symbol_selection = _symbol_selection_score(candidate_features)
+        feature_snapshots_by_symbol[candidate_symbol] = candidate_features
+        market_data_by_symbol[candidate_symbol] = candidate_market_data
+        valid_symbol_rows.append((index, candidate_symbol, candidate_features))
+
+    symbol_selection_by_symbol = _symbol_selection_scores_for_universe(feature_snapshots_by_symbol)
+    for index, candidate_symbol, candidate_features in valid_symbol_rows:
+        symbol_selection = symbol_selection_by_symbol[candidate_symbol]
         symbol_candidates = _build_candidates(
             candidate_symbol,
             candidate_features,
             edge_profile=edge_profile,
+            symbol_selection=symbol_selection,
             recent_failure_feedback=recent_failure_feedback,
         )
-        feature_snapshots_by_symbol[candidate_symbol] = candidate_features
-        market_data_by_symbol[candidate_symbol] = candidate_market_data
         symbol_selection_universe.append(
             {
                 "rank_input_order": index,
@@ -2500,7 +2734,8 @@ def build_upbit_paper_runtime_cycle_report(
                 "regime": candidate_features["regime"],
                 **symbol_selection,
                 "eligible_for_entry_candidate": _decimal(symbol_selection["symbol_selection_score"]) >= MIN_SYMBOL_SELECTION_SCORE
-                and candidate_features["regime"] != "RISK_OFF",
+                and candidate_features["regime"] != "RISK_OFF"
+                and symbol_selection.get("eligible_after_correlation") is True,
                 "live_order_ready": False,
                 "live_order_allowed": False,
                 "can_live_trade": False,
@@ -2533,6 +2768,8 @@ def build_upbit_paper_runtime_cycle_report(
             "ema_slow": "0",
             "volatility_pct": "0",
             "momentum_pct": "0",
+            "return_signature": [],
+            "return_signature_formula": "close_to_close_return_pct over the runtime candle window, used only for PAPER symbol correlation clustering",
             "total_quote_volume": "0",
             "volume_expansion_ratio": "0",
             "vwap_distance_pct": "0",
@@ -2540,14 +2777,23 @@ def build_upbit_paper_runtime_cycle_report(
             "spread_bps": "0",
             "liquidity_status": "BLOCKED",
             "volatility_status": "BLOCKED",
+            "market_state": "RISK_OFF",
+            "quiet_range_status": "CLEAR",
+            "volatility_expansion_status": "CLEAR",
+            "regime_detail_formula": (
+                "Upbit KRW spot is long-only: RISK_OFF blocks new entries; QUIET_RANGE limits entry to range "
+                "candidates only; VOLATILITY_EXPANSION enables breakout candidates when volatility>=2.50pct, "
+                "volume_expansion>=1.20, and range_breakout>=0.03pct"
+            ),
         }
         candidates = _build_candidates(
             symbol,
             feature_snapshots_by_symbol[symbol],
             edge_profile="NEGATIVE",
+            symbol_selection=_symbol_selection_scores_for_universe(feature_snapshots_by_symbol)[symbol],
             recent_failure_feedback=recent_failure_feedback,
         )
-        fallback_symbol_selection = _symbol_selection_score(feature_snapshots_by_symbol[symbol])
+        fallback_symbol_selection = _symbol_selection_scores_for_universe(feature_snapshots_by_symbol)[symbol]
         symbol_selection_universe = [
             {
                 "rank_input_order": 1,
@@ -3402,6 +3648,7 @@ def validate_upbit_paper_runtime_cycle_report(
             for item in symbol_selection_universe
             if isinstance(item, dict) and isinstance(item.get("symbol"), str)
         }
+        expected_symbol_selection_by_symbol = _symbol_selection_scores_for_universe(feature_snapshots_by_symbol)
         for universe_symbol in symbol_universe:
             symbol_candidates = [candidate for candidate in candidates if candidate.get("symbol") == universe_symbol]
             if not symbol_candidates:
@@ -3411,12 +3658,28 @@ def validate_upbit_paper_runtime_cycle_report(
                 rank_input_order = int(selection_by_symbol[universe_symbol].get("rank_input_order"))
             except (KeyError, TypeError, ValueError):
                 return UpbitPaperRuntimeCycleValidationResult("FAIL", "symbol selection rank input order is invalid", "SCHEMA_IDENTITY_MISMATCH")
+            expected_selection = expected_symbol_selection_by_symbol[universe_symbol]
+            expected_selection_entry = {
+                "rank_input_order": rank_input_order,
+                "symbol": universe_symbol,
+                "regime": symbol_features["regime"],
+                **expected_selection,
+                "eligible_for_entry_candidate": _decimal(expected_selection["symbol_selection_score"]) >= MIN_SYMBOL_SELECTION_SCORE
+                and symbol_features["regime"] != "RISK_OFF"
+                and expected_selection.get("eligible_after_correlation") is True,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+            if selection_by_symbol[universe_symbol] != expected_selection_entry:
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", "symbol selection universe entry does not match runtime formula", "SCHEMA_IDENTITY_MISMATCH")
             expected_scorecard = _build_symbol_evidence_scorecard(
                 cycle_id=str(report["cycle_id"]),
                 rank_input_order=rank_input_order,
                 symbol=universe_symbol,
                 features=symbol_features,
-                symbol_selection=_symbol_selection_score(symbol_features),
+                symbol_selection=expected_selection,
                 symbol_candidates=symbol_candidates,
                 source_binding=source_by_symbol.get(universe_symbol) if isinstance(source_by_symbol.get(universe_symbol), dict) else None,
             )

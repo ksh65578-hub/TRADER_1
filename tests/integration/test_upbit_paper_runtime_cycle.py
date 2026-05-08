@@ -432,6 +432,47 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         )
         self.assertFalse(report["live_order_allowed"])
 
+    def test_symbol_selection_filters_correlated_duplicate_cluster_without_live_permission(self):
+        btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(eth["candles"], start=1):
+            candle["volume"] = str(15 + index * 5)
+
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-correlated-cluster-filter",
+            symbol="KRW-BTC",
+            market_data_universe=[btc, eth],
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        universe_by_symbol = {item["symbol"]: item for item in report["symbol_selection_universe"]}
+        self.assertEqual(report["selected_symbol"], "KRW-ETH")
+        self.assertEqual(report["symbol_selection_policy"]["adaptive_top_n"], 2)
+        self.assertEqual(report["symbol_selection_policy"]["correlation_cluster_threshold"], "0.92")
+        self.assertEqual(universe_by_symbol["KRW-ETH"]["correlation_cluster_status"], "LEADER")
+        self.assertEqual(universe_by_symbol["KRW-BTC"]["correlation_cluster_status"], "DIVERSIFICATION_FILTERED")
+        self.assertEqual(universe_by_symbol["KRW-BTC"]["correlation_cluster_leader_symbol"], "KRW-ETH")
+        self.assertEqual(universe_by_symbol["KRW-BTC"]["correlation_penalty"], "0.18")
+        self.assertFalse(universe_by_symbol["KRW-BTC"]["eligible_after_correlation"])
+        self.assertFalse(universe_by_symbol["KRW-BTC"]["eligible_for_entry_candidate"])
+        btc_candidates = [candidate for candidate in report["strategy_candidates"] if candidate["symbol"] == "KRW-BTC"]
+        self.assertTrue(btc_candidates)
+        self.assertTrue(all(candidate["decision"] == "NO_TRADE" for candidate in btc_candidates))
+        self.assertTrue(all(candidate["no_trade_reason"] == "CLUSTER_RISK" for candidate in btc_candidates))
+        scorecards_by_symbol = {item["symbol"]: item for item in report["symbol_evidence_scorecards"]}
+        self.assertIn("CLUSTER_RISK", scorecards_by_symbol["KRW-BTC"]["no_trade_reasons"])
+        self.assertEqual(scorecards_by_symbol["KRW-BTC"]["correlation_cluster_status"], "DIVERSIFICATION_FILTERED")
+        self.assertFalse(report["live_order_allowed"])
+
     def test_paper_scope_focus_can_select_valid_active_candidate_without_live_permission(self):
         base = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-paper-scope-focus-base")
         focus_candidate = base["selected_candidate"]

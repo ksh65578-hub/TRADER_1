@@ -451,6 +451,22 @@ def _top_symbol_evidence_scorecards(runtime_cycle_report: dict[str, Any]) -> lis
                 "best_decision": scorecard.get("best_decision"),
                 "best_net_ev_after_cost_bps": number_value(scorecard.get("best_net_ev_after_cost_bps")),
                 "symbol_selection_score": number_value(scorecard.get("symbol_selection_score")),
+                "base_symbol_selection_score": number_value(scorecard.get("base_symbol_selection_score")),
+                "correlation_cluster_status": scorecard.get("correlation_cluster_status"),
+                "correlation_cluster_leader_symbol": scorecard.get("correlation_cluster_leader_symbol"),
+                "correlation_cluster_rank": int(scorecard.get("correlation_cluster_rank", 0) or 0),
+                "correlation_max_peer_symbol": scorecard.get("correlation_max_peer_symbol"),
+                "correlation_max_abs": number_value(scorecard.get("correlation_max_abs")),
+                "correlation_penalty": number_value(scorecard.get("correlation_penalty")),
+                "adaptive_top_n": int(scorecard.get("adaptive_top_n", 0) or 0),
+                "rank_after_correlation": int(scorecard.get("rank_after_correlation", 0) or 0),
+                "adaptive_top_n_filter_status": scorecard.get("adaptive_top_n_filter_status"),
+                "eligible_after_correlation": bool(scorecard.get("eligible_after_correlation")),
+                "no_trade_reasons": [
+                    str(reason)
+                    for reason in (scorecard.get("no_trade_reasons") or [])
+                    if reason
+                ],
                 "paper_entry_review_candidate_count": int(
                     scorecard.get("paper_entry_review_candidate_count", 0) or 0
                 ),
