@@ -304,6 +304,18 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(result["candidate_discovery_symbol_count"], 1)
         self.assertGreaterEqual(result["candidate_discovery_ranked_symbol_count"], 1)
         self.assertGreaterEqual(result["candidate_discovery_eligible_symbol_count"], 1)
+        self.assertGreaterEqual(result["candidate_discovery_evaluated_candidate_count"], 1)
+        self.assertGreaterEqual(result["candidate_discovery_paper_entry_review_candidate_count"], 1)
+        self.assertEqual(
+            result["candidate_discovery_blocked_candidate_count"],
+            result["candidate_discovery_evaluated_candidate_count"]
+            - result["candidate_discovery_paper_entry_review_candidate_count"],
+        )
+        family_counts = {
+            item["code"]: item["count"]
+            for item in result["candidate_discovery_strategy_family_candidate_counts"]
+        }
+        self.assertIn("PULLBACK_TREND_LONG", family_counts)
         self.assertEqual(generation_report["generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_VALIDATED")
         self.assertEqual(generation_report["best_alternative_symbol"], "KRW-ETH")
         self.assertEqual(generation_report["best_alternative_public_replay_status"], "PASS")
@@ -326,6 +338,96 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(result["candidate_generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_VALIDATED")
         self.assertIsNone(result["candidate_generation_primary_blocker_code"])
         self.assertEqual(result["candidate_generation_best_alternative_public_replay_status"], "PASS")
+        self.assertFalse(generation_report["live_order_allowed"])
+        self.assertFalse(result["credential_load_attempted"])
+        self.assertFalse(result["private_endpoint_called"])
+        self.assertFalse(result["order_endpoint_called"])
+        self.assertFalse(result["order_adapter_called"])
+        self.assertFalse(result["live_key_loaded"])
+        self.assertFalse(result["live_order_allowed"])
+
+    def test_bounded_public_discovery_reports_no_trade_reason_coverage_when_no_alternative_is_ready(self):
+        def fake_market_symbols_fetcher(*, session_id: str, timeout_seconds: float):
+            del timeout_seconds
+            return build_upbit_public_krw_symbol_discovery_report_from_payload(
+                session_id=session_id,
+                payload=[
+                    {"market": "KRW-BEAR", "korean_name": "Bear", "english_name": "Bear"},
+                    {"market": "KRW-RISK", "korean_name": "Risk", "english_name": "Risk"},
+                ],
+            )
+
+        def fake_ticker_fetcher(*, symbols: list[str], session_id: str, timeout_seconds: float):
+            del timeout_seconds
+            requested = build_upbit_krw_market_symbols_from_rest_payload([{"market": symbol} for symbol in symbols])
+            return build_upbit_public_ticker_snapshot_from_rest_payload(
+                requested_symbols=requested,
+                session_id=session_id,
+                payload=[
+                    {
+                        "market": "KRW-BEAR",
+                        "trade_price": "1000",
+                        "acc_trade_price_24h": "9000000000",
+                        "signed_change_rate": "-0.045",
+                        "acc_trade_volume_24h": "9000000",
+                    },
+                    {
+                        "market": "KRW-RISK",
+                        "trade_price": "2000",
+                        "acc_trade_price_24h": "8000000000",
+                        "signed_change_rate": "-0.035",
+                        "acc_trade_volume_24h": "4000000",
+                    },
+                ],
+            )
+
+        def fake_candle_fetcher(*, symbol: str, session_id: str, timeout_seconds: float):
+            del timeout_seconds
+            return build_upbit_public_candle_fixture(
+                symbol=symbol,
+                session_id=session_id,
+                profile="DOWNTREND",
+            )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _run_short_paper(root)
+
+            result = build_current_upbit_paper_candidate_scorecard(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                attempt_public_discovery=True,
+                candidate_discovery_symbol_limit=2,
+                market_symbols_fetcher=fake_market_symbols_fetcher,
+                public_ticker_fetcher=fake_ticker_fetcher,
+                public_candle_fetcher=fake_candle_fetcher,
+            )
+            generation_report = _load_written(root, result, "candidate_generation_report_path")
+            discovery_runtime = _load_written(root, result, "candidate_discovery_runtime_cycle_path")
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["candidate_discovery_status"], "PASS")
+        self.assertEqual(generation_report["generation_status"], "NO_ALTERNATIVE_READY")
+        self.assertEqual(result["candidate_generation_status"], "NO_ALTERNATIVE_READY")
+        self.assertEqual(result["candidate_discovery_symbol_count"], 2)
+        self.assertGreaterEqual(result["candidate_discovery_evaluated_candidate_count"], 2)
+        self.assertEqual(result["candidate_discovery_paper_entry_review_candidate_count"], 0)
+        self.assertEqual(
+            result["candidate_discovery_blocked_candidate_count"],
+            result["candidate_discovery_evaluated_candidate_count"],
+        )
+        no_trade_counts = {
+            item["code"]: item["count"]
+            for item in result["candidate_discovery_no_trade_reason_counts"]
+        }
+        self.assertIn("REGIME_MISMATCH", no_trade_counts)
+        entry_block_counts = {
+            item["code"]: item["count"]
+            for item in result["candidate_discovery_entry_block_reason_counts"]
+        }
+        self.assertIn("DOWNTREND_SPOT_LONG_BLOCK", entry_block_counts)
+        self.assertEqual(len(result["candidate_discovery_top_blocked_symbols"]), 2)
+        self.assertEqual(discovery_runtime["symbol_evidence_scorecard_count"], 2)
         self.assertFalse(generation_report["live_order_allowed"])
         self.assertFalse(result["credential_load_attempted"])
         self.assertFalse(result["private_endpoint_called"])
