@@ -217,6 +217,30 @@ POSITION_ROTATION_EXIT_FIELDS = frozenset(
         "trend_invalidation_regime",
     }
 )
+STRATEGY_EXIT_POLICY_EVALUATION_FIELDS = frozenset(
+    {
+        "strategy_exit_policy_id",
+        "strategy_family",
+        "exit_variation",
+        "strategy_exit_reason_code",
+        "strategy_exit_condition_passed",
+        "strategy_exit_action",
+        "strategy_exit_formula",
+        "strategy_exit_acceptance_condition",
+        "vwap_reversion_target",
+        "breakout_invalidation_level",
+        "trend_invalidation_regime",
+    }
+)
+STRATEGY_EXIT_PLAN_FIELDS = frozenset(
+    {
+        "strategy_exit_policy_id",
+        "strategy_family",
+        "exit_variation",
+        "strategy_exit_formula",
+        "strategy_exit_acceptance_condition",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -2209,6 +2233,7 @@ def _validate_candidate_costs(
     *,
     features: dict[str, Any] | None = None,
     require_adaptive_cost_model: bool = True,
+    require_current_strategy_entry_policy: bool = True,
 ) -> UpbitPaperRuntimeCycleValidationResult:
     required = {
         "candidate_id",
@@ -2286,11 +2311,21 @@ def _validate_candidate_costs(
     expected_grade = "A" if signal_strength >= Decimal("0.7") else "B" if signal_strength >= Decimal("0.55") else "C"
     if candidate.get("signal_grade") != expected_grade:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate signal grade does not match signal strength", "SCHEMA_IDENTITY_MISMATCH")
-    if candidate.get("strategy_entry_policy_id") != "UPBIT_KRW_SPOT_STRATEGY_ENTRY_ROUTER_V1":
+    if (
+        require_current_strategy_entry_policy
+        and candidate.get("strategy_entry_policy_id") != "UPBIT_KRW_SPOT_STRATEGY_ENTRY_ROUTER_V1"
+    ):
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate strategy entry policy id mismatch", "SCHEMA_IDENTITY_MISMATCH")
-    if not isinstance(candidate.get("strategy_regime_allowed"), bool):
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate strategy_regime_allowed must be boolean", "SCHEMA_IDENTITY_MISMATCH")
-    strategy_regime_allowed = candidate.get("strategy_regime_allowed") is True
+    if require_current_strategy_entry_policy:
+        if not isinstance(candidate.get("strategy_regime_allowed"), bool):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate strategy_regime_allowed must be boolean", "SCHEMA_IDENTITY_MISMATCH")
+        strategy_regime_allowed = candidate.get("strategy_regime_allowed") is True
+    else:
+        strategy_regime_allowed = (
+            candidate.get("strategy_regime_allowed")
+            if isinstance(candidate.get("strategy_regime_allowed"), bool)
+            else candidate.get("regime") != "RISK_OFF"
+        )
     if candidate.get("regime") == "RISK_OFF" and candidate.get("decision") != "NO_TRADE":
         return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "risk-off candidate cannot be paper entry review", "REGIME_MISMATCH")
     entry_threshold_passed = (
@@ -2482,11 +2517,17 @@ def _validate_position_rotation_context(
     selected: dict[str, Any],
     candidates_by_id: dict[str, dict[str, Any]],
     final_decision: str,
+    require_current_strategy_exit_policy: bool = True,
 ) -> UpbitPaperRuntimeCycleValidationResult:
     evaluation = lifecycle.get("position_exit_evaluation")
     if not isinstance(evaluation, dict):
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "position exit evaluation must be an object", "SCHEMA_IDENTITY_MISMATCH")
-    missing = sorted(POSITION_ROTATION_EXIT_FIELDS - set(evaluation))
+    required_exit_fields = (
+        POSITION_ROTATION_EXIT_FIELDS
+        if require_current_strategy_exit_policy
+        else POSITION_ROTATION_EXIT_FIELDS - STRATEGY_EXIT_POLICY_EVALUATION_FIELDS
+    )
+    missing = sorted(required_exit_fields - set(evaluation))
     if missing:
         return UpbitPaperRuntimeCycleValidationResult(
             "FAIL",
@@ -2497,29 +2538,30 @@ def _validate_position_rotation_context(
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "quality feedback exit weak-return threshold drifted", "SCHEMA_IDENTITY_MISMATCH")
     if evaluation.get("quality_feedback_exit_formula") != QUALITY_FEEDBACK_EXIT_FORMULA:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "quality feedback exit formula mismatch", "SCHEMA_IDENTITY_MISMATCH")
-    if evaluation.get("strategy_exit_policy_id") != STRATEGY_EXIT_POLICY_ID:
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit policy id mismatch", "SCHEMA_IDENTITY_MISMATCH")
-    if evaluation.get("strategy_family") not in {"PULLBACK_TREND_LONG", "VWAP_MEAN_REVERSION", "BREAKOUT_RETEST_LONG"}:
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit family is not an executable strategy", "SCHEMA_IDENTITY_MISMATCH")
-    if evaluation.get("exit_variation") not in {TREND_PULLBACK_EXIT_VARIATION, VWAP_REVERSION_EXIT_VARIATION, BREAKOUT_RETEST_EXIT_VARIATION}:
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit variation is not supported", "SCHEMA_IDENTITY_MISMATCH")
-    if not evaluation.get("strategy_exit_formula") or not evaluation.get("strategy_exit_acceptance_condition"):
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit formula or acceptance condition missing", "SCHEMA_IDENTITY_MISMATCH")
-    if evaluation.get("strategy_exit_condition_passed"):
-        if evaluation.get("strategy_exit_action") != STRATEGY_EXIT_ACTION_FULL_EXIT:
-            return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit action must be FULL_EXIT when condition passes", "SCHEMA_IDENTITY_MISMATCH")
-        partial_exit_fill = (
-            final_decision == "REDUCE_POSITION"
-            and lifecycle.get("requested_position_decision") == "EXIT_POSITION"
-            and lifecycle.get("execution_adjusted_position_decision_reason") == "PARTIAL_EXIT_FILL"
-        )
-        if (
-            lifecycle.get("position_exit_reason_code") != evaluation.get("strategy_exit_reason_code")
-            or (final_decision != "EXIT_POSITION" and not partial_exit_fill)
-        ):
-            return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit did not drive the PAPER exit decision", "SCHEMA_IDENTITY_MISMATCH")
-    elif evaluation.get("strategy_exit_reason_code") != STRATEGY_EXIT_REASON_NONE or evaluation.get("strategy_exit_action") != STRATEGY_EXIT_ACTION_NONE:
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit action is set when strategy condition did not pass", "SCHEMA_IDENTITY_MISMATCH")
+    if require_current_strategy_exit_policy:
+        if evaluation.get("strategy_exit_policy_id") != STRATEGY_EXIT_POLICY_ID:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit policy id mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if evaluation.get("strategy_family") not in {"PULLBACK_TREND_LONG", "VWAP_MEAN_REVERSION", "BREAKOUT_RETEST_LONG"}:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit family is not an executable strategy", "SCHEMA_IDENTITY_MISMATCH")
+        if evaluation.get("exit_variation") not in {TREND_PULLBACK_EXIT_VARIATION, VWAP_REVERSION_EXIT_VARIATION, BREAKOUT_RETEST_EXIT_VARIATION}:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit variation is not supported", "SCHEMA_IDENTITY_MISMATCH")
+        if not evaluation.get("strategy_exit_formula") or not evaluation.get("strategy_exit_acceptance_condition"):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit formula or acceptance condition missing", "SCHEMA_IDENTITY_MISMATCH")
+        if evaluation.get("strategy_exit_condition_passed"):
+            if evaluation.get("strategy_exit_action") != STRATEGY_EXIT_ACTION_FULL_EXIT:
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit action must be FULL_EXIT when condition passes", "SCHEMA_IDENTITY_MISMATCH")
+            partial_exit_fill = (
+                final_decision == "REDUCE_POSITION"
+                and lifecycle.get("requested_position_decision") == "EXIT_POSITION"
+                and lifecycle.get("execution_adjusted_position_decision_reason") == "PARTIAL_EXIT_FILL"
+            )
+            if (
+                lifecycle.get("position_exit_reason_code") != evaluation.get("strategy_exit_reason_code")
+                or (final_decision != "EXIT_POSITION" and not partial_exit_fill)
+            ):
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit did not drive the PAPER exit decision", "SCHEMA_IDENTITY_MISMATCH")
+        elif evaluation.get("strategy_exit_reason_code") != STRATEGY_EXIT_REASON_NONE or evaluation.get("strategy_exit_action") != STRATEGY_EXIT_ACTION_NONE:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit action is set when strategy condition did not pass", "SCHEMA_IDENTITY_MISMATCH")
     expected_quality_feedback_exit = (
         lifecycle.get("managed_position_symbol") is not None
         and selected.get("recent_failure_feedback_kind") == "PRELIMINARY_ROBUSTNESS_FAIL"
@@ -3341,6 +3383,8 @@ def validate_upbit_paper_runtime_cycle_report(
     require_current_symbol_selection_policy: bool = True,
     require_current_feature_snapshot_projection: bool = True,
     require_paper_scope_continuity_decision: bool = True,
+    require_current_strategy_entry_policy: bool = True,
+    require_current_strategy_exit_policy: bool = True,
 ) -> UpbitPaperRuntimeCycleValidationResult:
     required = {
         "schema_id",
@@ -3607,6 +3651,7 @@ def validate_upbit_paper_runtime_cycle_report(
             candidate,
             features=candidate_features,
             require_adaptive_cost_model=require_adaptive_candidate_cost_model,
+            require_current_strategy_entry_policy=require_current_strategy_entry_policy,
         )
         if cost_result.status != "PASS":
             return cost_result
@@ -3672,7 +3717,7 @@ def validate_upbit_paper_runtime_cycle_report(
                 "can_live_trade": False,
                 "scale_up_allowed": False,
             }
-            if selection_by_symbol[universe_symbol] != expected_selection_entry:
+            if require_current_symbol_selection_policy and selection_by_symbol[universe_symbol] != expected_selection_entry:
                 return UpbitPaperRuntimeCycleValidationResult("FAIL", "symbol selection universe entry does not match runtime formula", "SCHEMA_IDENTITY_MISMATCH")
             expected_scorecard = _build_symbol_evidence_scorecard(
                 cycle_id=str(report["cycle_id"]),
@@ -3770,7 +3815,7 @@ def validate_upbit_paper_runtime_cycle_report(
     exit_plan = report.get("exit_plan")
     if not isinstance(exit_plan, dict):
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "exit_plan must be an object", "SCHEMA_IDENTITY_MISMATCH")
-    for field in (
+    exit_plan_required_fields = {
         "entry_price",
         "hard_stop",
         "tp1",
@@ -3779,18 +3824,17 @@ def validate_upbit_paper_runtime_cycle_report(
         "trailing_distance",
         "time_stop_candles",
         "partial_take_profit_ratio",
-        "strategy_exit_policy_id",
-        "strategy_family",
-        "exit_variation",
-        "strategy_exit_formula",
-        "strategy_exit_acceptance_condition",
-    ):
+    }
+    if require_current_strategy_exit_policy:
+        exit_plan_required_fields |= STRATEGY_EXIT_PLAN_FIELDS
+    for field in sorted(exit_plan_required_fields):
         if field not in exit_plan:
             return UpbitPaperRuntimeCycleValidationResult("FAIL", f"exit_plan missing {field}", "SCHEMA_IDENTITY_MISMATCH")
-    if exit_plan.get("strategy_exit_policy_id") != STRATEGY_EXIT_POLICY_ID:
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "exit_plan strategy exit policy id mismatch", "SCHEMA_IDENTITY_MISMATCH")
-    if exit_plan.get("exit_variation") not in {TREND_PULLBACK_EXIT_VARIATION, VWAP_REVERSION_EXIT_VARIATION, BREAKOUT_RETEST_EXIT_VARIATION}:
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "exit_plan strategy exit variation unsupported", "SCHEMA_IDENTITY_MISMATCH")
+    if require_current_strategy_exit_policy:
+        if exit_plan.get("strategy_exit_policy_id") != STRATEGY_EXIT_POLICY_ID:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "exit_plan strategy exit policy id mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if exit_plan.get("exit_variation") not in {TREND_PULLBACK_EXIT_VARIATION, VWAP_REVERSION_EXIT_VARIATION, BREAKOUT_RETEST_EXIT_VARIATION}:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "exit_plan strategy exit variation unsupported", "SCHEMA_IDENTITY_MISMATCH")
     entry_price = _decimal(exit_plan.get("entry_price"))
     hard_stop = _decimal(exit_plan.get("hard_stop"))
     tp1 = _decimal(exit_plan.get("tp1"))
@@ -3832,19 +3876,21 @@ def validate_upbit_paper_runtime_cycle_report(
     if lifecycle.get("live_order_ready") or lifecycle.get("live_order_allowed") or lifecycle.get("can_live_trade") or lifecycle.get("scale_up_allowed") or lifecycle.get("can_submit_order"):
         return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "position lifecycle attempted live/order permission", "LIVE_FINAL_GUARD_FAILED")
     entry_context_status = lifecycle.get("entry_strategy_context_status")
-    if entry_context_status not in {
-        "SELECTED_CANDIDATE_CONTEXT",
-        "BOUND_TO_POSITION_ENTRY",
-        "FALLBACK_TO_CURRENT_SELECTED_CANDIDATE",
-    }:
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "position lifecycle entry strategy context status is invalid", "SCHEMA_IDENTITY_MISMATCH")
-    if lifecycle.get("entry_candidate_id") != exit_plan.get("source_candidate_id"):
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "position lifecycle entry candidate is not the exit plan source", "SCHEMA_IDENTITY_MISMATCH")
-    if lifecycle.get("entry_strategy_family") != exit_plan.get("strategy_family"):
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "position lifecycle entry strategy family is not the exit plan family", "SCHEMA_IDENTITY_MISMATCH")
-    if lifecycle.get("entry_strategy_exit_variation") is not None and lifecycle.get("entry_strategy_exit_variation") != exit_plan.get("exit_variation"):
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "position lifecycle entry exit variation drifted", "SCHEMA_IDENTITY_MISMATCH")
-    if entry_context_status == "BOUND_TO_POSITION_ENTRY" and final_decision == "ENTER_LONG":
+    if require_current_strategy_exit_policy:
+        if entry_context_status not in {
+            "SELECTED_CANDIDATE_CONTEXT",
+            "BOUND_TO_POSITION_ENTRY",
+            "FALLBACK_TO_CURRENT_SELECTED_CANDIDATE",
+        }:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "position lifecycle entry strategy context status is invalid", "SCHEMA_IDENTITY_MISMATCH")
+        if lifecycle.get("entry_candidate_id") != exit_plan.get("source_candidate_id"):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "position lifecycle entry candidate is not the exit plan source", "SCHEMA_IDENTITY_MISMATCH")
+    if require_current_strategy_exit_policy:
+        if lifecycle.get("entry_strategy_family") != exit_plan.get("strategy_family"):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "position lifecycle entry strategy family is not the exit plan family", "SCHEMA_IDENTITY_MISMATCH")
+        if lifecycle.get("entry_strategy_exit_variation") is not None and lifecycle.get("entry_strategy_exit_variation") != exit_plan.get("exit_variation"):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "position lifecycle entry exit variation drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if require_current_strategy_exit_policy and entry_context_status == "BOUND_TO_POSITION_ENTRY" and final_decision == "ENTER_LONG":
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "new PAPER entry cannot claim existing position entry context", "SCHEMA_IDENTITY_MISMATCH")
     if require_position_rotation_fields:
         rotation_selected = candidates_by_id.get(lifecycle.get("entry_candidate_id"), selected)
@@ -3853,6 +3899,7 @@ def validate_upbit_paper_runtime_cycle_report(
             selected=rotation_selected,
             candidates_by_id=candidates_by_id,
             final_decision=str(final_decision),
+            require_current_strategy_exit_policy=require_current_strategy_exit_policy,
         )
         if rotation_result.status != "PASS":
             return rotation_result

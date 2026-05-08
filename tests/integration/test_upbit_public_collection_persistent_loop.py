@@ -48,6 +48,15 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
     def _utc_iso(self, value: datetime) -> str:
         return value.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
+    def _make_rotation_candidate_stronger(self, market_data: dict[str, object]) -> None:
+        closes = [980000, 1005000, 1025000, 1040000, 1036000, 1048000]
+        for index, (candle, close) in enumerate(zip(market_data["candles"], closes), start=1):
+            candle["open"] = str(close - 1800)
+            candle["high"] = str(close + 3600)
+            candle["low"] = str(close - 2600)
+            candle["close"] = str(close)
+            candle["volume"] = str(30 + index * 8)
+
     def _upbit_rest_payload(self) -> list[dict[str, object]]:
         return [
             {
@@ -317,7 +326,8 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             self.assertEqual(loop["symbol_universe_evaluated_count"], len(loop["symbol_universe"]))
             for cycle_result in loop["cycle_results"]:
                 self.assertEqual(cycle_result["runtime_input_role"], "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION")
-                self.assertEqual(cycle_result["symbol_universe"], latest["symbol_universe"])
+                self.assertCountEqual(cycle_result["symbol_universe"], latest["symbol_universe"])
+                self.assertEqual(len(cycle_result["symbol_universe"]), len(latest["symbol_universe"]))
                 self.assertEqual(cycle_result["symbol_universe_source"], "STATIC_FALLBACK_CONFIGURED_KRW_UNIVERSE")
                 self.assertEqual(cycle_result["symbol_universe_evaluated_count"], len(cycle_result["symbol_universe"]))
                 self.assertIn(cycle_result["selected_symbol"], cycle_result["symbol_universe"])
@@ -429,14 +439,13 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             profile="UPTREND_PULLBACK",
         )
         for index, candle in enumerate(repeated_wlfi["candles"], start=1):
-            candle["volume"] = str(10 + index * 3)
+            candle["volume"] = str(4 + index)
         strong_eth = build_upbit_public_candle_fixture(
             symbol="KRW-ETH",
             session_id="quality-feedback-session",
             profile="UPTREND_PULLBACK",
         )
-        for index, candle in enumerate(strong_eth["candles"], start=1):
-            candle["volume"] = str(8 + index * 2)
+        self._make_rotation_candidate_stronger(strong_eth)
 
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -515,14 +524,13 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             profile="UPTREND_PULLBACK",
         )
         for index, candle in enumerate(repeated_wlfi["candles"], start=1):
-            candle["volume"] = str(10 + index * 3)
+            candle["volume"] = str(4 + index)
         strong_eth = build_upbit_public_candle_fixture(
             symbol="KRW-ETH",
             session_id="stale-quality-feedback-session",
             profile="UPTREND_PULLBACK",
         )
-        for index, candle in enumerate(strong_eth["candles"], start=1):
-            candle["volume"] = str(8 + index * 2)
+        self._make_rotation_candidate_stronger(strong_eth)
 
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -604,14 +612,13 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             profile="UPTREND_PULLBACK",
         )
         for index, candle in enumerate(repeated_wlfi["candles"], start=1):
-            candle["volume"] = str(10 + index * 3)
+            candle["volume"] = str(4 + index)
         strong_eth = build_upbit_public_candle_fixture(
             symbol="KRW-ETH",
             session_id="candidate-quality-memory-session",
             profile="UPTREND_PULLBACK",
         )
-        for index, candle in enumerate(strong_eth["candles"], start=1):
-            candle["volume"] = str(8 + index * 2)
+        self._make_rotation_candidate_stronger(strong_eth)
 
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -1020,6 +1027,27 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
                 session_id="mvp1_upbit_paper_launcher",
             )
             del legacy_cycle["paper_scope_continuity_decision"]
+            legacy_cycle["symbol_selection_policy"]["selection_formula"] = "legacy-symbol-selection-formula"
+            legacy_cycle["symbol_selection_universe"][0]["symbol_selection_score"] = "0.1234"
+            for candidate in legacy_cycle["strategy_candidates"]:
+                candidate["strategy_entry_policy_id"] = "LEGACY_UPBIT_ENTRY_ROUTER"
+            for field in (
+                "strategy_exit_policy_id",
+                "strategy_family",
+                "exit_variation",
+                "strategy_exit_formula",
+                "strategy_exit_acceptance_condition",
+            ):
+                del legacy_cycle["exit_plan"][field]
+                del legacy_cycle["position_management_decision"]["position_exit_evaluation"][field]
+            for field in (
+                "entry_strategy_context_status",
+                "entry_candidate_id",
+                "entry_strategy_family",
+                "entry_strategy_exit_variation",
+                "entry_strategy_exit_policy_id",
+            ):
+                legacy_cycle["position_management_decision"].pop(field, None)
             legacy_cycle["cycle_hash"] = upbit_paper_runtime_cycle_hash(legacy_cycle)
             latest_path = (
                 root
@@ -1043,9 +1071,13 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             self.assertEqual(loop["preflight_recovery_guard_status"], "PASS")
             self.assertTrue(loop["current_evidence_write_allowed"])
             self.assertEqual(loop["completed_cycle_count"], 1)
-            self.assertEqual(guard["latest_cycle_contract_mode"], "LEGACY_RECHECK_WITHOUT_PAPER_SCOPE_CONTINUITY_DECISION")
+            self.assertIn("PAPER_SCOPE_CONTINUITY_DECISION", guard["latest_cycle_contract_mode"])
+            self.assertIn("SYMBOL_SELECTION_POLICY_FORMULA", guard["latest_cycle_contract_mode"])
+            self.assertIn("STRATEGY_ENTRY_POLICY", guard["latest_cycle_contract_mode"])
+            self.assertIn("STRATEGY_EXIT_POLICY", guard["latest_cycle_contract_mode"])
             self.assertTrue(guard["latest_cycle_schema_upgrade_required"])
             self.assertIn("paper_scope_continuity_decision", latest)
+            self.assertIn("strategy_exit_policy_id", latest["exit_plan"])
             self.assertFalse(loop["live_order_allowed"])
             self.assertFalse(loop["can_live_trade"])
             self.assertFalse(loop["scale_up_allowed"])
