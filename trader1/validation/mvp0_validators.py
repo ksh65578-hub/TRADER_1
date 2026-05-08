@@ -23024,6 +23024,10 @@ def _optimizer_run_errors(report: dict[str, Any]) -> list[str]:
     objective_basis = report.get("objective_basis")
     candidate_count = int(report.get("candidate_count", 0))
     output_artifact_ids = report.get("output_artifact_ids", [])
+    ranking_input_scorecard_count = int(report.get("ranking_input_scorecard_count", 0))
+    ranking_input_mature_scorecard_count = int(report.get("ranking_input_mature_scorecard_count", 0))
+    ranking_input_immature_scorecard_count = int(report.get("ranking_input_immature_scorecard_count", 0))
+    ranking_input_min_mature_scorecard_count = int(report.get("ranking_input_min_mature_scorecard_count", 0))
     if status == "COMPLETED_ANALYSIS_ONLY":
         if scope != "REPLAY_PAPER_SHADOW_READ_ONLY_ONLY":
             errors.append("COMPLETED_ANALYSIS_ONLY requires REPLAY_PAPER_SHADOW_READ_ONLY_ONLY scope")
@@ -23042,6 +23046,18 @@ def _optimizer_run_errors(report: dict[str, Any]) -> list[str]:
             errors.append("CANDIDATE_RANKING_INPUT requires candidate_count > 0")
         if not output_artifact_ids:
             errors.append("CANDIDATE_RANKING_INPUT requires output_artifact_ids")
+        if report.get("candidate_scorecard_validator_status") != "PASS":
+            errors.append("CANDIDATE_RANKING_INPUT requires candidate_scorecard_validator_status=PASS")
+        if ranking_input_scorecard_count <= 0:
+            errors.append("CANDIDATE_RANKING_INPUT requires ranking_input_scorecard_count > 0")
+        if ranking_input_mature_scorecard_count < ranking_input_min_mature_scorecard_count:
+            errors.append("CANDIDATE_RANKING_INPUT requires mature ranking scorecards above minimum")
+        if ranking_input_mature_scorecard_count + ranking_input_immature_scorecard_count != ranking_input_scorecard_count:
+            errors.append("CANDIDATE_RANKING_INPUT scorecard maturity counts must reconcile")
+        if report.get("ranking_input_maturity_status") != "PASS":
+            errors.append("CANDIDATE_RANKING_INPUT requires ranking_input_maturity_status=PASS")
+        if not any("scorecard" in str(artifact_id).lower() for artifact_id in output_artifact_ids):
+            errors.append("CANDIDATE_RANKING_INPUT requires candidate scorecard output artifact id")
     if scope in {"RESEARCH_ONLY_BLOCKED", "STALE_ANALYSIS_ONLY"} and not blockers:
         errors.append("blocked or stale optimizer run scope must carry blocker evidence")
     if report.get("resource_budget_status") == "BLOCKED" and not blockers:
@@ -23063,6 +23079,7 @@ def optimizer_run_report_validator() -> ValidatorResult:
     missing_blocker_path = fixture_dir / "optimizer_run_missing_blocker_fail.json"
     writer_path = fixture_dir / "optimizer_run_live_writer_fail.json"
     raw_pnl_path = fixture_dir / "optimizer_run_raw_pnl_objective_fail.json"
+    immature_scorecard_path = fixture_dir / "optimizer_run_scorecard_immature_fail.json"
     paths = [
         schema_path,
         pass_path,
@@ -23072,6 +23089,7 @@ def optimizer_run_report_validator() -> ValidatorResult:
         missing_blocker_path,
         writer_path,
         raw_pnl_path,
+        immature_scorecard_path,
         state_path,
     ]
 
@@ -23101,6 +23119,7 @@ def optimizer_run_report_validator() -> ValidatorResult:
         missing_blocker_path: "non-completed optimizer run must carry explicit blocker evidence",
         writer_path: "expected const False",
         raw_pnl_path: "RAW_PNL",
+        immature_scorecard_path: "mature ranking scorecards above minimum",
     }
     for path, expected_fragment in negative_expectations.items():
         errors = _optimizer_run_errors(load_json(path))
@@ -23159,6 +23178,20 @@ def _optimizer_recommendation_errors(report: dict[str, Any]) -> list[str]:
             errors.append("ALLOW_PAPER_RANKING requires optimizer_output_type=RANKING_INPUT")
         if blockers:
             errors.append("ALLOW_PAPER_RANKING recommendation must not carry blockers")
+        if report.get("source_scorecard_ranking_eligible") is not True:
+            errors.append("ALLOW_PAPER_RANKING requires source_scorecard_ranking_eligible=true")
+        if report.get("source_scorecard_scope") != "PAPER_SCORECARD_INPUT_ONLY":
+            errors.append("ALLOW_PAPER_RANKING requires source scorecard scope PAPER_SCORECARD_INPUT_ONLY")
+        if float(report.get("source_scorecard_net_ev_after_cost_bps", 0)) < float(
+            report.get("source_scorecard_min_required_edge_bps", 0)
+        ):
+            errors.append("ALLOW_PAPER_RANKING requires source scorecard net EV after cost above minimum edge")
+        if report.get("source_scorecard_robustness_ready") is not True:
+            errors.append("ALLOW_PAPER_RANKING requires source_scorecard_robustness_ready=true")
+        if report.get("source_scorecard_performance_ready") is not True:
+            errors.append("ALLOW_PAPER_RANKING requires source_scorecard_performance_ready=true")
+        if report.get("source_scorecard_performance_source_binding_status") != "PASS":
+            errors.append("ALLOW_PAPER_RANKING requires source scorecard performance source binding PASS")
     elif not blockers:
         errors.append("non-ranking optimizer recommendation must carry explicit blocker evidence")
     if action == "RECOMMEND_SCALE_DOWN_ONLY" and output_type != "RISK_REDUCTION_ONLY":
@@ -23176,7 +23209,8 @@ def optimizer_recommendation_validator() -> ValidatorResult:
     wording_path = fixture_dir / "optimizer_recommendation_live_ready_wording_fail.json"
     scope_path = fixture_dir / "optimizer_recommendation_scope_mismatch_fail.json"
     writer_path = fixture_dir / "optimizer_recommendation_live_writer_fail.json"
-    paths = [schema_path, pass_path, live_flag_path, wording_path, scope_path, writer_path, state_path]
+    immature_scorecard_path = fixture_dir / "optimizer_recommendation_scorecard_immature_fail.json"
+    paths = [schema_path, pass_path, live_flag_path, wording_path, scope_path, writer_path, immature_scorecard_path, state_path]
 
     state = load_json(state_path)
     for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
@@ -23202,6 +23236,7 @@ def optimizer_recommendation_validator() -> ValidatorResult:
         wording_path: "optimizer recommendation warning must state not LIVE_READY",
         scope_path: "ALLOW_PAPER_RANKING requires PAPER_RANKING_RECOMMENDATION_ONLY scope",
         writer_path: "expected const False",
+        immature_scorecard_path: "source_scorecard_performance_ready=true",
     }
     for path, expected_fragment in negative_expectations.items():
         errors = _optimizer_recommendation_errors(load_json(path))

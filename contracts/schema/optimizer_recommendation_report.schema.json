@@ -10,6 +10,13 @@
     "authority",
     "recommendation_id",
     "source_scorecard_id",
+    "source_scorecard_ranking_eligible",
+    "source_scorecard_scope",
+    "source_scorecard_net_ev_after_cost_bps",
+    "source_scorecard_min_required_edge_bps",
+    "source_scorecard_robustness_ready",
+    "source_scorecard_performance_ready",
+    "source_scorecard_performance_source_binding_status",
     "candidate_id",
     "strategy_id",
     "parameter_hash",
@@ -67,6 +74,35 @@
     "source_scorecard_id": {
       "type": "string",
       "minLength": 1
+    },
+    "source_scorecard_ranking_eligible": {
+      "type": "boolean"
+    },
+    "source_scorecard_scope": {
+      "enum": [
+        "PAPER_SCORECARD_INPUT_ONLY",
+        "PAPER_EVIDENCE_COLLECTION_ONLY",
+        "BLOCKED"
+      ]
+    },
+    "source_scorecard_net_ev_after_cost_bps": {
+      "type": "number"
+    },
+    "source_scorecard_min_required_edge_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "source_scorecard_robustness_ready": {
+      "type": "boolean"
+    },
+    "source_scorecard_performance_ready": {
+      "type": "boolean"
+    },
+    "source_scorecard_performance_source_binding_status": {
+      "enum": [
+        "PASS",
+        "MISSING_OR_MISMATCHED"
+      ]
     },
     "candidate_id": {
       "type": "string",
