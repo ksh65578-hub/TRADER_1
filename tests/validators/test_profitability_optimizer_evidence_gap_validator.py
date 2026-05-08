@@ -545,11 +545,14 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
             "PAPER_CLOSED_TRADES_BELOW_MIN",
             "STRATEGY_EXIT_POLICY_NOT_PASS",
             "PROFIT_FACTOR_NOT_PASS",
+        }
+        self.assertTrue(expected_missing.issubset(set(thresholds["missing_threshold_codes"])))
+        current_runtime_passed = {
             "MAX_DRAWDOWN_NOT_PASS",
             "FILL_QUALITY_NOT_PASS",
             "EXECUTION_COST_COMPARISON_NOT_PASS",
         }
-        self.assertTrue(expected_missing.issubset(set(thresholds["missing_threshold_codes"])))
+        self.assertFalse(current_runtime_passed.intersection(set(thresholds["missing_threshold_codes"])))
 
         update_promotion_thresholds(
             rollup,

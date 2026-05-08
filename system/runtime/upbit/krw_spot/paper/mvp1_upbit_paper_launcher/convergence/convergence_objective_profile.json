@@ -5,16 +5,6 @@
   },
   "blockers": [
     {
-      "code": "STRATEGY_NOT_ELIGIBLE",
-      "message": "selected PAPER candidate is not entry-review eligible",
-      "severity": "HIGH"
-    },
-    {
-      "code": "MIN_EDGE_FAIL",
-      "message": "net EV after cost is below PAPER scorecard minimum",
-      "severity": "HIGH"
-    },
-    {
       "code": "OOS_MISSING",
       "message": "OOS evidence is required before PAPER scorecard ranking",
       "severity": "HIGH"
@@ -55,23 +45,8 @@
       "severity": "HIGH"
     },
     {
-      "code": "DRAWDOWN_FREEZE_ACTIVE",
-      "message": "max drawdown must remain inside policy before PAPER scorecard ranking",
-      "severity": "HIGH"
-    },
-    {
       "code": "EXECUTION_FEEDBACK_DIVERGENT",
       "message": "realized edge after fee/slippage/impact must match or exceed expected edge before ranking",
-      "severity": "HIGH"
-    },
-    {
-      "code": "EXECUTION_QUALITY_UNTESTED",
-      "message": "fill quality evidence is required before PAPER scorecard ranking",
-      "severity": "HIGH"
-    },
-    {
-      "code": "EXECUTION_FEEDBACK_DIVERGENT",
-      "message": "realized fee/slippage/impact cost must stay within expected execution cost before ranking",
       "severity": "HIGH"
     },
     {
@@ -82,7 +57,7 @@
   ],
   "can_live_trade": false,
   "exchange": "UPBIT",
-  "generated_at_utc": "2026-05-08T08:40:40Z",
+  "generated_at_utc": "2026-05-08T08:50:48Z",
   "live_config_mutation_allowed": false,
   "live_order_allowed": false,
   "live_order_ready": false,
@@ -135,11 +110,11 @@
       "weight": 0.25
     }
   ],
-  "objective_profile_id": "convergence_objective_profile:scorecard:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:KRW-WIF-vwap-mean-reversion",
+  "objective_profile_id": "convergence_objective_profile:scorecard:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:KRW-AXL-pullback-trend-long",
   "objective_profile_version": "scorecard_runtime_v1",
   "objective_status": "BLOCKED",
   "operator_warning": "Objective profile is evaluation-only, not LIVE_READY, and live orders blocked.",
-  "profile_hash": "128DA9005AAAFC0822BA7AD364BFDB8238220FEF11BB826549B9545DCE54E4AA",
+  "profile_hash": "D9DFE6B74EFDC6B6E26BD4F2C9174235758D809FFEA391E8CA2F934A12C716E1",
   "project_id": "TRADER_1",
   "raw_pnl_only_allowed": false,
   "scale_up_allowed": false,
