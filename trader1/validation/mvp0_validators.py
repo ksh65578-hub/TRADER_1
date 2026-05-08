@@ -23417,6 +23417,38 @@ def candidate_ranking_validator() -> ValidatorResult:
     )
 
 
+def _candidate_scoped_performance_source_binding_count(source_evidence_ids: list[str]) -> int:
+    normalized_prefixes = {prefix[:-1] if prefix.endswith(":") else prefix for prefix in PERFORMANCE_SOURCE_PREFIXES}
+    bindings_by_candidate: dict[str, dict[str, tuple[str, str]]] = {}
+    for source_id in source_evidence_ids:
+        if not isinstance(source_id, str):
+            continue
+        parts = source_id.split(":")
+        if len(parts) != 4:
+            continue
+        prefix, candidate_id, history_id, history_hash = parts
+        if prefix not in normalized_prefixes or not candidate_id or not history_id or len(history_hash) != 64:
+            continue
+        bindings_by_candidate.setdefault(candidate_id, {})[prefix] = (history_id, history_hash)
+
+    bound_count = 0
+    for candidate_id, bindings_by_prefix in bindings_by_candidate.items():
+        if set(bindings_by_prefix) != normalized_prefixes:
+            continue
+        distinct_bindings = set(bindings_by_prefix.values())
+        if len(distinct_bindings) != 1:
+            continue
+        history_id, history_hash = next(iter(distinct_bindings))
+        if has_required_performance_source_ids(
+            source_evidence_ids,
+            candidate_id=candidate_id,
+            history_id=history_id,
+            history_hash=history_hash,
+        ):
+            bound_count += 1
+    return bound_count
+
+
 def _optimizer_run_errors(report: dict[str, Any]) -> list[str]:
     schema_dir = ROOT / "contracts" / "schema"
     schema_bundle = load_schema_bundle(schema_dir)
@@ -23447,6 +23479,7 @@ def _optimizer_run_errors(report: dict[str, Any]) -> list[str]:
     if "LIVE" in set(report.get("source_modes", [])):
         errors.append("optimizer run source_modes must not include LIVE")
 
+    source_evidence_ids = [str(item) for item in report.get("source_evidence_ids", []) if isinstance(item, str)]
     warning_lower = str(report.get("operator_warning", "")).lower()
     if "not live_ready" not in warning_lower or "live orders" not in warning_lower:
         errors.append("optimizer run warning must state not LIVE_READY and live orders blocked")
@@ -23486,6 +23519,11 @@ def _optimizer_run_errors(report: dict[str, Any]) -> list[str]:
             errors.append("CANDIDATE_RANKING_INPUT requires ranking_input_scorecard_count > 0")
         if ranking_input_mature_scorecard_count < ranking_input_min_mature_scorecard_count:
             errors.append("CANDIDATE_RANKING_INPUT requires mature ranking scorecards above minimum")
+        bound_mature_scorecard_count = _candidate_scoped_performance_source_binding_count(source_evidence_ids)
+        if bound_mature_scorecard_count < ranking_input_mature_scorecard_count:
+            errors.append(
+                "CANDIDATE_RANKING_INPUT mature scorecard count requires candidate-scoped closed trade, execution quality, and performance summary source ids"
+            )
         if ranking_input_mature_scorecard_count + ranking_input_immature_scorecard_count != ranking_input_scorecard_count:
             errors.append("CANDIDATE_RANKING_INPUT scorecard maturity counts must reconcile")
         if report.get("ranking_input_maturity_status") != "PASS":
