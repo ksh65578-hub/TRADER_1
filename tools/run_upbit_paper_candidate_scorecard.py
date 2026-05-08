@@ -644,6 +644,7 @@ def _build_and_write_alternative_public_replay(
     root: Path,
     session_id: str,
     candidate_generation_report: dict[str, Any],
+    runtime_cycle_report: dict[str, Any] | None,
     candidate_discovery_runtime: dict[str, Any] | None,
     target_count: int,
     page_size: int,
@@ -658,15 +659,48 @@ def _build_and_write_alternative_public_replay(
             blocker_code=None,
             message="alternative public replay is not required until a bounded candidate is review-ready",
         )
-    if not isinstance(candidate_discovery_runtime, dict):
+    expected_candidate_id = str(candidate_generation_report.get("best_alternative_candidate_id") or "")
+    best_item = next(
+        (
+            item
+            for item in candidate_generation_report.get("candidate_items") or []
+            if isinstance(item, dict) and str(item.get("candidate_id") or "") == expected_candidate_id
+        ),
+        None,
+    )
+    source_runtime = None
+    for runtime_candidate in (runtime_cycle_report, candidate_discovery_runtime):
+        if not isinstance(runtime_candidate, dict):
+            continue
+        if best_item is not None:
+            source_cycle_id = str(best_item.get("source_runtime_cycle_id") or "")
+            source_cycle_hash = str(best_item.get("source_runtime_cycle_hash") or "").upper()
+            if source_cycle_id and str(runtime_candidate.get("cycle_id") or "") != source_cycle_id:
+                continue
+            if source_cycle_hash and str(runtime_candidate.get("cycle_hash") or "").upper() != source_cycle_hash:
+                continue
+        source_runtime = runtime_candidate
+        break
+    if not isinstance(source_runtime, dict):
         return _alternative_replay_context(
             status="BLOCKED",
             blocker_code="MEASUREMENT_MISSING",
-            message="alternative public replay requires the bounded discovery runtime that produced the candidate",
+            message="alternative public replay requires the runtime cycle that produced the best alternative candidate",
+            candidate_id=expected_candidate_id or None,
         )
 
-    alternative_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(candidate_discovery_runtime)
-    expected_candidate_id = str(candidate_generation_report.get("best_alternative_candidate_id") or "")
+    try:
+        alternative_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            source_runtime,
+            candidate_id=expected_candidate_id,
+        )
+    except Exception as exc:
+        return _alternative_replay_context(
+            status="BLOCKED",
+            blocker_code="SNAPSHOT_SCOPE_MISMATCH",
+            message=f"alternative public replay candidate could not be bound to its source runtime: {type(exc).__name__}",
+            candidate_id=expected_candidate_id or None,
+        )
     if str(alternative_scorecard.get("candidate_id") or "") != expected_candidate_id:
         return _alternative_replay_context(
             status="BLOCKED",
@@ -938,6 +972,7 @@ def build_current_upbit_paper_candidate_scorecard(
         root=root,
         session_id=session_id,
         candidate_generation_report=candidate_generation_report,
+        runtime_cycle_report=runtime,
         candidate_discovery_runtime=candidate_discovery_runtime,
         target_count=alternative_replay_target_count,
         page_size=alternative_replay_page_size,

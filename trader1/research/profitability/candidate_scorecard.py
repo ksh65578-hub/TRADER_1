@@ -824,7 +824,22 @@ def _candidate_scorecard_rank_key(candidate: dict[str, Any]) -> tuple[Decimal, D
     )
 
 
-def _scorecard_candidate_from_runtime(runtime_cycle_report: dict[str, Any]) -> dict[str, Any]:
+def _scorecard_candidate_from_runtime(
+    runtime_cycle_report: dict[str, Any],
+    *,
+    candidate_id: str | None = None,
+) -> dict[str, Any]:
+    requested_candidate_id = str(candidate_id or "")
+    if requested_candidate_id:
+        for candidate in runtime_cycle_report.get("strategy_candidates") or []:
+            if (
+                isinstance(candidate, dict)
+                and candidate.get("candidate_id") == requested_candidate_id
+                and candidate.get("decision") == "PAPER_ENTRY_REVIEW"
+                and _candidate_is_non_live(candidate)
+            ):
+                return candidate
+        raise ValueError(f"requested PAPER_ENTRY_REVIEW candidate is not available for scorecard input: {requested_candidate_id}")
     focused = _paper_scope_focus_candidate_from_runtime(runtime_cycle_report)
     if focused is not None:
         return focused
@@ -1626,6 +1641,7 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
     *,
     authority: dict[str, str] | None = None,
     scorecard_id: str | None = None,
+    candidate_id: str | None = None,
     min_required_edge_bps: float = 10.0,
     robustness_statuses: dict[str, str] | None = None,
     robustness_source_evidence_ids: list[str] | None = None,
@@ -1637,7 +1653,7 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
     if runtime_result.status != "PASS":
         raise ValueError(f"runtime cycle is not valid for scorecard input: {runtime_result.status}:{runtime_result.blocker_code}")
 
-    selected = _scorecard_candidate_from_runtime(runtime_cycle_report)
+    selected = _scorecard_candidate_from_runtime(runtime_cycle_report, candidate_id=candidate_id)
     selected_symbol = str(selected.get("symbol") or runtime_cycle_report["symbol"])
     cost_breakdown = selected["cost_breakdown_bps"]
     robustness = {
