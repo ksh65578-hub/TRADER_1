@@ -111,7 +111,7 @@ def build_upbit_paper_dry_run_report(
         entry_reasons = [
             build_entry_reason("PAPER_DRY_RUN_ENTRY", "paper-only entry intent created"),
             build_entry_reason("PUBLIC_DATA_AVAILABLE", "public Upbit fixture data loaded"),
-            build_entry_reason("SYMBOL_RULE_PASS", "symbol rule scaffold passed"),
+            build_entry_reason("SYMBOL_RULE_PASS", symbol_message),
             build_entry_reason("FEE_SLIPPAGE_BASELINE_PASS", "fee and slippage baseline present"),
         ]
     elif blockers:
