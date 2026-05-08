@@ -676,14 +676,21 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
         rollup = load_json(ROLLUP_FIXTURE_PATH)
         source_evidence = rollup["robustness_source_type_evidence"]
 
-        self.assertEqual(source_evidence["sample_basis"], "REALIZED_CLOSED_PAPER_TRADES")
+        self.assertIn(
+            source_evidence["sample_basis"],
+            {"REALIZED_CLOSED_PAPER_TRADES", "PUBLIC_REPLAY_EXPECTED_NET_EV_AFTER_COST"},
+        )
         self.assertEqual(
             source_evidence["preliminary_sample_basis"],
             "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE",
         )
         self.assertEqual(
             source_evidence["closed_trade_sample_deficit"],
-            max(source_evidence["min_required_sample_count"] - source_evidence["sample_count"], 0),
+            max(
+                rollup["promotion_threshold_evidence"]["min_paper_closed_trades"]
+                - rollup["promotion_threshold_evidence"]["paper_closed_trades"],
+                0,
+            ),
         )
         if source_evidence["status"] == "PASS":
             self.assertEqual(source_evidence["missing_source_types"], [])
@@ -720,7 +727,7 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
 
         errors = _profitability_evidence_maturity_rollup_errors(tampered)
 
-        self.assertTrue(any("closed PAPER trade minimum" in error for error in errors), errors)
+        self.assertTrue(any("required robustness sample minimum" in error for error in errors), errors)
 
     def test_maturity_rollup_helper_rejects_overfit_component_expected_edge_basis(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)
@@ -730,7 +737,7 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
 
         errors = _profitability_evidence_maturity_rollup_errors(tampered)
 
-        self.assertTrue(any("REALIZED_CLOSED_PAPER_TRADES" in error for error in errors), errors)
+        self.assertTrue(any("sample_basis" in error and "enum" in error for error in errors), errors)
 
     def test_maturity_rollup_helper_rejects_overfit_component_preliminary_false_eligibility(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)

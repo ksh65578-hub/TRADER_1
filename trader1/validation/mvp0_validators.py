@@ -883,6 +883,11 @@ PROFITABILITY_ROBUSTNESS_SOURCE_TYPE_COUNT_FIELDS = {
     "CONCENTRATION": "concentration_count",
 }
 PROFITABILITY_OVERFIT_FULL_SAMPLE_BASIS = "REALIZED_CLOSED_PAPER_TRADES"
+PROFITABILITY_OVERFIT_PUBLIC_REPLAY_SAMPLE_BASIS = "PUBLIC_REPLAY_EXPECTED_NET_EV_AFTER_COST"
+PROFITABILITY_OVERFIT_SAMPLE_BASIS_VALUES = {
+    PROFITABILITY_OVERFIT_FULL_SAMPLE_BASIS,
+    PROFITABILITY_OVERFIT_PUBLIC_REPLAY_SAMPLE_BASIS,
+}
 PROFITABILITY_OVERFIT_PRELIMINARY_SAMPLE_BASIS = "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE"
 PROFITABILITY_EVIDENCE_FORBIDDEN_PHRASES = {
     "profit guaranteed",
@@ -20291,8 +20296,12 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
                 errors.append(f"rollup robustness source type evidence missing blocker for {source_type}")
             if source_count >= min_required_per_source_type and source_type in missing_source_types:
                 errors.append(f"rollup robustness source type evidence marks {source_type} missing despite sufficient count")
-        if robustness_sources.get("sample_basis") != PROFITABILITY_OVERFIT_FULL_SAMPLE_BASIS:
-            errors.append("rollup robustness source type evidence must use realized closed PAPER trades as full sample basis")
+        sample_basis = robustness_sources.get("sample_basis")
+        if sample_basis not in PROFITABILITY_OVERFIT_SAMPLE_BASIS_VALUES:
+            errors.append(
+                "rollup robustness source type evidence must use REALIZED_CLOSED_PAPER_TRADES "
+                "or PUBLIC_REPLAY_EXPECTED_NET_EV_AFTER_COST as sample basis"
+            )
         if robustness_sources.get("preliminary_sample_basis") != PROFITABILITY_OVERFIT_PRELIMINARY_SAMPLE_BASIS:
             errors.append("rollup robustness source type evidence must label preliminary expected-edge samples separately")
         try:
@@ -20322,7 +20331,15 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
         except (TypeError, ValueError):
             preliminary_exact_candidate_sample_count = 0
             errors.append("rollup robustness source type preliminary exact candidate sample count must be an integer")
-        if closed_trade_sample_deficit != max(robustness_min_sample_count - robustness_sample_count, 0):
+        try:
+            paper_closed_trades = int(promotion_thresholds.get("paper_closed_trades", 0) or 0)
+            min_paper_closed_trades = int(promotion_thresholds.get("min_paper_closed_trades", 0) or 0)
+        except (TypeError, ValueError):
+            paper_closed_trades = 0
+            min_paper_closed_trades = 0
+            errors.append("rollup promotion closed trade counts must be integers")
+        expected_closed_trade_deficit = max(min_paper_closed_trades - paper_closed_trades, 0)
+        if closed_trade_sample_deficit != expected_closed_trade_deficit:
             errors.append("rollup robustness source type closed trade sample deficit is inconsistent")
         if preliminary_exact_candidate_sample_count > preliminary_sample_count:
             errors.append("rollup robustness source type exact preliminary sample count exceeds preliminary sample count")
@@ -20332,7 +20349,7 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
             if present_source_types != required_source_types:
                 errors.append("rollup robustness source type evidence claims PASS without all required source types present")
             if robustness_sample_count < robustness_min_sample_count:
-                errors.append("rollup robustness source type evidence claims PASS below realized closed PAPER trade minimum")
+                errors.append("rollup robustness source type evidence claims PASS below required robustness sample minimum")
             if robustness_sources.get("primary_blocker_code") is not None:
                 errors.append("rollup robustness source type evidence PASS must not carry a blocker code")
             if robustness_sources.get("explicit_source_type_blocker") is not False:
@@ -20553,8 +20570,12 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
                     "preliminary_exact_candidate_sample_count",
                 ),
             )
-            if component.get("sample_basis") != PROFITABILITY_OVERFIT_FULL_SAMPLE_BASIS:
-                errors.append("rollup overfit component must use realized closed PAPER trades as full sample basis")
+            component_sample_basis = component.get("sample_basis")
+            if component_sample_basis not in PROFITABILITY_OVERFIT_SAMPLE_BASIS_VALUES:
+                errors.append(
+                    "rollup overfit component must use REALIZED_CLOSED_PAPER_TRADES "
+                    "or PUBLIC_REPLAY_EXPECTED_NET_EV_AFTER_COST as sample basis"
+                )
             if component.get("preliminary_sample_basis") != PROFITABILITY_OVERFIT_PRELIMINARY_SAMPLE_BASIS:
                 errors.append("rollup overfit component must label expected-edge preliminary samples separately")
             overfit_sample_count = component_int(component, "sample_count")
@@ -20566,20 +20587,33 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
                 component,
                 "preliminary_exact_candidate_sample_count",
             )
-            if overfit_sample_count != closed_trade_sample_count:
+            try:
+                paper_closed_trades = int(promotion_thresholds.get("paper_closed_trades", 0) or 0)
+                min_paper_closed_trades = int(promotion_thresholds.get("min_paper_closed_trades", 0) or 0)
+            except (TypeError, ValueError):
+                paper_closed_trades = 0
+                min_paper_closed_trades = 0
+                errors.append("rollup promotion closed trade counts must be integers")
+            if component_sample_basis == PROFITABILITY_OVERFIT_FULL_SAMPLE_BASIS and overfit_sample_count != closed_trade_sample_count:
                 errors.append("rollup overfit component sample_count must match realized closed trade sample count")
-            if closed_trade_sample_deficit != max(overfit_min_sample_count - closed_trade_sample_count, 0):
+            if closed_trade_sample_count != paper_closed_trades:
+                errors.append("rollup overfit component closed trade sample count must match promotion threshold evidence")
+            if closed_trade_sample_deficit != max(min_paper_closed_trades - closed_trade_sample_count, 0):
                 errors.append("rollup overfit component closed trade sample deficit is inconsistent")
             if preliminary_exact_candidate_sample_count > preliminary_sample_count:
                 errors.append("rollup overfit component exact preliminary sample count exceeds preliminary sample count")
             if component.get("evidence_status") == "PASS" and overfit_sample_count < overfit_min_sample_count:
                 errors.append("rollup overfit component claims PASS below realized closed PAPER trade minimum")
             if paper_scorecard_input and overfit_sample_count < overfit_min_sample_count:
-                errors.append("rollup overfit component is scorecard eligible below realized closed PAPER trade minimum")
-            if paper_scorecard_input and "realized closed paper trades" not in str(
-                component.get("next_required_evidence", "")
-            ).lower():
-                errors.append("rollup overfit component must tell operators robustness is based on closed PAPER trades")
+                errors.append("rollup overfit component is scorecard eligible below required robustness sample minimum")
+            if paper_scorecard_input and closed_trade_sample_deficit > 0:
+                errors.append("rollup overfit component is scorecard eligible while closed PAPER trade evidence is deficient")
+            if paper_scorecard_input:
+                component_message = str(component.get("next_required_evidence", "")).lower()
+                if component_sample_basis == PROFITABILITY_OVERFIT_PUBLIC_REPLAY_SAMPLE_BASIS and "public read-only replay" not in component_message:
+                    errors.append("rollup overfit component must identify public replay sample basis")
+                if component_sample_basis == PROFITABILITY_OVERFIT_FULL_SAMPLE_BASIS and "realized closed paper trades" not in component_message:
+                    errors.append("rollup overfit component must tell operators robustness is based on closed PAPER trades")
         if component_id == "paper_shadow_evidence_accumulation":
             paper_sample_count = int(component.get("paper_sample_count", 0) or 0)
             shadow_sample_count = int(component.get("shadow_sample_count", 0) or 0)

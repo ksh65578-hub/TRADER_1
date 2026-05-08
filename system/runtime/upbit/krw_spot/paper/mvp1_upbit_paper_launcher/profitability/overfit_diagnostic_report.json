@@ -5,11 +5,6 @@
   },
   "blockers": [
     {
-      "code": "SAMPLE_INSUFFICIENT",
-      "message": "1 matched PAPER samples collected; 300 required",
-      "severity": "HIGH"
-    },
-    {
       "code": "OOS_MISSING",
       "message": "OOS net EV after cost has not passed the required threshold",
       "severity": "HIGH"
@@ -33,27 +28,22 @@
       "code": "SURVIVORSHIP_BIAS_RISK",
       "message": "survivorship bias check requires sufficient namespace-bound PAPER samples",
       "severity": "HIGH"
-    },
-    {
-      "code": "DATA_SNOOPING_RISK",
-      "message": "data-snooping check requires separate OOS and walk-forward windows",
-      "severity": "HIGH"
     }
   ],
-  "bootstrap_confidence_lower_bps": 0.0,
-  "bootstrap_iteration_count": 0,
-  "bootstrap_status": "BLOCKED",
+  "bootstrap_confidence_lower_bps": -97.9730961,
+  "bootstrap_iteration_count": 500,
+  "bootstrap_status": "FAIL",
   "can_live_trade": false,
   "candidate_id": "KRW-AXL-pullback-trend-long",
-  "concentration_risk_status": "UNTESTED",
+  "concentration_risk_status": "HIGH",
   "dashboard_display_truth_only": true,
-  "data_snooping_check": "BLOCKED",
-  "diagnostic_hash": "00B0B44D1CE37B534EE27D3B57CFB30C4569B43E69E406FCE705F57C36B42E0D",
+  "data_snooping_check": "PASS",
+  "diagnostic_hash": "E481A35A00D1246AAEC0BB39A0426D89F571B43EE300305DC501C44481C31CCF",
   "diagnostic_id": "overfit:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:KRW-AXL-pullback-trend-long",
   "diagnostic_status": "BLOCKED_FOR_ROBUSTNESS",
   "exchange": "UPBIT",
-  "generated_at_utc": "2026-05-08T09:22:04Z",
-  "in_sample_net_ev_after_cost_bps": -535.88173491,
+  "generated_at_utc": "2026-05-08T10:03:13Z",
+  "in_sample_net_ev_after_cost_bps": -89.87741488,
   "live_order_allowed": false,
   "live_order_ready": false,
   "market_type": "KRW_SPOT",
@@ -65,10 +55,10 @@
   "min_required_sample_count": 300,
   "min_required_walk_forward_pass_rate": 0.7,
   "mode": "PAPER",
-  "oos_degradation_bps": 0.0,
-  "oos_net_ev_after_cost_bps": 0.0,
-  "oos_status": "BLOCKED",
-  "oos_window_count": 0,
+  "oos_degradation_bps": 11.01526881,
+  "oos_net_ev_after_cost_bps": -100.89268369,
+  "oos_status": "FAIL",
+  "oos_window_count": 1,
   "overfit_status": "HIGH",
   "parameter_hash": "B513FAA110ECC3C688258DE32FDFAB637C438F6C07A716040C8B4039F72836E1",
   "preliminary_bootstrap_confidence_lower_bps": 0.0,
@@ -100,16 +90,18 @@
   "preliminary_walk_forward_window_size": 0,
   "project_id": "TRADER_1",
   "promotion_eligible": false,
-  "ranking_stability_score": 0.0,
-  "ranking_stability_status": "BLOCKED",
+  "ranking_stability_score": 0.52650066,
+  "ranking_stability_status": "FAIL",
   "regime_scope": "TRENDING",
   "robustness_eligible": false,
-  "sample_count": 1,
+  "sample_count": 415,
   "scale_up_allowed": false,
   "schema_id": "trader1.overfit_diagnostic_report.v1",
   "session_id": "mvp1_upbit_paper_launcher",
   "source_evidence_ids": [
-    "runtime_sample_history:upbit-paper-runtime-sample-history:7F5C5226D69556C2E791E04627073B763BA133ABAE10B151080CA2ADE58A4E50",
+    "public_market_data:KRW-AXL:C8849F3123FA1243421FC7DD565140F5BDE41FE29D54AE962703CD064E0D9F96",
+    "public_replay_robustness:public-replay:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:KRW-AXL-pullback-trend-long:AD8E0C4A0EC78FDFDBD930EF3B5021B68047AD32D214D4538CDCA159669A7C92",
+    "runtime_sample_history:upbit-paper-runtime-sample-history:8EA9747E9E3DE7B378D072323AEB7B0F4371AEDC65167F830B2A589BB5B65B55",
     "upbit_paper_runtime_cycle:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:03C49200365098990E75084EA0EDC3CD2F6A9846140F509551EF0D863EF13A00",
     "upbit_paper_runtime_cycle:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:8EE101172113BAC51FD2CCCC039E2F595C4DD164D63C7A5B51B1728C9CA4295A"
   ],
@@ -118,8 +110,8 @@
   "survivorship_bias_check": "BLOCKED",
   "symbol": "KRW-AXL",
   "timeframe_scope": "runtime_cycle_fixture_or_public_collection",
-  "train_window_count": 0,
+  "train_window_count": 249,
   "walk_forward_pass_rate": 0.0,
-  "walk_forward_status": "BLOCKED",
-  "walk_forward_window_count": 0
+  "walk_forward_status": "FAIL",
+  "walk_forward_window_count": 8
 }

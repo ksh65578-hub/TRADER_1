@@ -23,6 +23,10 @@ from trader1.research.profitability.overfit_diagnostic import (
     robustness_inputs_from_overfit_diagnostic,
     write_overfit_diagnostic_report,
 )
+from trader1.research.replay.replay_runner import (
+    load_public_replay_robustness_report,
+    validate_public_replay_robustness_report,
+)
 from trader1.research.shadow.shadow_runner import validate_paper_shadow_evidence_accumulation_report
 from trader1.runtime.paper.upbit_paper_runtime import validate_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
@@ -218,11 +222,30 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
         )
 
     base_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
-    diagnostic = overfit_diagnostic_from_upbit_paper_runtime(
-        candidate_scorecard=base_scorecard,
-        runtime_sample_history=history,
+    replay_robustness_report = load_public_replay_robustness_report(
         root=root,
+        session_id=session_id,
+        candidate_id=str(base_scorecard.get("candidate_id") or ""),
     )
+    replay_robustness_status = "MISSING"
+    replay_robustness_blocker_code = "MEASUREMENT_MISSING"
+    if isinstance(replay_robustness_report, dict):
+        replay_validation = validate_public_replay_robustness_report(
+            replay_robustness_report,
+            candidate_scorecard=base_scorecard,
+        )
+        replay_robustness_status = replay_validation.status
+        replay_robustness_blocker_code = replay_validation.blocker_code
+        if replay_validation.status != "PASS":
+            replay_robustness_report = None
+    diagnostic_kwargs = {
+        "candidate_scorecard": base_scorecard,
+        "runtime_sample_history": history,
+        "root": root,
+    }
+    if replay_robustness_report is not None:
+        diagnostic_kwargs["replay_robustness_report"] = replay_robustness_report
+    diagnostic = overfit_diagnostic_from_upbit_paper_runtime(**diagnostic_kwargs)
     diagnostic_errors = _overfit_diagnostic_errors(diagnostic)
     if diagnostic_errors:
         return _blocked_result(
@@ -312,6 +335,13 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
         "robustness_eligible": diagnostic["robustness_eligible"],
         "sample_count": diagnostic["sample_count"],
         "min_required_sample_count": diagnostic["min_required_sample_count"],
+        "public_replay_robustness_status": replay_robustness_status,
+        "public_replay_robustness_blocker_code": replay_robustness_blocker_code,
+        "public_replay_robustness_sample_count": (
+            replay_robustness_report.get("sample_count")
+            if isinstance(replay_robustness_report, dict)
+            else None
+        ),
         "overfit_blocker_codes": [blocker["code"] for blocker in diagnostic["blockers"]],
         "performance_closed_trade_sample_count": scorecard["closed_trade_sample_count"],
         "performance_profit_factor": scorecard["profit_factor"],

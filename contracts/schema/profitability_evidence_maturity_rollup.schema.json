@@ -387,7 +387,12 @@
           }
         },
         "min_required_per_source_type": {"type": "integer", "minimum": 1},
-        "sample_basis": {"const": "REALIZED_CLOSED_PAPER_TRADES"},
+        "sample_basis": {
+          "enum": [
+            "REALIZED_CLOSED_PAPER_TRADES",
+            "PUBLIC_REPLAY_EXPECTED_NET_EV_AFTER_COST"
+          ]
+        },
         "sample_count": {"type": "integer", "minimum": 0},
         "min_required_sample_count": {"type": "integer", "minimum": 1},
         "closed_trade_sample_deficit": {"type": "integer", "minimum": 0},
@@ -539,7 +544,12 @@
           "source_evidence_ids": {"type": "array", "items": {"type": "string", "minLength": 1}},
           "sample_count": {"type": "integer", "minimum": 0},
           "min_required_sample_count": {"type": "integer", "minimum": 0},
-          "sample_basis": {"const": "REALIZED_CLOSED_PAPER_TRADES"},
+          "sample_basis": {
+            "enum": [
+              "REALIZED_CLOSED_PAPER_TRADES",
+              "PUBLIC_REPLAY_EXPECTED_NET_EV_AFTER_COST"
+            ]
+          },
           "closed_trade_sample_count": {"type": "integer", "minimum": 0},
           "closed_trade_sample_deficit": {"type": "integer", "minimum": 0},
           "preliminary_sample_basis": {"const": "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE"},
