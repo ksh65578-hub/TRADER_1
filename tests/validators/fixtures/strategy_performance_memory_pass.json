@@ -24,7 +24,10 @@
   ],
   "source_artifact_ids": [
     "paper_operation_gate_001",
-    "shadow_cycle_001"
+    "shadow_cycle_001",
+    "closed_trades:KRW-BTC-pullback-trend-long:history_001:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "execution_quality:KRW-BTC-pullback-trend-long:history_001:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "performance_summary:KRW-BTC-pullback-trend-long:history_001:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
   ],
   "sample_count": 140,
   "min_required_sample_count": 100,

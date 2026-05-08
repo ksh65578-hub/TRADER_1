@@ -46,7 +46,7 @@
   "risk_off_no_trade_enforced": true,
   "cost_model_included": true,
   "slippage_fee_impact_included": true,
-  "paper_shadow_separated": false,
+  "paper_shadow_separated": true,
   "exchange_market_type_scoped": true,
   "dashboard_display_truth_only": true,
   "operator_warning": "Strategy performance memory is not LIVE_READY and live orders remain blocked.",

@@ -212,6 +212,39 @@ class ConvergenceMemoryFromScorecardTest(unittest.TestCase):
         self.assertFalse(cycle["live_order_allowed"])
         self.assertFalse(cycle["scale_up_allowed"])
 
+    def test_strategy_memory_blocks_unscoped_scorecard_performance_pnl(self):
+        scorecard = _ranking_ready_scorecard()
+        mutated = copy.deepcopy(scorecard)
+        mutated["source_evidence_ids"] = [
+            source_id
+            for source_id in mutated["source_evidence_ids"]
+            if not str(source_id).startswith(("closed_trades:", "execution_quality:", "performance_summary:"))
+        ]
+        mutated["performance_source_binding_status"] = "MISSING_OR_MISMATCHED"
+        mutated["performance_source_history_id"] = None
+        mutated["performance_source_history_hash"] = None
+
+        memory = strategy_performance_memory_from_scorecard(
+            mutated,
+            extra_source_modes=["SHADOW"],
+            extra_source_artifact_ids=["paper_shadow_evidence_accumulation:matched:ABC"],
+        )
+
+        self.assertEqual(_strategy_performance_memory_errors(memory), [])
+        self.assertEqual(memory["performance_status"], "BLOCKED")
+        self.assertEqual(memory["trade_count"], 0)
+        self.assertEqual(memory["gross_pnl"], 0.0)
+        self.assertLessEqual(memory["net_ev_after_cost"], 0.0)
+        self.assertEqual(memory["profit_factor"], 0.0)
+        self.assertTrue(memory["paper_shadow_separated"])
+        self.assertIn("EXECUTION_FEEDBACK_DIVERGENT", {blocker["code"] for blocker in memory["blockers"]})
+        regimes = {item["regime"]: item for item in memory["regime_performance"]}
+        self.assertEqual(regimes["UPTREND"]["trade_count"], 0)
+        self.assertFalse(regimes["UPTREND"]["trade_allowed"])
+        self.assertEqual(regimes["DOWNTREND"]["trade_count"], 0)
+        self.assertFalse(memory["live_order_allowed"])
+        self.assertFalse(memory["scale_up_allowed"])
+
     def test_blocked_scorecard_creates_failure_analysis_and_optimizer_memory(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="convergence-memory-blocked")
         scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)

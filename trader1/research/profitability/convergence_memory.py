@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from trader1.research.profitability.candidate_scorecard import (
+    performance_source_binding_from_source_ids,
     safe_candidate_scorecard_filename,
 )
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
@@ -375,6 +376,28 @@ def _scorecard_robustness_passes(scorecard: dict[str, Any]) -> bool:
         and scorecard.get("walk_forward_status") == "PASS"
         and scorecard.get("bootstrap_status") == "PASS"
         and scorecard.get("overfit_status") == "LOW"
+    )
+
+
+def _scorecard_performance_source_bound(scorecard: dict[str, Any]) -> bool:
+    history_id = scorecard.get("performance_source_history_id")
+    history_hash = scorecard.get("performance_source_history_hash")
+    if (
+        scorecard.get("performance_source_binding_status") != "PASS"
+        or not isinstance(history_id, str)
+        or not history_id
+        or not isinstance(history_hash, str)
+        or len(history_hash) != 64
+    ):
+        return False
+    return (
+        performance_source_binding_from_source_ids(
+            [str(item) for item in scorecard.get("source_evidence_ids", [])],
+            candidate_id=str(scorecard.get("candidate_id") or ""),
+            history_id=history_id,
+            history_hash=history_hash,
+        )
+        is not None
     )
 
 
@@ -766,6 +789,13 @@ def profit_convergence_cycle_from_scorecard(
 
 def _strategy_memory_blockers(scorecard: dict[str, Any], source_modes: list[str]) -> list[dict[str, str]]:
     blockers = [blocker(str(item["code"]), str(item["message"]), str(item.get("severity") or "HIGH")) for item in scorecard.get("blockers", [])]
+    if not _scorecard_performance_source_bound(scorecard):
+        blockers.append(
+            blocker(
+                "EXECUTION_FEEDBACK_DIVERGENT",
+                "Strategy performance memory refuses closed-trade PnL because candidate-scoped closed-trade, execution-quality, and performance-summary source binding is missing.",
+            )
+        )
     if "SHADOW" not in set(source_modes):
         blockers.append(
             blocker(
@@ -806,8 +836,23 @@ def _strategy_regime_performance_from_scorecard(
     fallback_trade_count: int,
     fallback_no_trade_count: int,
     net_ev: float,
+    performance_source_bound: bool = True,
 ) -> list[dict[str, Any]]:
     expected_regimes = ("UPTREND", "RANGE", "DOWNTREND", "RISK_OFF")
+    if not performance_source_bound:
+        return [
+            {
+                "regime": regime,
+                "sample_count": 0,
+                "trade_count": 0,
+                "no_trade_count": 0,
+                "net_ev_after_cost": 0.0,
+                "max_drawdown_pct": 0.0,
+                "trade_allowed": False,
+                "primary_blocker_code": "RISK_VETO" if regime == "RISK_OFF" else "EXECUTION_FEEDBACK_DIVERGENT",
+            }
+            for regime in expected_regimes
+        ]
     raw_counts = {
         item.get("regime"): item
         for item in scorecard.get("regime_outcome_counts", [])
@@ -871,18 +916,19 @@ def strategy_performance_memory_from_scorecard(
     extra_source_artifact_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     source_modes = _source_modes(scorecard, extra_source_modes)
+    performance_source_bound = _scorecard_performance_source_bound(scorecard)
     blockers = _strategy_memory_blockers(scorecard, source_modes)
     performance_status = _strategy_performance_status(scorecard, blockers)
-    trade_count = _int_value(scorecard.get("closed_trade_sample_count"))
+    trade_count = _int_value(scorecard.get("closed_trade_sample_count")) if performance_source_bound else 0
     no_trade_count = max(1 if blockers else 0, len(blockers))
     sample_count = trade_count + no_trade_count
     fee_cost = _bounded_float(scorecard.get("expected_fee_bps"), lower=0.0)
     spread_cost = _bounded_float(scorecard.get("expected_spread_bps"), lower=0.0)
     slippage_cost = _bounded_float(scorecard.get("expected_slippage_bps"), lower=0.0)
     impact_cost = _bounded_float(scorecard.get("expected_impact_bps"), lower=0.0)
-    gross_pnl = _bounded_float(scorecard.get("gross_expected_edge_bps"))
+    gross_pnl = _bounded_float(scorecard.get("gross_expected_edge_bps")) if performance_source_bound else 0.0
     net_ev = min(_bounded_float(scorecard.get("net_ev_after_cost_bps")), gross_pnl - fee_cost - spread_cost - slippage_cost - impact_cost)
-    profit_factor = _bounded_float(scorecard.get("profit_factor"), lower=0.0)
+    profit_factor = _bounded_float(scorecard.get("profit_factor"), lower=0.0) if performance_source_bound else 0.0
     win_rate = profit_factor / (profit_factor + 1.0) if profit_factor > 0 else 0.0
     source_ids = [scorecard_artifact_id(scorecard), *[str(item) for item in scorecard.get("source_evidence_ids", [])]]
     source_ids.extend(str(item) for item in extra_source_artifact_ids or [])
@@ -910,15 +956,20 @@ def strategy_performance_memory_from_scorecard(
         "min_required_sample_count": _int_value(scorecard.get("min_closed_trade_sample_count"), 1),
         "trade_count": trade_count,
         "no_trade_count": no_trade_count,
-        "entry_reason_counts": [{"reason_code": "SCORECARD_ENTRY_EVIDENCE", "count": trade_count}],
+        "entry_reason_counts": (
+            [{"reason_code": "SCORECARD_ENTRY_EVIDENCE", "count": trade_count}]
+            if performance_source_bound
+            else [{"reason_code": "EXECUTION_FEEDBACK_DIVERGENT", "count": 0}]
+        ),
         "exit_reason_counts": (
             [
                 {"reason_code": str(item.get("reason_code") or ""), "count": _int_value(item.get("count"))}
                 for item in scorecard.get("strategy_exit_reason_counts", [])
                 if isinstance(item, dict) and item.get("reason_code")
             ]
-            or [{"reason_code": "SCORECARD_CLOSED_TRADE_EVIDENCE", "count": trade_count}]
-        ),
+            if performance_source_bound
+            else [{"reason_code": "EXECUTION_FEEDBACK_DIVERGENT", "count": 0}]
+        ) or [{"reason_code": "SCORECARD_CLOSED_TRADE_EVIDENCE", "count": trade_count}],
         "no_trade_reason_counts": _reason_counts_from_blockers(blockers),
         "gross_pnl": gross_pnl,
         "fee_cost": fee_cost,
@@ -926,7 +977,7 @@ def strategy_performance_memory_from_scorecard(
         "slippage_cost": slippage_cost,
         "market_impact_cost": impact_cost,
         "net_ev_after_cost": net_ev,
-        "max_drawdown_pct": _bounded_float(scorecard.get("max_drawdown_pct"), lower=0.0, upper=100.0),
+        "max_drawdown_pct": _bounded_float(scorecard.get("max_drawdown_pct"), lower=0.0, upper=100.0) if performance_source_bound else 100.0,
         "win_rate": _bounded_float(win_rate, lower=0.0, upper=1.0),
         "profit_factor": profit_factor,
         "regime_performance": _strategy_regime_performance_from_scorecard(
@@ -935,6 +986,7 @@ def strategy_performance_memory_from_scorecard(
             fallback_trade_count=trade_count,
             fallback_no_trade_count=no_trade_count,
             net_ev=net_ev,
+            performance_source_bound=performance_source_bound,
         ),
         "downtrend_avoidance_enforced": True,
         "risk_off_no_trade_enforced": True,

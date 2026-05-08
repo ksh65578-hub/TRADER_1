@@ -16153,11 +16153,37 @@ def _strategy_performance_memory_errors(report: dict[str, Any]) -> list[str]:
     no_trade_count = int(report.get("no_trade_count", 0))
     performance_status = report.get("performance_status")
     blockers = report.get("blockers", [])
+    source_artifact_ids = [str(item) for item in report.get("source_artifact_ids", [])]
+
+    def candidate_scoped_performance_binding_present() -> bool:
+        matched_binding: tuple[str, str, str] | None = None
+        for prefix in ("closed_trades", "execution_quality", "performance_summary"):
+            prefix_binding: tuple[str, str, str] | None = None
+            for source_id in source_artifact_ids:
+                parts = source_id.split(":")
+                if len(parts) != 4 or parts[0] != prefix:
+                    continue
+                candidate_key, history_id, history_hash = parts[1], parts[2], parts[3]
+                if not candidate_key or not history_id or len(history_hash) != 64:
+                    continue
+                current_binding = (candidate_key, history_id, history_hash)
+                if prefix_binding is not None and prefix_binding != current_binding:
+                    return False
+                prefix_binding = current_binding
+            if prefix_binding is None:
+                return False
+            if matched_binding is None:
+                matched_binding = prefix_binding
+            elif matched_binding != prefix_binding:
+                return False
+        return matched_binding is not None
 
     if sample_count < min_required and performance_status == "IMPROVING_AFTER_COST":
         errors.append("IMPROVING_AFTER_COST requires sample_count >= min_required_sample_count")
     if trade_count + no_trade_count > sample_count:
         errors.append("trade_count plus no_trade_count must not exceed sample_count")
+    if performance_status == "IMPROVING_AFTER_COST" and not candidate_scoped_performance_binding_present():
+        errors.append("IMPROVING_AFTER_COST requires candidate-scoped performance source artifact ids")
 
     total_cost = (
         float(report.get("fee_cost", 0))
@@ -16262,7 +16288,7 @@ def strategy_performance_memory_validator() -> ValidatorResult:
         reason_path: "minItems",
         downtrend_path: "DOWNTREND regime must not allow trading",
         mixed_source_path: "LIVE",
-        unscoped_path: "PAPER_SHADOW_RESEARCH_ONLY requires paper_shadow_separated=true",
+        unscoped_path: "IMPROVING_AFTER_COST requires candidate-scoped performance source artifact ids",
     }
     for path, expected_fragment in negative_expectations.items():
         errors = _strategy_performance_memory_errors(load_json(path))
