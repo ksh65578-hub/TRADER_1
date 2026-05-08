@@ -1065,8 +1065,34 @@ def refresh_rollup(
     write_json(path, rollup)
 
 
-def refresh_contract_gap(path: Path, *, now: str, authority: dict[str, str]) -> None:
+def refresh_contract_gap(
+    path: Path,
+    *,
+    now: str,
+    authority: dict[str, str],
+    scorecard: dict[str, Any],
+    overfit: dict[str, Any],
+    rollup: dict[str, Any],
+) -> None:
     gap = load_json(path)
+    paper_closed_trades = safe_int(scorecard.get("closed_trade_sample_count"))
+    min_paper_closed_trades = safe_int(scorecard.get("min_closed_trade_sample_count"), default=30)
+    strategy_exit_samples = safe_int(scorecard.get("strategy_exit_policy_sample_count"))
+    min_strategy_exit_samples = safe_int(scorecard.get("min_strategy_exit_policy_sample_count"), default=30)
+    regime_samples = safe_int(scorecard.get("regime_outcome_sample_count"))
+    min_regime_samples = safe_int(scorecard.get("min_regime_outcome_sample_count"), default=4)
+    overfit_samples = safe_int(overfit.get("sample_count"))
+    min_overfit_samples = safe_int(overfit.get("min_required_sample_count"), default=300)
+    threshold_codes = rollup.get("promotion_threshold_evidence", {}).get("missing_threshold_codes") or []
+    robustness_status = rollup.get("robustness_source_type_evidence", {}).get("status") or "BLOCKED"
+    current_evidence_message = (
+        f"Current Upbit PAPER candidate has closed trades {paper_closed_trades}/{min_paper_closed_trades}, "
+        f"strategy-exit samples {strategy_exit_samples}/{min_strategy_exit_samples}, "
+        f"regime-outcome samples {regime_samples}/{min_regime_samples}, and robustness samples "
+        f"{overfit_samples}/{min_overfit_samples}; OOS={overfit.get('oos_status')}, "
+        f"walk_forward={overfit.get('walk_forward_status')}, bootstrap={overfit.get('bootstrap_status')}, "
+        f"robustness_source_type={robustness_status}. Ranking, live review, and scale-up remain blocked."
+    )
     gap["generated_at_utc"] = now
     gap["authority"] = authority
     gap["status"] = "OPEN"
@@ -1082,18 +1108,13 @@ def refresh_contract_gap(path: Path, *, now: str, authority: dict[str, str]) -> 
         {
             "code": "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
             "severity": "HIGH",
-            "message": (
-                "The Upbit PAPER candidate has 300-sample scorecard robustness for PAPER ranking review, "
-                "but distinct long-run PAPER/SHADOW, replay, live parity, read-only burn-in, and approval evidence remain missing."
-            ),
+            "message": current_evidence_message,
             "source_requirement_id": "REQ-MVP4-PAPER-SHADOW-LONG-RUN-EVIDENCE-VISIBILITY",
         },
     ]
     gap["notes"] = (
-        "Rechecked after 300 accepted Upbit PAPER samples. OOS, walk-forward, bootstrap, and concentration checks "
-        "are no longer marked missing for PAPER scorecard input, but the gap remains OPEN and live-blocking because "
-        "long-run PAPER/SHADOW evidence, replay coverage, profit factor, drawdown, fill quality, paper/live parity, "
-        "read-only burn-in, live safety proof, and operator approval are still not complete."
+        f"{current_evidence_message} Missing threshold codes: {', '.join(str(code) for code in threshold_codes)}. "
+        "The gap remains OPEN and live-blocking; no long-run PAPER, MICRO_LIVE, LIVE_READY, or scale-up claim is created."
     )
     write_json(path, gap)
 
@@ -1144,8 +1165,15 @@ def main() -> int:
         paper_shadow_evidence=paper_shadow_evidence,
         runtime_profile=runtime_profile,
     )
-    refresh_contract_gap(CONTRACT_GAP_PATH, now=now, authority=authority)
     refreshed_rollup = load_json(ROLLUP_PATH)
+    refresh_contract_gap(
+        CONTRACT_GAP_PATH,
+        now=now,
+        authority=authority,
+        scorecard=scorecard,
+        overfit=overfit,
+        rollup=refreshed_rollup,
+    )
     runtime_profile_evidence = refreshed_rollup["runtime_collection_profile_evidence"]
     result = {
         "status": "PASS",

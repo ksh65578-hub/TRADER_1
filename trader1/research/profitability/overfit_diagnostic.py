@@ -619,25 +619,25 @@ def overfit_diagnostic_from_upbit_paper_runtime(
         min_required_sample_count=min_required_sample_count,
     )
 
-    oos_status = "UNTESTED"
+    oos_status = "BLOCKED"
     if enough_samples:
         oos_status = "PASS" if oos_ev >= min_required_oos_net_ev_bps and degradation <= max_allowed_oos_degradation_bps else "FAIL"
 
     min_walk_windows = max(1, min_required_sample_count // WALK_FORWARD_WINDOW_SIZE)
-    walk_forward_status = "UNTESTED"
+    walk_forward_status = "BLOCKED"
     if enough_samples and walk_forward_window_count >= min_walk_windows:
         walk_forward_status = "PASS" if walk_forward_pass_rate >= min_required_walk_forward_pass_rate else "FAIL"
 
-    bootstrap_status = "UNTESTED"
+    bootstrap_status = "BLOCKED"
     if enough_samples and bootstrap_iteration_count >= min_required_bootstrap_iterations:
         bootstrap_status = "PASS" if bootstrap_lower >= min_required_bootstrap_confidence_lower_bps else "FAIL"
 
-    ranking_stability_status = "UNTESTED"
+    ranking_stability_status = "BLOCKED"
     if enough_samples:
         ranking_stability_status = "PASS" if ranking_stability >= min_required_ranking_stability_score else "FAIL"
 
-    survivorship_bias_check = "PASS" if enough_samples and concentration_status in {"LOW", "MEDIUM"} else "UNTESTED"
-    data_snooping_check = "PASS" if enough_samples and oos_window_count > 0 and walk_forward_window_count >= min_walk_windows else "UNTESTED"
+    survivorship_bias_check = "PASS" if enough_samples and concentration_status in {"LOW", "MEDIUM"} else "BLOCKED"
+    data_snooping_check = "PASS" if enough_samples and oos_window_count > 0 and walk_forward_window_count >= min_walk_windows else "BLOCKED"
 
     base_eligible = (
         oos_status == "PASS"

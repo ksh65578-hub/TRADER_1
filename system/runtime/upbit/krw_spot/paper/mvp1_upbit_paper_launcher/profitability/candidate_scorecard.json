@@ -54,7 +54,7 @@
       "severity": "HIGH"
     }
   ],
-  "bootstrap_status": "UNTESTED",
+  "bootstrap_status": "BLOCKED",
   "can_live_trade": false,
   "candidate_id": "KRW-AXL-pullback-trend-long",
   "closed_trade_sample_count": 1,
@@ -76,7 +76,7 @@
   "fill_quality_sample_count": 1,
   "fill_quality_score": 1.0,
   "fill_quality_status": "PASS",
-  "generated_at_utc": "2026-05-08T09:05:29Z",
+  "generated_at_utc": "2026-05-08T09:14:25Z",
   "gross_expected_edge_bps": 37.09164421997755,
   "live_order_allowed": false,
   "live_order_ready": false,
@@ -98,7 +98,7 @@
   "net_ev_after_cost_bps": 22.63223113205939,
   "notes": "Generated from Upbit PAPER runtime cycle. It is PAPER scorecard evidence only and cannot create live permission.",
   "objective_basis": "NET_EV_AFTER_COST",
-  "oos_status": "UNTESTED",
+  "oos_status": "BLOCKED",
   "operator_warning": "PAPER candidate scorecard is not LIVE_READY and live orders remain blocked.",
   "overfit_status": "HIGH",
   "paper_entry_review_symbol_count": 1,
@@ -110,7 +110,7 @@
     "execution_quality:",
     "performance_summary:"
   ],
-  "performance_source_history_hash": "A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
+  "performance_source_history_hash": "6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
   "performance_source_history_id": "upbit-paper-runtime-sample-history",
   "profit_factor": 0.0,
   "profit_factor_status": "FAIL",
@@ -184,9 +184,9 @@
   "session_id": "mvp1_upbit_paper_launcher",
   "source_evidence_ids": [
     "upbit_paper_runtime_cycle:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:03C49200365098990E75084EA0EDC3CD2F6A9846140F509551EF0D863EF13A00",
-    "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
-    "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
-    "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE"
+    "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
+    "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
+    "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B"
   ],
   "source_runtime_cycle_hash": "03C49200365098990E75084EA0EDC3CD2F6A9846140F509551EF0D863EF13A00",
   "source_runtime_cycle_id": "upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1",
@@ -421,5 +421,5 @@
       "symbol_selection_score": 0.5808
     }
   ],
-  "walk_forward_status": "UNTESTED"
+  "walk_forward_status": "BLOCKED"
 }

@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.contract_gap.v1",
-  "generated_at_utc": "2026-05-08T09:05:28Z",
+  "generated_at_utc": "2026-05-08T09:14:24Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -17,11 +17,11 @@
     {
       "code": "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
       "severity": "HIGH",
-      "message": "The Upbit PAPER candidate has 300-sample scorecard robustness for PAPER ranking review, but distinct long-run PAPER/SHADOW, replay, live parity, read-only burn-in, and approval evidence remain missing.",
+      "message": "Current Upbit PAPER candidate has closed trades 1/30, strategy-exit samples 1/30, regime-outcome samples 2/4, and robustness samples 1/300; OOS=BLOCKED, walk_forward=BLOCKED, bootstrap=BLOCKED, robustness_source_type=BLOCKED_FOR_SOURCE_TYPE_EVIDENCE. Ranking, live review, and scale-up remain blocked.",
       "source_requirement_id": "REQ-MVP4-PAPER-SHADOW-LONG-RUN-EVIDENCE-VISIBILITY"
     }
   ],
-  "notes": "Rechecked after 300 accepted Upbit PAPER samples. OOS, walk-forward, bootstrap, and concentration checks are no longer marked missing for PAPER scorecard input, but the gap remains OPEN and live-blocking because long-run PAPER/SHADOW evidence, replay coverage, profit factor, drawdown, fill quality, paper/live parity, read-only burn-in, live safety proof, and operator approval are still not complete.",
+  "notes": "Current Upbit PAPER candidate has closed trades 1/30, strategy-exit samples 1/30, regime-outcome samples 2/4, and robustness samples 1/300; OOS=BLOCKED, walk_forward=BLOCKED, bootstrap=BLOCKED, robustness_source_type=BLOCKED_FOR_SOURCE_TYPE_EVIDENCE. Ranking, live review, and scale-up remain blocked. Missing threshold codes: HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN, PAPER_CLOSED_TRADES_BELOW_MIN, PAPER_LIVE_GAP_NOT_AVAILABLE, PROFIT_FACTOR_NOT_PASS, REGIME_OUTCOME_NOT_PASS, REPLAY_CLOSED_TRADES_BELOW_MIN, SHADOW_SIGNAL_OPPORTUNITIES_BELOW_MIN, STRATEGY_EXIT_POLICY_NOT_PASS. The gap remains OPEN and live-blocking; no long-run PAPER, MICRO_LIVE, LIVE_READY, or scale-up claim is created.",
   "contract_gap_id": "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
   "severity": "HIGH",
   "source_section_id": "SECTION_STRATEGY_PROFITABILITY",
