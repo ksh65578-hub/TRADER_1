@@ -7,6 +7,7 @@ import random
 import statistics
 from collections import Counter
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
@@ -76,6 +77,13 @@ def _mean(values: list[float]) -> float:
     return statistics.fmean(values) if values else 0.0
 
 
+def _decimal_value(value: Any) -> Decimal:
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return Decimal("0")
+
+
 def _clamp(value: float, lower: float = 0.0, upper: float = 1.0) -> float:
     return max(lower, min(upper, value))
 
@@ -143,6 +151,59 @@ def _matched_runtime_values(
         values.append(net_ev)
         matched_samples.append(sample)
         source_ids.append(_relative_id("upbit_paper_runtime_cycle", str(runtime["cycle_id"]), str(runtime["cycle_hash"])))
+
+    return values, matched_samples, sorted(set(source_ids))
+
+
+def _matched_realized_closed_trade_values(
+    *,
+    root: Path,
+    candidate_scorecard: dict[str, Any],
+    runtime_sample_history: dict[str, Any],
+) -> tuple[list[float], list[dict[str, Any]], list[str]]:
+    candidate_id = str(candidate_scorecard.get("candidate_id", ""))
+    values: list[float] = []
+    matched_samples: list[dict[str, Any]] = []
+    source_ids: list[str] = []
+    previous_realized_pnl: Decimal | None = None
+
+    history_id = str(runtime_sample_history.get("history_id") or "unknown_history")
+    history_hash = str(runtime_sample_history.get("history_hash") or "missing_hash")
+    source_ids.append(_relative_id("runtime_sample_history", history_id, history_hash))
+
+    for sample in runtime_sample_history.get("samples") or []:
+        if not isinstance(sample, dict):
+            continue
+        runtime = _validated_runtime_from_sample(root=root, sample=sample, candidate_scorecard=candidate_scorecard)
+        if not runtime:
+            continue
+
+        portfolio = runtime.get("paper_portfolio_snapshot")
+        current_realized_pnl = (
+            _decimal_value(portfolio.get("realized_pnl"))
+            if isinstance(portfolio, dict)
+            else previous_realized_pnl if previous_realized_pnl is not None else Decimal("0")
+        )
+        fill = runtime.get("paper_fill")
+        lifecycle = runtime.get("position_management_decision")
+        candidate_exit = (
+            isinstance(fill, dict)
+            and isinstance(lifecycle, dict)
+            and runtime.get("final_decision") == "EXIT_POSITION"
+            and fill.get("side") == "SELL"
+            and str(lifecycle.get("entry_candidate_id") or "") == candidate_id
+        )
+        if candidate_exit:
+            realized_delta = current_realized_pnl - (
+                previous_realized_pnl if previous_realized_pnl is not None else Decimal("0")
+            )
+            filled_notional = max(Decimal("1"), _decimal_value(fill.get("filled_notional")))
+            values.append(float(realized_delta / filled_notional * Decimal("10000")))
+            matched_samples.append(sample)
+            source_ids.append(
+                _relative_id("upbit_paper_runtime_cycle", str(runtime["cycle_id"]), str(runtime["cycle_hash"]))
+            )
+        previous_realized_pnl = current_realized_pnl
 
     return values, matched_samples, sorted(set(source_ids))
 
@@ -359,20 +420,33 @@ def overfit_diagnostic_from_upbit_paper_runtime(
     root = Path(root).resolve()
     sample_validation = validate_upbit_paper_runtime_sample_history(runtime_sample_history)
     if sample_validation.status == "PASS":
-        values, samples, source_ids = _matched_runtime_values(
+        expected_values, expected_samples, expected_source_ids = _matched_runtime_values(
             root=root,
             candidate_scorecard=candidate_scorecard,
             runtime_sample_history=runtime_sample_history,
         )
-        preliminary_values = values
-        preliminary_samples = samples
-        preliminary_source_ids = source_ids
+        realized_values, realized_samples, realized_source_ids = _matched_realized_closed_trade_values(
+            root=root,
+            candidate_scorecard=candidate_scorecard,
+            runtime_sample_history=runtime_sample_history,
+        )
+        values = realized_values
+        samples = realized_samples
+        source_ids = realized_source_ids
+        preliminary_values = realized_values if realized_values else expected_values
+        preliminary_samples = realized_samples if realized_values else expected_samples
+        preliminary_source_ids = realized_source_ids if realized_values else expected_source_ids
+        preliminary_value_source = "REALIZED_CLOSED_TRADE_BPS" if realized_values else "EXPECTED_NET_EV_AFTER_COST_BPS"
         preliminary_meta = {
             "preliminary_evidence_scope": "EXACT_CANDIDATE",
-            "preliminary_match_scope": f"candidate_id={candidate_scorecard.get('candidate_id')};one_candidate_per_cycle=true;live_order_allowed=false",
-            "preliminary_distinct_symbol_count": 1 if values else 0,
-            "preliminary_distinct_candidate_count": 1 if values else 0,
+            "preliminary_match_scope": (
+                f"candidate_id={candidate_scorecard.get('candidate_id')};"
+                f"value_source={preliminary_value_source};one_candidate_per_cycle=true;live_order_allowed=false"
+            ),
+            "preliminary_distinct_symbol_count": 1 if preliminary_values else 0,
+            "preliminary_distinct_candidate_count": 1 if preliminary_values else 0,
         }
+        preliminary_exact_candidate_sample_count = len(expected_values)
     else:
         values = []
         samples = []
@@ -392,6 +466,7 @@ def overfit_diagnostic_from_upbit_paper_runtime(
             "preliminary_distinct_symbol_count": 0,
             "preliminary_distinct_candidate_count": 0,
         }
+        preliminary_exact_candidate_sample_count = 0
 
     sample_count = len(values)
     min_preliminary_sample_count = max(2, min(int(min_preliminary_sample_count), int(min_required_sample_count)))
@@ -648,7 +723,7 @@ def overfit_diagnostic_from_upbit_paper_runtime(
         "preliminary_robustness_status": preliminary_robustness_status,
         "preliminary_min_required_sample_count": int(min_preliminary_sample_count),
         "preliminary_sample_count": preliminary_sample_count,
-        "preliminary_exact_candidate_sample_count": sample_count,
+        "preliminary_exact_candidate_sample_count": preliminary_exact_candidate_sample_count,
         **preliminary_meta,
         "preliminary_train_window_count": preliminary_train_count,
         "preliminary_oos_window_count": preliminary_oos_window_count,
