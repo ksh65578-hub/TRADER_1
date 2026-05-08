@@ -113,9 +113,9 @@
   "exchange": "UPBIT",
   "execution_truth": false,
   "first_sample_at_utc": "2026-05-08T04:37:24Z",
-  "generated_at_utc": "2026-05-08T09:14:24Z",
+  "generated_at_utc": "2026-05-08T09:22:04Z",
   "history_evidence_role": "PAPER_RUNTIME_SAMPLE_HISTORY_NOT_LONG_RUN_EVIDENCE",
-  "history_hash": "6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
+  "history_hash": "7F5C5226D69556C2E791E04627073B763BA133ABAE10B151080CA2ADE58A4E50",
   "history_id": "upbit-paper-runtime-sample-history",
   "invalid_source_count": 168,
   "invalid_sources": [

@@ -63,6 +63,11 @@ STRATEGY_COMPONENT_IDS = (
 )
 STRATEGY_FAMILY_BUCKETS = ("VWAP_REVERSION", "TREND_PULLBACK", "BREAKOUT_RETEST")
 REGIME_OUTCOME_REGIMES = ("UPTREND", "RANGE", "DOWNTREND", "RISK_OFF")
+IMPLEMENTATION_GATE_NEXT_ACTION = (
+    "Implementation gate is still blocked: do not start operator long-run PAPER yet. "
+    "Finish bounded non-live replay/OOS/walk-forward/bootstrap, strategy-exit, regime-outcome, and "
+    "closed-trade profitability validation first; developer smoke stays bounded and live remains blocked."
+)
 
 
 def utc_now() -> str:
@@ -811,6 +816,7 @@ def update_overfit_component(rollup: dict[str, Any], scorecard: dict[str, Any], 
             component["evidence_status"] = "BLOCKED"
             component["paper_scorecard_input_eligible"] = False
             component["primary_blocker_code"] = "PROFITABILITY_EVIDENCE_MATURITY"
+            component["next_required_evidence"] = IMPLEMENTATION_GATE_NEXT_ACTION
 
 
 def update_paper_shadow_component(
@@ -1039,16 +1045,9 @@ def refresh_rollup(
             "manual order evidence, live safety proof, and operator approval are complete."
         )
     elif rollup["robustness_source_type_evidence"]["status"] != "PASS":
-        rollup["next_operator_action"] = (
-            "Collect OOS, walk-forward, bootstrap, and concentration robustness evidence for the PAPER scorecard, "
-            "then continue PAPER/SHADOW long-run collection; live remains blocked until replay coverage, read-only "
-            "burn-in, manual order evidence, live safety proof, and operator approval are complete."
-        )
+        rollup["next_operator_action"] = IMPLEMENTATION_GATE_NEXT_ACTION
     else:
-        rollup["next_operator_action"] = (
-            "Continue PAPER/SHADOW evidence collection; live remains blocked until long-run PAPER/SHADOW evidence, "
-            "replay coverage, read-only burn-in, manual order evidence, live safety proof, and operator approval are complete."
-        )
+        rollup["next_operator_action"] = IMPLEMENTATION_GATE_NEXT_ACTION
     for field in (
         "live_order_ready",
         "live_order_allowed",
