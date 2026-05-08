@@ -8899,9 +8899,31 @@ def _rollup_component_message(component: dict[str, Any]) -> str:
     validator_status = str(component.get("validator_status") or "UNTESTED")
     samples = component.get("sample_count", 0)
     required = component.get("min_required_sample_count", 0)
+    details: list[str] = []
+    if "strategy_exit_policy_status" in component:
+        details.append(
+            "exit_policy="
+            f"{component.get('strategy_exit_policy_status')}, "
+            f"exit_mismatches={component.get('strategy_exit_policy_mismatch_count', 0)}, "
+            f"exit_reasons={component.get('strategy_exit_reason_count', 0)}"
+        )
+    if "regime_outcome_status" in component:
+        details.append(
+            "regime="
+            f"{component.get('regime_outcome_status')}, "
+            f"covered={component.get('regime_outcome_covered_count', 0)}/"
+            f"{component.get('min_regime_outcome_covered_count', 0)}, "
+            f"mismatches={component.get('regime_outcome_mismatch_count', 0)}"
+        )
+    if "strategy_family_covered_count" in component:
+        details.append(
+            f"families={component.get('strategy_family_covered_count', 0)}/"
+            f"{component.get('min_strategy_family_covered_count', 0)}"
+        )
+    detail_suffix = f" {'; '.join(details)}." if details else ""
     return (
         f"Rollup says {maturity_status}; evidence={evidence_status}, "
-        f"validator={validator_status}, samples={samples}/{required}."
+        f"validator={validator_status}, samples={samples}/{required}.{detail_suffix}"
     )
 
 

@@ -54,6 +54,13 @@ CONTRACT_GAP_PATH = (
 )
 
 ROBUSTNESS_SOURCE_TYPES = ("OOS", "WALK_FORWARD", "BOOTSTRAP", "CONCENTRATION")
+STRATEGY_COMPONENT_IDS = (
+    "strategy_entry_exit_no_trade",
+    "symbol_selection_regime",
+    "vwap_trend_breakout",
+)
+STRATEGY_FAMILY_BUCKETS = ("VWAP_REVERSION", "TREND_PULLBACK", "BREAKOUT_RETEST")
+REGIME_OUTCOME_REGIMES = ("UPTREND", "RANGE", "DOWNTREND", "RISK_OFF")
 
 
 def utc_now() -> str:
@@ -102,6 +109,12 @@ def join_action_items(items: list[str]) -> str:
     if len(items) == 1:
         return items[0]
     return ", ".join(items[:-1]) + f", and {items[-1]}"
+
+
+def append_unique(target: list[Any], values: list[Any]) -> None:
+    for value in values:
+        if value and value not in target:
+            target.append(value)
 
 
 def rollup_hash(rollup: dict[str, Any]) -> str:
@@ -449,6 +462,254 @@ def update_promotion_thresholds(rollup: dict[str, Any], scorecard: dict[str, Any
     thresholds["scale_up_allowed"] = False
 
 
+def strategy_family_bucket(value: Any) -> str | None:
+    normalized = str(value or "").upper()
+    if "VWAP" in normalized:
+        return "VWAP_REVERSION"
+    if "PULLBACK" in normalized and "TREND" in normalized:
+        return "TREND_PULLBACK"
+    if "BREAKOUT" in normalized:
+        return "BREAKOUT_RETEST"
+    return None
+
+
+def scorecard_strategy_family_counts(scorecard: dict[str, Any]) -> list[dict[str, Any]]:
+    counts = {
+        family: {
+            "strategy_family": family,
+            "sample_count": 0,
+            "paper_entry_review_count": 0,
+        }
+        for family in STRATEGY_FAMILY_BUCKETS
+    }
+    source_rows = [
+        item
+        for item in scorecard.get("top_symbol_evidence_scorecards") or []
+        if isinstance(item, dict)
+    ]
+    if not source_rows:
+        source_rows = [{"best_strategy_family": scorecard.get("strategy_id"), "best_decision": "PAPER_ENTRY_REVIEW"}]
+    for row in source_rows:
+        bucket = strategy_family_bucket(row.get("best_strategy_family") or row.get("strategy_family"))
+        if bucket not in counts:
+            continue
+        counts[bucket]["sample_count"] += 1
+        if (
+            str(row.get("best_decision") or row.get("decision") or "") == "PAPER_ENTRY_REVIEW"
+            or safe_int(row.get("paper_entry_review_candidate_count")) > 0
+        ):
+            counts[bucket]["paper_entry_review_count"] += 1
+    return [counts[family] for family in STRATEGY_FAMILY_BUCKETS]
+
+
+def bind_scorecard_strategy_sources(component: dict[str, Any], *paths: Path) -> None:
+    source_paths = component.setdefault("source_artifact_paths", [])
+    append_unique(source_paths, [rel(path) for path in paths if path.is_file()])
+    evidence_ids = component.setdefault("source_evidence_ids", [])
+    append_unique(evidence_ids, [str(item) for item in component.get("source_evidence_ids") or [] if item])
+
+
+def update_strategy_scorecard_components(
+    rollup: dict[str, Any],
+    scorecard: dict[str, Any],
+    paper_shadow_evidence: dict[str, Any] | None,
+) -> None:
+    strategy_exit_status = str(scorecard.get("strategy_exit_policy_status") or "UNTESTED")
+    strategy_exit_samples = safe_int(scorecard.get("strategy_exit_policy_sample_count"))
+    min_strategy_exit_samples = safe_int(scorecard.get("min_strategy_exit_policy_sample_count"), 30)
+    strategy_exit_matches = safe_int(scorecard.get("strategy_exit_policy_match_count"))
+    strategy_exit_mismatches = safe_int(scorecard.get("strategy_exit_policy_mismatch_count"))
+    strategy_exit_reason_count = safe_int(scorecard.get("strategy_exit_reason_count"))
+    entry_reason_count = safe_int(paper_shadow_evidence.get("entry_reason_count")) if isinstance(paper_shadow_evidence, dict) else 0
+    no_trade_reason_count = safe_int(paper_shadow_evidence.get("no_trade_reason_count")) if isinstance(paper_shadow_evidence, dict) else 0
+    exit_policy_passed = (
+        strategy_exit_status == "PASS"
+        and strategy_exit_samples >= min_strategy_exit_samples
+        and strategy_exit_matches >= min_strategy_exit_samples
+        and strategy_exit_mismatches == 0
+        and strategy_exit_reason_count >= strategy_exit_samples
+    )
+
+    regime_status = str(scorecard.get("regime_outcome_status") or "UNTESTED")
+    regime_samples = safe_int(scorecard.get("regime_outcome_sample_count"))
+    min_regime_samples = safe_int(scorecard.get("min_regime_outcome_sample_count"), 4)
+    regime_covered = safe_int(scorecard.get("regime_outcome_covered_count"))
+    min_regime_covered = safe_int(scorecard.get("min_regime_outcome_covered_count"), 4)
+    regime_mismatches = safe_int(scorecard.get("regime_outcome_mismatch_count"))
+    regime_counts = [
+        {
+            "regime": str(item.get("regime") or ""),
+            "sample_count": safe_int(item.get("sample_count")),
+            "trade_count": safe_int(item.get("trade_count")),
+            "no_trade_count": safe_int(item.get("no_trade_count")),
+            "mismatch_count": safe_int(item.get("mismatch_count")),
+            "trade_allowed": item.get("trade_allowed") is True,
+            "primary_blocker_code": str(item.get("primary_blocker_code")) if item.get("primary_blocker_code") is not None else None,
+        }
+        for item in scorecard.get("regime_outcome_counts") or []
+        if isinstance(item, dict) and item.get("regime")
+    ]
+    present_regimes = {item["regime"] for item in regime_counts}
+    for regime in REGIME_OUTCOME_REGIMES:
+        if regime not in present_regimes:
+            regime_counts.append(
+                {
+                    "regime": regime,
+                    "sample_count": 0,
+                    "trade_count": 0,
+                    "no_trade_count": 0,
+                    "mismatch_count": 0,
+                    "trade_allowed": regime not in {"DOWNTREND", "RISK_OFF"},
+                    "primary_blocker_code": None if regime not in {"DOWNTREND", "RISK_OFF"} else "RISK_VETO",
+                }
+            )
+    regime_passed = (
+        regime_status == "PASS"
+        and regime_samples >= min_regime_samples
+        and regime_covered >= min_regime_covered
+        and regime_mismatches == 0
+    )
+
+    family_counts = scorecard_strategy_family_counts(scorecard)
+    strategy_family_covered = sum(1 for item in family_counts if safe_int(item.get("sample_count")) > 0)
+    min_strategy_family_covered = len(STRATEGY_FAMILY_BUCKETS)
+    strategy_family_passed = strategy_family_covered >= min_strategy_family_covered and regime_passed
+
+    for component in rollup.get("components", []):
+        component_id = component.get("component_id")
+        if component_id not in STRATEGY_COMPONENT_IDS:
+            continue
+        component["validator_status"] = "PASS"
+        component["freshness_status"] = "PASS"
+        component["dependency_status"] = "PASS"
+        component["live_review_eligible"] = False
+        component["live_order_ready"] = False
+        component["live_order_allowed"] = False
+        component["can_live_trade"] = False
+        component["scale_up_allowed"] = False
+        bind_scorecard_strategy_sources(component, SCORECARD_PATH, SAMPLE_HISTORY_PATH)
+        append_unique(component.setdefault("source_evidence_ids", []), [str(item) for item in scorecard.get("source_evidence_ids") or []])
+
+        if component_id == "strategy_entry_exit_no_trade":
+            component.update(
+                {
+                    "sample_count": strategy_exit_samples,
+                    "min_required_sample_count": min_strategy_exit_samples,
+                    "strategy_exit_policy_status": strategy_exit_status,
+                    "strategy_exit_policy_sample_count": strategy_exit_samples,
+                    "min_strategy_exit_policy_sample_count": min_strategy_exit_samples,
+                    "strategy_exit_policy_match_count": strategy_exit_matches,
+                    "strategy_exit_policy_mismatch_count": strategy_exit_mismatches,
+                    "strategy_exit_reason_count": strategy_exit_reason_count,
+                    "expected_strategy_exit_policy_id": str(scorecard.get("expected_strategy_exit_policy_id") or ""),
+                    "expected_strategy_exit_variation": scorecard.get("expected_strategy_exit_variation"),
+                    "entry_reason_count": entry_reason_count,
+                    "no_trade_reason_count": no_trade_reason_count,
+                }
+            )
+            if exit_policy_passed:
+                component["maturity_status"] = "PAPER_SCORECARD_INPUT_ONLY"
+                component["evidence_status"] = "PASS"
+                component["paper_scorecard_input_eligible"] = True
+                component["primary_blocker_code"] = "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
+                component["long_run_blocker_code"] = "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
+                component["next_required_evidence"] = (
+                    "Strategy exit router evidence passes for PAPER scorecard input; collect long-run "
+                    "PAPER/SHADOW windows, replay coverage, read-only burn-in, safety proof, and operator approval."
+                )
+            else:
+                component["maturity_status"] = "PARTIAL_PATCHED"
+                component["evidence_status"] = "BLOCKED" if strategy_exit_mismatches > 0 else "PARTIAL"
+                component["paper_scorecard_input_eligible"] = False
+                component["primary_blocker_code"] = "PROFITABILITY_EVIDENCE_MATURITY"
+                component["long_run_blocker_code"] = "PROFITABILITY_EVIDENCE_MATURITY"
+                component["next_required_evidence"] = (
+                    f"Collect strategy-exit policy samples {strategy_exit_samples}/{min_strategy_exit_samples} "
+                    f"with zero mismatches; current status={strategy_exit_status}, "
+                    f"matches={strategy_exit_matches}, mismatches={strategy_exit_mismatches}, "
+                    f"exit reasons={strategy_exit_reason_count}."
+                )
+
+        if component_id == "symbol_selection_regime":
+            component.update(
+                {
+                    "sample_count": regime_samples,
+                    "min_required_sample_count": min_regime_samples,
+                    "regime_outcome_status": regime_status,
+                    "regime_outcome_sample_count": regime_samples,
+                    "min_regime_outcome_sample_count": min_regime_samples,
+                    "regime_outcome_covered_count": regime_covered,
+                    "min_regime_outcome_covered_count": min_regime_covered,
+                    "regime_outcome_trade_count": safe_int(scorecard.get("regime_outcome_trade_count")),
+                    "regime_outcome_no_trade_count": safe_int(scorecard.get("regime_outcome_no_trade_count")),
+                    "regime_outcome_mismatch_count": regime_mismatches,
+                    "regime_outcome_counts": regime_counts,
+                    "evaluated_symbol_count": safe_int(scorecard.get("evaluated_symbol_count")),
+                    "paper_entry_review_symbol_count": safe_int(scorecard.get("paper_entry_review_symbol_count")),
+                }
+            )
+            if regime_passed:
+                component["maturity_status"] = "PAPER_SCORECARD_INPUT_ONLY"
+                component["evidence_status"] = "PASS"
+                component["paper_scorecard_input_eligible"] = True
+                component["primary_blocker_code"] = "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
+                component["long_run_blocker_code"] = "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
+                component["next_required_evidence"] = (
+                    "Symbol/regime outcome evidence passes for PAPER scorecard input with DOWNTREND/RISK_OFF "
+                    "long entries blocked; collect long-run PAPER/SHADOW and external review evidence."
+                )
+            else:
+                component["maturity_status"] = "PARTIAL_PATCHED"
+                component["evidence_status"] = "BLOCKED" if regime_mismatches > 0 else "PARTIAL"
+                component["paper_scorecard_input_eligible"] = False
+                component["primary_blocker_code"] = "REGIME_MISMATCH" if regime_mismatches > 0 else "PROFITABILITY_EVIDENCE_MATURITY"
+                component["long_run_blocker_code"] = "PROFITABILITY_EVIDENCE_MATURITY"
+                component["next_required_evidence"] = (
+                    f"Collect regime-labeled symbol outcome samples {regime_samples}/{min_regime_samples}, "
+                    f"coverage {regime_covered}/{min_regime_covered}, mismatches={regime_mismatches}; "
+                    f"evaluated symbols={safe_int(scorecard.get('evaluated_symbol_count'))}, "
+                    f"entry-review symbols={safe_int(scorecard.get('paper_entry_review_symbol_count'))}."
+                )
+
+        if component_id == "vwap_trend_breakout":
+            component.update(
+                {
+                    "sample_count": regime_samples,
+                    "min_required_sample_count": min_regime_samples,
+                    "regime_outcome_status": regime_status,
+                    "regime_outcome_sample_count": regime_samples,
+                    "min_regime_outcome_sample_count": min_regime_samples,
+                    "regime_outcome_covered_count": regime_covered,
+                    "min_regime_outcome_covered_count": min_regime_covered,
+                    "regime_outcome_mismatch_count": regime_mismatches,
+                    "strategy_family_covered_count": strategy_family_covered,
+                    "min_strategy_family_covered_count": min_strategy_family_covered,
+                    "strategy_family_counts": family_counts,
+                }
+            )
+            if strategy_family_passed:
+                component["maturity_status"] = "PAPER_SCORECARD_INPUT_ONLY"
+                component["evidence_status"] = "PASS"
+                component["paper_scorecard_input_eligible"] = True
+                component["primary_blocker_code"] = "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
+                component["long_run_blocker_code"] = "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
+                component["next_required_evidence"] = (
+                    "VWAP, trend pullback, and breakout/retest families have regime-labeled PAPER scorecard "
+                    "coverage; collect long-run and external review evidence before live review."
+                )
+            else:
+                component["maturity_status"] = "PARTIAL_PATCHED"
+                component["evidence_status"] = "BLOCKED" if regime_mismatches > 0 else "PARTIAL"
+                component["paper_scorecard_input_eligible"] = False
+                component["primary_blocker_code"] = "PROFITABILITY_EVIDENCE_MATURITY"
+                component["long_run_blocker_code"] = "PROFITABILITY_EVIDENCE_MATURITY"
+                component["next_required_evidence"] = (
+                    f"Collect regime-labeled outcomes for VWAP, trend pullback, and breakout/retest; "
+                    f"family coverage {strategy_family_covered}/{min_strategy_family_covered}, "
+                    f"regime coverage {regime_covered}/{min_regime_covered}, status={regime_status}."
+                )
+
+
 def update_overfit_component(rollup: dict[str, Any], scorecard: dict[str, Any], overfit: dict[str, Any]) -> None:
     sample_count = int(overfit.get("sample_count") or 0)
     min_required = int(overfit.get("min_required_sample_count") or 300)
@@ -678,15 +939,26 @@ def refresh_rollup(
     rollup["robustness_source_type_evidence"] = robustness_source_type_evidence(scorecard, overfit)
     rollup["runtime_collection_profile_evidence"] = runtime_collection_profile_evidence(runtime_profile)
     update_promotion_thresholds(rollup, scorecard, overfit)
+    update_strategy_scorecard_components(rollup, scorecard, paper_shadow_evidence)
     update_overfit_component(rollup, scorecard, overfit)
     update_paper_shadow_component(rollup, paper_shadow_evidence, rollup["runtime_collection_profile_evidence"])
     rollup["status"] = "BLOCKED_FOR_PROFITABILITY_EVIDENCE_MATURITY"
     rollup["all_validators_passed"] = all(
         component.get("validator_status") == "PASS" for component in rollup.get("components", [])
     )
+    strategy_component_map = {
+        _component.get("component_id"): _component
+        for _component in rollup.get("components", [])
+        if isinstance(_component, dict) and _component.get("component_id") in STRATEGY_COMPONENT_IDS
+    }
+    strategy_components_ready = set(strategy_component_map) == set(STRATEGY_COMPONENT_IDS) and all(
+        _component.get("paper_scorecard_input_eligible") is True
+        for _component in strategy_component_map.values()
+    )
     rollup["paper_scorecard_input_allowed"] = (
         rollup["runtime_linkage_evidence"]["status"] == "PASS"
         and rollup["robustness_source_type_evidence"]["status"] == "PASS"
+        and strategy_components_ready
     )
     rollup["live_review_eligible"] = False
     rollup["scale_up_eligible"] = False
