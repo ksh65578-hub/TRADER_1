@@ -1,5 +1,6 @@
 import unittest
 
+from trader1.research.profitability.candidate_scorecard import has_required_performance_source_ids
 from trader1.validation.mvp0_validators import ROOT, _parameter_narrowing_errors, load_json, run_validators
 
 
@@ -27,6 +28,14 @@ class ParameterNarrowingValidatorTest(unittest.TestCase):
         self.assertTrue(report["candidate_scorecard_robustness_ready"])
         self.assertTrue(report["candidate_scorecard_performance_ready"])
         self.assertEqual(report["candidate_scorecard_performance_source_binding_status"], "PASS")
+        self.assertTrue(
+            has_required_performance_source_ids(
+                report["source_evidence_ids"],
+                candidate_id=report["candidate_id"],
+                history_id=report["candidate_scorecard_performance_source_history_id"],
+                history_hash=report["candidate_scorecard_performance_source_history_hash"],
+            )
+        )
         self.assertGreaterEqual(
             report["candidate_scorecard_closed_trade_sample_count"],
             report["candidate_scorecard_min_closed_trade_sample_count"],
@@ -81,6 +90,26 @@ class ParameterNarrowingValidatorTest(unittest.TestCase):
         )
         self.assertIn(
             "paper parameter narrowing requires candidate scorecard performance source binding PASS",
+            errors,
+        )
+
+    def test_candidate_scoped_performance_source_ids_are_required(self):
+        report = load_json(FIXTURE_DIR / "parameter_narrowing_pass.json")
+        report["source_evidence_ids"] = [
+            source_id
+            for source_id in report["source_evidence_ids"]
+            if not source_id.startswith("performance_summary:")
+        ]
+        report["source_evidence_identity_bindings"] = [
+            binding
+            for binding in report["source_evidence_identity_bindings"]
+            if not binding["source_evidence_id"].startswith("performance_summary:")
+        ]
+
+        errors = _parameter_narrowing_errors(report)
+
+        self.assertIn(
+            "paper parameter narrowing requires candidate-scoped closed trade, execution quality, and performance summary source ids",
             errors,
         )
 

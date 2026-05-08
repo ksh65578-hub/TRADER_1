@@ -28,6 +28,9 @@
   "source_evidence_ids": [
     "paper_shadow_evidence_accumulation_pass",
     "candidate_scorecard_net_ev_pass",
+    "closed_trades:trend_pullback_candidate_001:candidate-scorecard-performance-history:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+    "execution_quality:trend_pullback_candidate_001:candidate-scorecard-performance-history:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+    "performance_summary:trend_pullback_candidate_001:candidate-scorecard-performance-history:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
     "optimizer_run_pass",
     "optimizer_recommendation_pass",
     "exploration_policy_fixture_pass"
@@ -132,6 +135,60 @@
     {
       "source_evidence_id": "candidate_scorecard_net_ev_pass",
       "source_role": "CANDIDATE_SCORECARD",
+      "exchange": "UPBIT",
+      "market_type": "KRW_SPOT",
+      "source_modes": [
+        "PAPER",
+        "SHADOW"
+      ],
+      "session_id": "mvp4_parameter_narrowing_fixture",
+      "candidate_id": "trend_pullback_candidate_001",
+      "strategy_id": "trend_pullback",
+      "previous_parameter_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "proposed_parameter_hash": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+      "timeframe_scope": "15m",
+      "regime_scope": "TRENDING_RANGE_RISK_OFF",
+      "identity_match_status": "PASS"
+    },
+    {
+      "source_evidence_id": "closed_trades:trend_pullback_candidate_001:candidate-scorecard-performance-history:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_role": "CLOSED_TRADES",
+      "exchange": "UPBIT",
+      "market_type": "KRW_SPOT",
+      "source_modes": [
+        "PAPER",
+        "SHADOW"
+      ],
+      "session_id": "mvp4_parameter_narrowing_fixture",
+      "candidate_id": "trend_pullback_candidate_001",
+      "strategy_id": "trend_pullback",
+      "previous_parameter_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "proposed_parameter_hash": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+      "timeframe_scope": "15m",
+      "regime_scope": "TRENDING_RANGE_RISK_OFF",
+      "identity_match_status": "PASS"
+    },
+    {
+      "source_evidence_id": "execution_quality:trend_pullback_candidate_001:candidate-scorecard-performance-history:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_role": "EXECUTION_QUALITY",
+      "exchange": "UPBIT",
+      "market_type": "KRW_SPOT",
+      "source_modes": [
+        "PAPER",
+        "SHADOW"
+      ],
+      "session_id": "mvp4_parameter_narrowing_fixture",
+      "candidate_id": "trend_pullback_candidate_001",
+      "strategy_id": "trend_pullback",
+      "previous_parameter_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "proposed_parameter_hash": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+      "timeframe_scope": "15m",
+      "regime_scope": "TRENDING_RANGE_RISK_OFF",
+      "identity_match_status": "PASS"
+    },
+    {
+      "source_evidence_id": "performance_summary:trend_pullback_candidate_001:candidate-scorecard-performance-history:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "source_role": "PERFORMANCE_SUMMARY",
       "exchange": "UPBIT",
       "market_type": "KRW_SPOT",
       "source_modes": [
