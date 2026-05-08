@@ -593,6 +593,95 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertIn("bounded public replay robustness", report["next_action"])
         self.assertFalse(report["live_order_allowed"])
 
+    def test_scorecard_can_target_same_runtime_alternative_candidate(self):
+        weak_btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="WEAK_RANGE",
+        )
+        for candle in weak_btc["candles"]:
+            candle["volume"] = "1"
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(strong_eth["candles"], start=1):
+            candle["volume"] = str(8 + index * 2)
+        focus_orca = build_upbit_public_candle_fixture(
+            symbol="KRW-ORCA",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        orca_closes = ["980000", "988000", "1004000", "997000", "1009000", "1002050"]
+        for index, candle in enumerate(focus_orca["candles"], start=1):
+            price = int(orca_closes[index - 1])
+            candle["open"] = str(price - 1200)
+            candle["high"] = str(price + 2500)
+            candle["low"] = str(price - 2500)
+            candle["close"] = orca_closes[index - 1]
+            candle["volume"] = str(1 + index * 0.1)
+        mark_price = weak_btc["candles"][-1]["close"]
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.005",
+            fill_price=mark_price,
+            mark_price=mark_price,
+            fee_amount="2.5",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-scorecard-target-alt",
+            source_paper_ledger_head_hash="D" * 64,
+        )
+        focus_candidate_id = "KRW-ORCA-pullback-trend-long"
+        focus_parameter_hash = stable_hash(f"{focus_candidate_id}:PULLBACK_TREND_LONG:KRW-ORCA")
+        runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="scorecard-runtime-target-alt",
+            symbol="KRW-BTC",
+            market_data_universe=[weak_btc, strong_eth, focus_orca],
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+            paper_scope_focus={
+                "source": "TEST_ACTIVE_CANDIDATE_SCOPE",
+                "candidate_id": focus_candidate_id,
+                "symbol": "KRW-ORCA",
+                "strategy_id": "trend_pullback",
+                "parameter_hash": focus_parameter_hash,
+                "sample_count": 1,
+                "sample_deficit": 29,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+        )
+        focused_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+        target_candidate = max(
+            (
+                candidate
+                for candidate in runtime["strategy_candidates"]
+                if candidate["decision"] == "PAPER_ENTRY_REVIEW"
+                and candidate["candidate_id"] != focused_scorecard["candidate_id"]
+            ),
+            key=lambda candidate: float(candidate["candidate_selection_score"]),
+        )
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            candidate_id=target_candidate["candidate_id"],
+        )
+
+        self.assertEqual(scorecard["candidate_id"], target_candidate["candidate_id"])
+        self.assertEqual(scorecard["symbol"], target_candidate["symbol"])
+        self.assertEqual(scorecard["source_runtime_cycle_id"], runtime["cycle_id"])
+        self.assertEqual(scorecard["source_runtime_cycle_hash"], runtime["cycle_hash"])
+        self.assertFalse(scorecard["live_order_allowed"])
+
     def test_candidate_generation_report_uses_bounded_public_discovery_runtime_alternative(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-candidate-generation-discovery-base")
         scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(

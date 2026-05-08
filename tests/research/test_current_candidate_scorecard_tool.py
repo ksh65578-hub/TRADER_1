@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tools.run_upbit_paper_candidate_scorecard import (
+    _build_and_write_alternative_public_replay,
     _select_scorecard_runtime_sample,
     build_current_upbit_paper_candidate_scorecard,
 )
@@ -18,9 +19,12 @@ from trader1.adapters.upbit.market_data import (
 )
 from trader1.research.profitability.candidate_scorecard import (
     PERFORMANCE_PASS,
+    candidate_generation_report_from_upbit_paper_runtime_cycle,
+    candidate_scorecard_from_upbit_paper_runtime_cycle,
     performance_source_evidence_id,
     robustness_source_evidence_id,
     safe_candidate_scorecard_filename,
+    stable_hash,
 )
 from trader1.research.profitability.overfit_diagnostic import (
     overfit_diagnostic_from_upbit_paper_runtime,
@@ -32,7 +36,9 @@ from trader1.research.replay.replay_runner import (
     write_public_replay_robustness_report,
 )
 from trader1.research.shadow.shadow_runner import build_paper_shadow_evidence_accumulation_report
+from trader1.runtime.portfolio.paper_portfolio import build_paper_portfolio_snapshot_from_fill
 from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
+from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
 from trader1.validation.mvp0_validators import (
     _candidate_scorecard_net_ev_errors,
     _convergence_objective_profile_errors,
@@ -448,6 +454,134 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertFalse(result["order_adapter_called"])
         self.assertFalse(result["live_key_loaded"])
         self.assertFalse(result["live_order_allowed"])
+
+    def test_alternative_public_replay_runs_for_same_runtime_best_alternative_without_discovery_runtime(self):
+        weak_btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="WEAK_RANGE",
+        )
+        for candle in weak_btc["candles"]:
+            candle["volume"] = "1"
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(strong_eth["candles"], start=1):
+            candle["volume"] = str(8 + index * 2)
+        focus_orca = build_upbit_public_candle_fixture(
+            symbol="KRW-ORCA",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        orca_closes = ["980000", "988000", "1004000", "997000", "1009000", "1002050"]
+        for index, candle in enumerate(focus_orca["candles"], start=1):
+            price = int(orca_closes[index - 1])
+            candle["open"] = str(price - 1200)
+            candle["high"] = str(price + 2500)
+            candle["low"] = str(price - 2500)
+            candle["close"] = orca_closes[index - 1]
+            candle["volume"] = str(1 + index * 0.1)
+        mark_price = weak_btc["candles"][-1]["close"]
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.005",
+            fill_price=mark_price,
+            mark_price=mark_price,
+            fee_amount="2.5",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-current-scorecard-same-runtime-alt",
+            source_paper_ledger_head_hash="D" * 64,
+        )
+        focus_candidate_id = "KRW-ORCA-pullback-trend-long"
+        focus_parameter_hash = stable_hash(f"{focus_candidate_id}:PULLBACK_TREND_LONG:KRW-ORCA")
+        runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="current-scorecard-same-runtime-alt",
+            symbol="KRW-BTC",
+            market_data_universe=[weak_btc, strong_eth, focus_orca],
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+            paper_scope_focus={
+                "source": "TEST_ACTIVE_CANDIDATE_SCOPE",
+                "candidate_id": focus_candidate_id,
+                "symbol": "KRW-ORCA",
+                "strategy_id": "trend_pullback",
+                "parameter_hash": focus_parameter_hash,
+                "sample_count": 1,
+                "sample_deficit": 29,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+        )
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses={
+                "oos_status": "FAIL",
+                "walk_forward_status": "FAIL",
+                "bootstrap_status": "FAIL",
+                "overfit_status": "HIGH",
+            },
+            robustness_source_evidence_ids=[
+                "public_replay_robustness:replay-current-scorecard-same-runtime-alt:" + "A" * 64,
+                "public_market_data:KRW-BTC:" + "B" * 64,
+            ],
+        )
+
+        generation_report = candidate_generation_report_from_upbit_paper_runtime_cycle(
+            runtime,
+            candidate_scorecard=scorecard,
+        )
+
+        def fake_replay_history_fetcher(
+            *,
+            symbol: str,
+            session_id: str,
+            target_count: int,
+            page_size: int,
+            timeout_seconds: float,
+        ):
+            del target_count, page_size, timeout_seconds
+            return _public_replay_fixture(symbol=symbol, session_id=session_id, count=70)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            context = _build_and_write_alternative_public_replay(
+                root=root,
+                session_id=runtime["session_id"],
+                candidate_generation_report=generation_report,
+                runtime_cycle_report=runtime,
+                candidate_discovery_runtime=None,
+                target_count=70,
+                page_size=200,
+                timeout_seconds=1.0,
+                max_replay_windows=10,
+                min_required_sample_count=1,
+                public_replay_history_fetcher=fake_replay_history_fetcher,
+            )
+            alternative_replay = _load_written(root, context, "report_path")
+
+        self.assertEqual(generation_report["generation_status"], "ALTERNATIVE_REVIEW_READY")
+        self.assertEqual(context["status"], "PASS")
+        self.assertEqual(context["contract_status"], "PASS")
+        self.assertEqual(context["candidate_id"], generation_report["best_alternative_candidate_id"])
+        self.assertEqual(context["symbol"], "KRW-ETH")
+        self.assertGreaterEqual(context["sample_count"], 1)
+        self.assertEqual(alternative_replay["candidate_id"], generation_report["best_alternative_candidate_id"])
+        self.assertFalse(context["credential_load_attempted"])
+        self.assertFalse(context["private_endpoint_called"])
+        self.assertFalse(context["order_endpoint_called"])
+        self.assertFalse(context["order_adapter_called"])
+        self.assertFalse(context["live_key_loaded"])
+        self.assertFalse(context["live_order_allowed"])
 
     def test_alternative_public_replay_status_distinguishes_contract_pass_from_replay_blocked(self):
         def fake_market_symbols_fetcher(*, session_id: str, timeout_seconds: float):
