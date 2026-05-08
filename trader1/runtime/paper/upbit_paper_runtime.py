@@ -3931,6 +3931,7 @@ def build_upbit_paper_runtime_cycle_report(
         "strategy_exit_variation": exit_plan.get("exit_variation"),
         "strategy_exit_reason_code": position_exit_evaluation.get("strategy_exit_reason_code"),
         "strategy_exit_condition_passed": position_exit_evaluation.get("strategy_exit_condition_passed"),
+        "strategy_exit_action": position_exit_evaluation.get("strategy_exit_action"),
         "requested_position_decision": position_exit_evaluation.get("final_decision"),
         "execution_adjusted_position_decision_reason": execution_adjusted_position_decision_reason,
         "sell_quantity": position_exit_evaluation.get("sell_quantity"),
