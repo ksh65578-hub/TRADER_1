@@ -136,7 +136,7 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
     convergence_memory = write_upbit_paper_convergence_memory_artifacts(root=root, scorecard=scorecard)
     return {
         "status": "PASS",
-        "message": "Upbit PAPER candidate scorecard and non-live convergence memory were written from ledger-bound runtime samples and overfit diagnostics",
+        "message": "Upbit PAPER candidate scorecard, non-live convergence memory, and profit convergence cycle report were written from ledger-bound runtime samples and overfit diagnostics",
         "session_id": session_id,
         "runtime_sample_history_path": _relative_path(history_path, root),
         "overfit_diagnostic_path": _relative_path(diagnostic_path, root),
@@ -147,6 +147,10 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
             _relative_path(convergence_memory["failure_analysis_path"], root)
             if convergence_memory["failure_analysis_path"] is not None
             else None
+        ),
+        "profit_convergence_cycle_report_path": _relative_path(
+            convergence_memory["profit_convergence_cycle_report_path"],
+            root,
         ),
         "source_runtime_cycle_path": str(latest_sample["source_runtime_cycle_path"]),
         "source_runtime_cycle_hash": runtime["cycle_hash"],
@@ -173,6 +177,11 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
             if convergence_memory["failure_analysis"] is not None
             else "NOT_REQUIRED"
         ),
+        "profit_convergence_cycle_status": convergence_memory["profit_convergence_cycle_report"]["cycle_status"],
+        "profit_convergence_cycle_claim": convergence_memory["profit_convergence_cycle_report"]["convergence_claim"],
+        "profit_convergence_cycle_blocker_codes": [
+            blocker["code"] for blocker in convergence_memory["profit_convergence_cycle_report"]["blockers"]
+        ],
         "invalid_runtime_source_count": history["invalid_source_count"],
         "live_order_ready": False,
         "live_order_allowed": False,

@@ -16,6 +16,48 @@ ROOT = Path(__file__).resolve().parents[3]
 STRATEGY_PERFORMANCE_MEMORY_SCHEMA_ID = "trader1.strategy_performance_memory.v1"
 OPTIMIZER_MEMORY_STATE_SCHEMA_ID = "trader1.optimizer_memory_state.v1"
 FAILURE_ANALYSIS_SCHEMA_ID = "trader1.failure_analysis_report.v1"
+PROFIT_CONVERGENCE_CYCLE_SCHEMA_ID = "trader1.profit_convergence_cycle_report.v1"
+
+PROFIT_CONVERGENCE_CYCLE_DEPENDENCY_FIELDS = (
+    "convergence_objective_profile_validator_status",
+    "optimizer_memory_state_validator_status",
+    "strategy_performance_memory_validator_status",
+    "failure_analysis_validator_status",
+    "exploration_exploitation_policy_validator_status",
+    "market_regime_adaptation_validator_status",
+    "model_drift_validator_status",
+    "execution_feedback_loop_validator_status",
+    "paper_shadow_evidence_accumulation_validator_status",
+    "coverage_index_validator_status",
+)
+
+DEFAULT_PROFIT_CYCLE_DEPENDENCY_STATUSES = {
+    "convergence_objective_profile_validator_status": "UNTESTED",
+    "optimizer_memory_state_validator_status": "UNTESTED",
+    "strategy_performance_memory_validator_status": "UNTESTED",
+    "failure_analysis_validator_status": "UNTESTED",
+    "exploration_exploitation_policy_validator_status": "UNTESTED",
+    "market_regime_adaptation_validator_status": "UNTESTED",
+    "model_drift_validator_status": "UNTESTED",
+    "execution_feedback_loop_validator_status": "UNTESTED",
+    "paper_shadow_evidence_accumulation_validator_status": "UNTESTED",
+    "coverage_index_validator_status": "UNTESTED",
+}
+
+DEPENDENCY_BLOCKER_BY_FIELD = {
+    "convergence_objective_profile_validator_status": "CONVERGENCE_OBJECTIVE_MISSING",
+    "optimizer_memory_state_validator_status": "CONVERGENCE_MEMORY_MISSING",
+    "strategy_performance_memory_validator_status": "CONVERGENCE_MEMORY_MISSING",
+    "failure_analysis_validator_status": "CONVERGENCE_CLAIM_UNVERIFIED",
+    "exploration_exploitation_policy_validator_status": "EXPLORATION_EXPLOITATION_TRANSITION_UNTESTED",
+    "market_regime_adaptation_validator_status": "REGIME_ADAPTATION_UNTESTED",
+    "model_drift_validator_status": "CONVERGENCE_CLAIM_UNVERIFIED",
+    "execution_feedback_loop_validator_status": "EXECUTION_QUALITY_UNTESTED",
+    "paper_shadow_evidence_accumulation_validator_status": "MEASUREMENT_MISSING",
+    "coverage_index_validator_status": "CONVERGENCE_STATE_UNTESTED",
+}
+
+VALIDATOR_STATUSES = {"PASS", "FAIL", "WARN", "BLOCKED", "UNTESTED", "STALE", "SKIPPED_NOT_APPLICABLE", "TIMEOUT"}
 
 ROOT_CAUSE_BY_BLOCKER = {
     "MIN_EDGE_FAIL": "STRATEGY_RULE_GAP",
@@ -80,6 +122,18 @@ def _int_value(value: Any, default: int = 0) -> int:
         return default
 
 
+def _parse_utc_datetime(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
 def _reason_counts_from_blockers(blockers: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not blockers:
         return [{"reason_code": "NO_BLOCKER_RECORDED", "count": 0}]
@@ -88,6 +142,26 @@ def _reason_counts_from_blockers(blockers: list[dict[str, Any]]) -> list[dict[st
         code = str(item.get("code") or "UNKNOWN_BLOCKED")
         counts[code] = counts.get(code, 0) + 1
     return [{"reason_code": code, "count": count} for code, count in sorted(counts.items())]
+
+
+def _dedupe_blockers(blockers: list[dict[str, Any]]) -> list[dict[str, str]]:
+    deduped: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for item in blockers:
+        code = str(item.get("code") or "CONVERGENCE_CLAIM_UNVERIFIED")
+        message = str(item.get("message") or "Convergence blocker requires review.")
+        key = (code, message)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(
+            {
+                "code": code,
+                "severity": str(item.get("severity") or "HIGH"),
+                "message": message,
+            }
+        )
+    return deduped
 
 
 def _source_modes(scorecard: dict[str, Any], extra_source_modes: list[str] | None) -> list[str]:
@@ -106,6 +180,215 @@ def _performance_scope(source_modes: list[str]) -> str:
     if source_modes == ["REPLAY"]:
         return "REPLAY_RESEARCH_ONLY"
     return "PAPER_RUNTIME_SCORECARD_ONLY"
+
+
+def _normalized_dependency_statuses(
+    dependency_statuses: dict[str, str] | None,
+    *,
+    strategy_memory: dict[str, Any] | None,
+    optimizer_memory: dict[str, Any] | None,
+    failure_analysis: dict[str, Any] | None,
+) -> dict[str, str]:
+    statuses = dict(DEFAULT_PROFIT_CYCLE_DEPENDENCY_STATUSES)
+    if strategy_memory is not None:
+        statuses["strategy_performance_memory_validator_status"] = "PASS"
+    if optimizer_memory is not None:
+        statuses["optimizer_memory_state_validator_status"] = "PASS"
+    if failure_analysis is not None:
+        statuses["failure_analysis_validator_status"] = "PASS"
+    else:
+        statuses["failure_analysis_validator_status"] = "SKIPPED_NOT_APPLICABLE"
+    for field, status in (dependency_statuses or {}).items():
+        if field not in statuses:
+            continue
+        statuses[field] = status if status in VALIDATOR_STATUSES else "UNTESTED"
+    return statuses
+
+
+def _dependency_blockers(statuses: dict[str, str]) -> list[dict[str, str]]:
+    blockers: list[dict[str, str]] = []
+    for field in PROFIT_CONVERGENCE_CYCLE_DEPENDENCY_FIELDS:
+        status = statuses[field]
+        if status == "PASS":
+            continue
+        blockers.append(
+            blocker(
+                DEPENDENCY_BLOCKER_BY_FIELD[field],
+                f"{field} is {status}; convergence cycle remains non-promotional and live orders stay blocked.",
+                "MEDIUM",
+            )
+        )
+    return blockers
+
+
+def _source_ids_for_cycle(
+    scorecard: dict[str, Any],
+    strategy_memory: dict[str, Any] | None,
+    optimizer_memory: dict[str, Any] | None,
+    failure_analysis: dict[str, Any] | None,
+) -> list[str]:
+    source_ids = [scorecard_artifact_id(scorecard), *[str(item) for item in scorecard.get("source_evidence_ids", [])]]
+    if strategy_memory is not None:
+        source_ids.append(
+            f"strategy_performance_memory:{strategy_memory.get('strategy_performance_memory_id')}:{sha256_json(strategy_memory)}"
+        )
+        source_ids.extend(str(item) for item in strategy_memory.get("source_artifact_ids", []))
+    if optimizer_memory is not None:
+        source_ids.append(f"optimizer_memory_state:{optimizer_memory.get('optimizer_memory_state_id')}:{sha256_json(optimizer_memory)}")
+        source_ids.extend(str(item) for item in optimizer_memory.get("source_artifact_ids", []))
+    if failure_analysis is not None:
+        source_ids.append(f"failure_analysis:{failure_analysis.get('failure_analysis_id')}:{failure_analysis.get('audit_hash')}")
+        source_ids.extend(str(item) for item in failure_analysis.get("source_evidence_ids", []))
+    return sorted(set(source_ids))
+
+
+def profit_convergence_cycle_from_scorecard(
+    scorecard: dict[str, Any],
+    *,
+    strategy_memory: dict[str, Any] | None,
+    optimizer_memory: dict[str, Any] | None,
+    failure_analysis: dict[str, Any] | None = None,
+    dependency_statuses: dict[str, str] | None = None,
+    previous_cycle_report: dict[str, Any] | None = None,
+    authority: dict[str, str] | None = None,
+    max_data_age_seconds: float = 180.0,
+) -> dict[str, Any]:
+    if any(scorecard.get(field) is True for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
+        raise ValueError("profit convergence cycle refuses scorecard live or scale-up permission")
+
+    statuses = _normalized_dependency_statuses(
+        dependency_statuses,
+        strategy_memory=strategy_memory,
+        optimizer_memory=optimizer_memory,
+        failure_analysis=failure_analysis,
+    )
+    source_modes = sorted(set(str(item) for item in (strategy_memory or {}).get("source_modes", [scorecard.get("mode", "PAPER")]) if item != "LIVE"))
+    source_modes = source_modes or ["PAPER"]
+    now = utc_now()
+    scorecard_time = _parse_utc_datetime(scorecard.get("generated_at_utc"))
+    generated_time = _parse_utc_datetime(now) or datetime.now(timezone.utc)
+    data_age_seconds = 0.0
+    if scorecard_time is not None:
+        data_age_seconds = max(0.0, (generated_time - scorecard_time).total_seconds())
+    data_fresh = data_age_seconds <= max_data_age_seconds
+    gross_bps = _bounded_float(scorecard.get("gross_expected_edge_bps"))
+    net_bps = min(
+        _bounded_float(scorecard.get("net_ev_after_cost_bps")),
+        _bounded_float((strategy_memory or {}).get("net_ev_after_cost"), default=_bounded_float(scorecard.get("net_ev_after_cost_bps"))),
+    )
+    raw_pnl_improved = gross_bps > 0
+    net_ev_positive = net_bps > 0
+    raw_positive_net_negative = raw_pnl_improved and not net_ev_positive
+    pass_count = sum(1 for status in statuses.values() if status == "PASS")
+    dependency_all_pass = pass_count == len(PROFIT_CONVERGENCE_CYCLE_DEPENDENCY_FIELDS)
+    model_drift_status = "NO_DRIFT" if statuses["model_drift_validator_status"] == "PASS" else "NOT_EVALUATED"
+    blockers = _dedupe_blockers(
+        [
+            *[blocker(str(item.get("code")), str(item.get("message")), str(item.get("severity") or "HIGH")) for item in scorecard.get("blockers", [])],
+            *[blocker(str(item.get("code")), str(item.get("message")), str(item.get("severity") or "HIGH")) for item in (strategy_memory or {}).get("blockers", [])],
+            *[blocker(str(item.get("code")), str(item.get("message")), str(item.get("severity") or "HIGH")) for item in (failure_analysis or {}).get("blockers", [])],
+            *_dependency_blockers(statuses),
+        ]
+    )
+    if raw_positive_net_negative and not {"COST_AFTER_EDGE_UNVERIFIED", "FEE_EXCEEDS_EDGE"} & {item["code"] for item in blockers}:
+        blockers.append(
+            blocker(
+                "COST_AFTER_EDGE_UNVERIFIED",
+                "Raw PnL is positive but net EV after cost is not positive; cost-adjusted convergence is blocked.",
+            )
+        )
+    if not data_fresh:
+        blockers.append(
+            blocker(
+                "CONVERGENCE_MEMORY_STALE",
+                "Profit convergence cycle input is stale; ranking and promotion remain blocked.",
+                "HIGH",
+            )
+        )
+    local_review_allowed = (
+        dependency_all_pass
+        and data_fresh
+        and net_ev_positive
+        and not blockers
+        and scorecard.get("ranking_eligible") is True
+        and model_drift_status == "NO_DRIFT"
+    )
+    if local_review_allowed:
+        cycle_status = "LOCAL_IMPROVEMENT_REVIEW"
+        convergence_claim = "LOCALLY_IMPROVING"
+        objective_basis = "NET_EV_AFTER_COST"
+        ranking_allowed = True
+        blocks_promotion = False
+    else:
+        cycle_status = "BLOCKED" if scorecard.get("blockers") or failure_analysis is not None or raw_positive_net_negative else "COLLECTING"
+        convergence_claim = "BLOCKED" if cycle_status == "BLOCKED" else "NO_CLAIM"
+        objective_basis = "NET_EV_AFTER_COST" if net_ev_positive else "BLOCKED_NO_VALID_OBJECTIVE"
+        ranking_allowed = False
+        blocks_promotion = True
+    cycle_index = _int_value((optimizer_memory or {}).get("memory_sequence_number"), 0)
+    previous_hash = (previous_cycle_report or {}).get("cycle_hash")
+    report = {
+        "schema_id": PROFIT_CONVERGENCE_CYCLE_SCHEMA_ID,
+        "generated_at_utc": now,
+        "project_id": "TRADER_1",
+        "authority": authority or current_authority_hashes(),
+        "cycle_id": f"profit_convergence_cycle:{scorecard.get('scorecard_id')}:{cycle_index}",
+        "cycle_index": cycle_index,
+        "previous_cycle_hash": previous_hash if isinstance(previous_hash, str) else None,
+        "exchange": scorecard["exchange"],
+        "market_type": scorecard["market_type"],
+        "mode": scorecard["mode"],
+        "session_id": scorecard["session_id"],
+        "strategy_id": scorecard["strategy_id"],
+        "strategy_build_id": scorecard["strategy_build_id"],
+        "parameter_hash": scorecard["parameter_hash"],
+        "timeframe_scope": scorecard["timeframe_scope"],
+        "regime_scope": scorecard["regime_scope"],
+        "source_modes": source_modes,
+        "source_evidence_ids": _source_ids_for_cycle(scorecard, strategy_memory, optimizer_memory, failure_analysis),
+        **statuses,
+        "required_dependency_count": len(PROFIT_CONVERGENCE_CYCLE_DEPENDENCY_FIELDS),
+        "dependency_pass_count": pass_count,
+        "cycle_status": cycle_status,
+        "convergence_claim": convergence_claim,
+        "objective_basis": objective_basis,
+        "objective_score_delta_bps": net_bps,
+        "net_ev_after_cost_delta_bps": net_bps,
+        "raw_pnl_improved": raw_pnl_improved,
+        "net_ev_after_cost_positive": net_ev_positive,
+        "raw_pnl_positive_net_ev_negative": raw_positive_net_negative,
+        "data_freshness_status": "FRESH" if data_fresh else "STALE",
+        "data_age_seconds": data_age_seconds,
+        "max_data_age_seconds": max_data_age_seconds,
+        "model_drift_status": model_drift_status,
+        "candidate_ranking_allowed_for_paper": ranking_allowed,
+        "blocks_promotion": blocks_promotion,
+        "blocks_live_order": True,
+        "dashboard_display_truth_only": True,
+        "operator_warning": "profit convergence cycle is not LIVE_READY; live orders blocked; no profit guarantee",
+        "next_operator_action": "continue implementation and bounded non-live validation; do not start long PAPER until convergence gates pass",
+        "live_permission_created": False,
+        "live_config_mutation_allowed": False,
+        "writes_live_ready_snapshot": False,
+        "active_snapshot_mutation_allowed": False,
+        "optimizer_winner_live_config_allowed": False,
+        "paper_winner_live_config_allowed": False,
+        "model_promotion_allowed": False,
+        "scale_up_recommendation_allowed": False,
+        "order_submission_allowed": False,
+        "exchange_account_call_allowed": False,
+        "profitability_guarantee_created": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "blockers": blockers,
+        "cycle_hash": "0" * 64,
+        "status": "PASS" if local_review_allowed else "BLOCKED",
+        "notes": "Generated from non-live scorecard, strategy performance memory, optimizer memory, and failure analysis artifacts.",
+    }
+    report["cycle_hash"] = sha256_json({key: value for key, value in report.items() if key != "cycle_hash"})
+    return report
 
 
 def _strategy_memory_blockers(scorecard: dict[str, Any], source_modes: list[str]) -> list[dict[str, str]]:
@@ -446,6 +729,12 @@ def write_upbit_paper_convergence_memory_artifacts(
         previous_memory_state=previous_memory_state,
         failure_analysis=failure,
     )
+    profit_cycle = profit_convergence_cycle_from_scorecard(
+        scorecard,
+        strategy_memory=memory,
+        optimizer_memory=optimizer_memory,
+        failure_analysis=failure,
+    )
     base = (
         Path(root)
         / "system"
@@ -458,8 +747,10 @@ def write_upbit_paper_convergence_memory_artifacts(
     )
     strategy_memory_path = base / "strategy_performance_memory.json"
     optimizer_memory_path = base / "optimizer_memory_state.json"
+    profit_cycle_path = base / "profit_convergence_cycle_report.json"
     durable_atomic_write_json(strategy_memory_path, memory)
     durable_atomic_write_json(optimizer_memory_path, optimizer_memory)
+    durable_atomic_write_json(profit_cycle_path, profit_cycle)
     failure_path = None
     if failure is not None:
         failure_path = (
@@ -472,7 +763,9 @@ def write_upbit_paper_convergence_memory_artifacts(
         "strategy_performance_memory": memory,
         "optimizer_memory_state": optimizer_memory,
         "failure_analysis": failure,
+        "profit_convergence_cycle_report": profit_cycle,
         "strategy_performance_memory_path": strategy_memory_path,
         "optimizer_memory_state_path": optimizer_memory_path,
         "failure_analysis_path": failure_path,
+        "profit_convergence_cycle_report_path": profit_cycle_path,
     }
