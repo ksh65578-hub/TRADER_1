@@ -1033,6 +1033,10 @@ def _build_and_write_alternative_review_scorecard(
             "candidate_id": alternative_replay_context.get("candidate_id"),
             "ranking_eligible": False,
             "blocker_codes": [],
+            "replay_closed_trade_sample_count": 0,
+            "replay_strategy_exit_policy_sample_count": 0,
+            "replay_profit_factor": 0.0,
+            "replay_performance_scope": "NOT_RUN",
         }
     if not isinstance(source_runtime, dict) or not isinstance(base_scorecard, dict):
         return {
@@ -1044,6 +1048,10 @@ def _build_and_write_alternative_review_scorecard(
             "candidate_id": alternative_replay_context.get("candidate_id"),
             "ranking_eligible": False,
             "blocker_codes": ["SNAPSHOT_SCOPE_MISMATCH"],
+            "replay_closed_trade_sample_count": 0,
+            "replay_strategy_exit_policy_sample_count": 0,
+            "replay_profit_factor": 0.0,
+            "replay_performance_scope": "NOT_RUN",
         }
     diagnostic = overfit_diagnostic_from_upbit_paper_runtime(
         candidate_scorecard=base_scorecard,
@@ -1072,6 +1080,10 @@ def _build_and_write_alternative_review_scorecard(
             "candidate_id": base_scorecard.get("candidate_id"),
             "ranking_eligible": False,
             "blocker_codes": ["SCHEMA_IDENTITY_MISMATCH"],
+            "replay_closed_trade_sample_count": 0,
+            "replay_strategy_exit_policy_sample_count": 0,
+            "replay_profit_factor": 0.0,
+            "replay_performance_scope": "NOT_RUN",
         }
     robustness_statuses, robustness_source_ids = robustness_inputs_from_overfit_diagnostic(diagnostic)
     review_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
@@ -1082,6 +1094,43 @@ def _build_and_write_alternative_review_scorecard(
         performance_statuses=performance_statuses,
         performance_metrics=performance_metrics,
         performance_source_evidence_ids=performance_source_ids,
+    )
+    review_scorecard.update(
+        {
+            "replay_closed_trade_sample_count": int(replay_report.get("replay_closed_trade_sample_count") or 0),
+            "replay_closed_trade_status": replay_report.get("replay_closed_trade_status") or "UNTESTED",
+            "replay_strategy_exit_policy_sample_count": int(
+                replay_report.get("replay_strategy_exit_policy_sample_count") or 0
+            ),
+            "replay_strategy_exit_policy_match_count": int(
+                replay_report.get("replay_strategy_exit_policy_match_count") or 0
+            ),
+            "replay_strategy_exit_policy_mismatch_count": int(
+                replay_report.get("replay_strategy_exit_policy_mismatch_count") or 0
+            ),
+            "replay_strategy_exit_policy_status": replay_report.get("replay_strategy_exit_policy_status") or "UNTESTED",
+            "replay_strategy_exit_reason_counts": [
+                {
+                    "reason_code": str(item.get("reason_code") or ""),
+                    "count": _safe_int(item.get("count")),
+                }
+                for item in replay_report.get("replay_strategy_exit_reason_counts", [])
+                if isinstance(item, dict) and item.get("reason_code")
+            ],
+            "replay_profit_factor": _safe_float(replay_report.get("replay_profit_factor")),
+            "replay_profit_factor_status": replay_report.get("replay_profit_factor_status") or "UNTESTED",
+            "replay_max_drawdown_bps": _safe_float(replay_report.get("replay_max_drawdown_bps")),
+            "replay_realized_vs_expected_edge_bps": _safe_float(
+                replay_report.get("replay_realized_vs_expected_edge_bps")
+            ),
+            "replay_realized_vs_expected_edge_status": replay_report.get("replay_realized_vs_expected_edge_status")
+            or "UNTESTED",
+            "replay_fill_quality_score": _safe_float(replay_report.get("replay_fill_quality_score")),
+            "replay_execution_cost_delta_bps": _safe_float(replay_report.get("replay_execution_cost_delta_bps")),
+            "replay_execution_cost_status": replay_report.get("replay_execution_cost_status") or "UNTESTED",
+            "replay_performance_scope": replay_report.get("replay_performance_scope")
+            or "PUBLIC_REPLAY_ONLY_NOT_PAPER_RANKING",
+        }
     )
     scorecard_errors = _candidate_scorecard_net_ev_errors(review_scorecard)
     if scorecard_errors:
@@ -1094,6 +1143,10 @@ def _build_and_write_alternative_review_scorecard(
             "candidate_id": base_scorecard.get("candidate_id"),
             "ranking_eligible": False,
             "blocker_codes": ["SCORECARD_SCHEMA_INVALID"],
+            "replay_closed_trade_sample_count": 0,
+            "replay_strategy_exit_policy_sample_count": 0,
+            "replay_profit_factor": 0.0,
+            "replay_performance_scope": "NOT_RUN",
         }
     snapshot_path = write_upbit_paper_candidate_scorecard_snapshot(root=root, scorecard=review_scorecard)
     diagnostic_snapshot_path = write_overfit_diagnostic_report_snapshot(root=root, report=diagnostic)
@@ -1106,6 +1159,10 @@ def _build_and_write_alternative_review_scorecard(
         "candidate_id": review_scorecard["candidate_id"],
         "ranking_eligible": bool(review_scorecard["ranking_eligible"]),
         "blocker_codes": [blocker["code"] for blocker in review_scorecard["blockers"]],
+        "replay_closed_trade_sample_count": int(review_scorecard["replay_closed_trade_sample_count"]),
+        "replay_strategy_exit_policy_sample_count": int(review_scorecard["replay_strategy_exit_policy_sample_count"]),
+        "replay_profit_factor": _safe_float(review_scorecard["replay_profit_factor"]),
+        "replay_performance_scope": str(review_scorecard["replay_performance_scope"]),
     }
 
 
@@ -1460,6 +1517,14 @@ def build_current_upbit_paper_candidate_scorecard(
         "alternative_review_scorecard_candidate_id": alternative_review_scorecard_context["candidate_id"],
         "alternative_review_scorecard_ranking_eligible": alternative_review_scorecard_context["ranking_eligible"],
         "alternative_review_scorecard_blocker_codes": alternative_review_scorecard_context["blocker_codes"],
+        "alternative_review_replay_closed_trade_sample_count": alternative_review_scorecard_context[
+            "replay_closed_trade_sample_count"
+        ],
+        "alternative_review_replay_strategy_exit_policy_sample_count": alternative_review_scorecard_context[
+            "replay_strategy_exit_policy_sample_count"
+        ],
+        "alternative_review_replay_profit_factor": alternative_review_scorecard_context["replay_profit_factor"],
+        "alternative_review_replay_performance_scope": alternative_review_scorecard_context["replay_performance_scope"],
         "strategy_performance_memory_path": _relative_path(convergence_memory["strategy_performance_memory_path"], root),
         "convergence_objective_profile_path": _relative_path(
             convergence_memory["convergence_objective_profile_path"],

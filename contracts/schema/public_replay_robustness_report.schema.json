@@ -79,6 +79,33 @@
       "type": "array",
       "items": {"$ref": "#/$defs/public_replay_sample_row"}
     },
+    "replay_closed_trade_sample_count": {"type": "integer", "minimum": 0},
+    "replay_closed_trade_status": {"enum": ["PASS", "FAIL", "UNTESTED", "BLOCKED"]},
+    "replay_strategy_exit_policy_sample_count": {"type": "integer", "minimum": 0},
+    "replay_strategy_exit_policy_match_count": {"type": "integer", "minimum": 0},
+    "replay_strategy_exit_policy_mismatch_count": {"type": "integer", "minimum": 0},
+    "replay_strategy_exit_policy_status": {"enum": ["PASS", "FAIL", "UNTESTED", "BLOCKED"]},
+    "replay_strategy_exit_reason_counts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["reason_code", "count"],
+        "additionalProperties": false,
+        "properties": {
+          "reason_code": {"type": "string", "minLength": 1},
+          "count": {"type": "integer", "minimum": 1}
+        }
+      }
+    },
+    "replay_profit_factor": {"type": "number", "minimum": 0},
+    "replay_profit_factor_status": {"enum": ["PASS", "FAIL", "UNTESTED", "BLOCKED"]},
+    "replay_max_drawdown_bps": {"type": "number", "minimum": 0},
+    "replay_realized_vs_expected_edge_bps": {"type": "number"},
+    "replay_realized_vs_expected_edge_status": {"enum": ["PASS", "FAIL", "UNTESTED", "BLOCKED"]},
+    "replay_fill_quality_score": {"type": "number", "minimum": 0, "maximum": 1},
+    "replay_execution_cost_delta_bps": {"type": "number"},
+    "replay_execution_cost_status": {"enum": ["PASS", "FAIL", "UNTESTED", "BLOCKED"]},
+    "replay_performance_scope": {"const": "PUBLIC_REPLAY_ONLY_NOT_PAPER_RANKING"},
     "replay_status": {"enum": ["PASS", "BLOCKED"]},
     "primary_blocker_code": {"type": ["string", "null"]},
     "blockers": {"type": "array", "items": {"$ref": "common.defs.schema.json#/$defs/blocker_object"}},
@@ -152,7 +179,35 @@
         "total_execution_cost_bps": {"type": "number"},
         "opportunity_net_ev_after_cost_bps": {"type": "number"},
         "opportunity_gross_expected_edge_bps": {"type": "number"},
-        "opportunity_total_execution_cost_bps": {"type": "number"}
+        "opportunity_total_execution_cost_bps": {"type": "number"},
+        "runtime_final_decision": {
+          "enum": ["ENTER_LONG", "NO_TRADE", "HOLD_POSITION", "EXIT_POSITION", "REDUCE_POSITION", "BLOCKED"]
+        },
+        "runtime_no_trade_reasons": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        },
+        "runtime_paper_fill_side": {"type": ["string", "null"], "enum": ["BUY", "SELL", null]},
+        "runtime_paper_broker_state": {"type": ["string", "null"]},
+        "paper_fill_belongs_to_candidate": {"type": "boolean"},
+        "paper_fill_side": {"type": ["string", "null"], "enum": ["BUY", "SELL", null]},
+        "paper_broker_state": {"type": ["string", "null"]},
+        "closed_trade": {"type": "boolean"},
+        "realized_trade_pnl_bps": {"type": ["number", "null"]},
+        "realized_vs_expected_edge_bps": {"type": ["number", "null"]},
+        "strategy_exit_policy_observed": {"type": "boolean"},
+        "strategy_exit_policy_matched": {"type": "boolean"},
+        "strategy_exit_policy_id": {"type": ["string", "null"]},
+        "strategy_exit_variation": {"type": ["string", "null"]},
+        "expected_strategy_exit_variation": {"type": "string"},
+        "strategy_exit_reason_code": {"type": ["string", "null"]},
+        "strategy_exit_action": {"type": ["string", "null"]},
+        "realized_fee_bps": {"type": "number", "minimum": 0},
+        "realized_slippage_bps": {"type": "number", "minimum": 0},
+        "realized_impact_bps": {"type": "number", "minimum": 0},
+        "expected_total_execution_cost_bps": {"type": "number", "minimum": 0},
+        "realized_total_execution_cost_bps": {"type": "number", "minimum": 0},
+        "execution_cost_delta_bps": {"type": "number"}
       }
     }
   }

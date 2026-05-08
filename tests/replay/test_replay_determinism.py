@@ -1,6 +1,7 @@
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
 from trader1.research.profitability.candidate_scorecard import candidate_scorecard_from_upbit_paper_runtime_cycle
@@ -119,6 +120,214 @@ class ReplayDeterminismTest(unittest.TestCase):
         self.assertFalse(report["private_endpoint_called"])
         self.assertFalse(report["order_endpoint_called"])
         self.assertFalse(report["order_adapter_called"])
+
+    def test_public_replay_tracks_sequential_closed_trade_exit_router_evidence(self):
+        runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="public-replay-scorecard-sequential-base",
+            symbol="KRW-AXL",
+            market_data=build_upbit_public_candle_fixture(
+                symbol="KRW-AXL",
+                session_id="mvp4_upbit_paper_runtime",
+                profile="UPTREND_PULLBACK",
+            ),
+        )
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+        candidate = dict(runtime["selected_candidate"])
+        candidate["candidate_id"] = scorecard["candidate_id"]
+        candidate["symbol"] = scorecard["symbol"]
+        candidate["strategy_family"] = "PULLBACK_TREND_LONG"
+        candidate["strategy_policy_reason"] = "PASS"
+        candidate["decision"] = "PAPER_ENTRY_REVIEW"
+        candidate["live_order_ready"] = False
+        candidate["live_order_allowed"] = False
+        candidate["can_live_trade"] = False
+        candidate["scale_up_allowed"] = False
+        calls: list[dict] = []
+
+        def fake_runtime(**kwargs):
+            calls.append(kwargs)
+            if len(calls) == 1:
+                return {
+                    "cycle_id": kwargs["cycle_id"],
+                    "cycle_hash": "A" * 64,
+                    "final_decision": "ENTER_LONG",
+                    "regime": "UPTREND",
+                    "selected_candidate": candidate,
+                    "strategy_candidates": [candidate],
+                    "paper_fill": {
+                        "side": "BUY",
+                        "filled_notional": "10000",
+                        "fee_amount": "5",
+                        "fee_bps": "5",
+                        "slippage_bps": "1",
+                        "market_impact_bps": "0.5",
+                        "adaptive_slippage_bps": "1",
+                        "effective_spread_bps": "0.5",
+                        "latency_penalty_bps": "0.25",
+                        "order_lifecycle_state": "FILLED",
+                    },
+                    "position_management_decision": {},
+                    "paper_portfolio_snapshot": {
+                        "cash_available": "98995",
+                        "equity": "100000",
+                        "position_market_value": "10000",
+                    },
+                    "no_trade_reasons": [],
+                }
+            return {
+                "cycle_id": kwargs["cycle_id"],
+                "cycle_hash": "B" * 64,
+                "final_decision": "EXIT_POSITION",
+                "regime": "UPTREND",
+                "selected_candidate": candidate,
+                "strategy_candidates": [candidate],
+                "paper_fill": {
+                    "side": "SELL",
+                    "filled_quantity": "1",
+                    "filled_notional": "10200",
+                    "fill_price": "10200",
+                    "fee_amount": "5",
+                    "fee_bps": "5",
+                    "slippage_bps": "1",
+                    "market_impact_bps": "0.5",
+                    "adaptive_slippage_bps": "1",
+                    "effective_spread_bps": "0.5",
+                    "latency_penalty_bps": "0.25",
+                    "order_lifecycle_state": "FILLED",
+                },
+                "position_management_decision": {
+                    "entry_candidate_id": candidate["candidate_id"],
+                    "managed_position_quantity": "1",
+                    "managed_position_cost_basis": "10000",
+                    "strategy_exit_policy_id": "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1",
+                    "strategy_exit_variation": "trailing_tp",
+                    "entry_strategy_exit_variation": "trailing_tp",
+                    "strategy_exit_reason_code": "TRAILING_STOP",
+                    "position_exit_reason_code": "TRAILING_STOP",
+                    "strategy_exit_action": "FULL_EXIT",
+                },
+                "paper_portfolio_snapshot": {
+                    "cash_available": "100190",
+                    "equity": "100190",
+                    "position_market_value": "0",
+                },
+                "no_trade_reasons": ["TRAILING_STOP"],
+            }
+
+        with patch("trader1.research.replay.replay_runner.build_upbit_paper_runtime_cycle_report", side_effect=fake_runtime):
+            report = build_public_replay_robustness_report(
+                candidate_scorecard=scorecard,
+                market_data=_public_replay_fixture(symbol="KRW-AXL", count=7),
+                min_required_sample_count=2,
+                max_replay_windows=2,
+            )
+
+        result = validate_public_replay_robustness_report(report, candidate_scorecard=scorecard)
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(report["replay_closed_trade_sample_count"], 1)
+        self.assertEqual(report["replay_strategy_exit_policy_sample_count"], 1)
+        self.assertEqual(report["replay_strategy_exit_policy_match_count"], 1)
+        self.assertEqual(report["replay_strategy_exit_policy_mismatch_count"], 0)
+        self.assertEqual(report["replay_strategy_exit_policy_status"], "PASS")
+        self.assertEqual(report["sample_rows"][1]["closed_trade"], True)
+        self.assertEqual(report["sample_rows"][1]["strategy_exit_reason_code"], "TRAILING_STOP")
+        self.assertGreater(report["sample_rows"][1]["realized_trade_pnl_bps"], 0)
+        self.assertEqual(calls[0]["paper_scope_focus"]["candidate_id"], scorecard["candidate_id"])
+        self.assertEqual(calls[0]["paper_scope_focus"]["source"], "PUBLIC_REPLAY_CANDIDATE_SCOPE")
+        self.assertFalse(calls[0]["paper_scope_focus"]["live_order_allowed"])
+        self.assertIsNotNone(calls[1].get("current_paper_portfolio_snapshot"))
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_public_replay_ignores_non_target_candidate_fills_for_candidate_lifecycle(self):
+        runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="public-replay-scorecard-nontarget-base",
+            symbol="KRW-AXL",
+            market_data=build_upbit_public_candle_fixture(
+                symbol="KRW-AXL",
+                session_id="mvp4_upbit_paper_runtime",
+                profile="UPTREND_PULLBACK",
+            ),
+        )
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+        target = dict(runtime["selected_candidate"])
+        target["candidate_id"] = scorecard["candidate_id"]
+        target["symbol"] = scorecard["symbol"]
+        target["strategy_family"] = "BREAKOUT_RETEST_LONG"
+        target["decision"] = "PAPER_ENTRY_REVIEW"
+        target["live_order_ready"] = False
+        target["live_order_allowed"] = False
+        target["can_live_trade"] = False
+        target["scale_up_allowed"] = False
+        other = dict(target)
+        other["candidate_id"] = "KRW-AXL-nontarget-vwap"
+        other["strategy_family"] = "VWAP_MEAN_REVERSION"
+        calls: list[dict] = []
+
+        def fake_runtime(**kwargs):
+            calls.append(kwargs)
+            return {
+                "cycle_id": kwargs["cycle_id"],
+                "cycle_hash": "C" * 64,
+                "final_decision": "ENTER_LONG",
+                "regime": "UPTREND",
+                "selected_candidate": other,
+                "strategy_candidates": [target, other],
+                "paper_scope_continuity_decision": {
+                    "requested": True,
+                    "selection_status": "SELECTED",
+                    "requested_candidate_id": target["candidate_id"],
+                    "selected_candidate_id": other["candidate_id"],
+                },
+                "paper_fill": {
+                    "side": "BUY",
+                    "filled_notional": "10000",
+                    "fee_amount": "5",
+                    "fee_bps": "5",
+                    "slippage_bps": "1",
+                    "market_impact_bps": "0.5",
+                    "adaptive_slippage_bps": "1",
+                    "effective_spread_bps": "0.5",
+                    "latency_penalty_bps": "0.25",
+                    "order_lifecycle_state": "FILLED",
+                },
+                "position_management_decision": {
+                    "entry_candidate_id": other["candidate_id"],
+                    "managed_position_quantity": "1",
+                    "managed_position_cost_basis": "10000",
+                    "strategy_exit_policy_id": "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1",
+                    "strategy_exit_variation": "trailing_tp",
+                    "position_exit_reason_code": None,
+                },
+                "paper_portfolio_snapshot": {
+                    "cash_available": "98995",
+                    "equity": "100000",
+                    "position_market_value": "10000",
+                    "positions": [{"entry_candidate_id": other["candidate_id"]}],
+                },
+                "no_trade_reasons": [],
+            }
+
+        with patch("trader1.research.replay.replay_runner.build_upbit_paper_runtime_cycle_report", side_effect=fake_runtime):
+            report = build_public_replay_robustness_report(
+                candidate_scorecard=scorecard,
+                market_data=_public_replay_fixture(symbol="KRW-AXL", count=7),
+                min_required_sample_count=2,
+                max_replay_windows=2,
+            )
+
+        result = validate_public_replay_robustness_report(report, candidate_scorecard=scorecard)
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[0]["paper_scope_focus"]["candidate_id"], target["candidate_id"])
+        self.assertNotIn("current_paper_portfolio_snapshot", calls[1])
+        for row in report["sample_rows"]:
+            self.assertEqual(row["runtime_paper_fill_side"], "BUY")
+            self.assertFalse(row["paper_fill_belongs_to_candidate"])
+            self.assertIsNone(row["paper_fill_side"])
+            self.assertFalse(row["closed_trade"])
+        self.assertEqual(report["replay_closed_trade_sample_count"], 0)
+        self.assertEqual(report["replay_strategy_exit_policy_sample_count"], 0)
+        self.assertFalse(report["live_order_allowed"])
 
     def test_public_replay_no_trade_rows_are_flat_cash_returns(self):
         runtime = build_upbit_paper_runtime_cycle_report(

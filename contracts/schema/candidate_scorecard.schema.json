@@ -540,6 +540,33 @@
       "type": "number",
       "minimum": 0
     },
+    "replay_closed_trade_sample_count": {"type": "integer", "minimum": 0},
+    "replay_closed_trade_status": {"enum": ["PASS", "FAIL", "UNTESTED", "BLOCKED"]},
+    "replay_strategy_exit_policy_sample_count": {"type": "integer", "minimum": 0},
+    "replay_strategy_exit_policy_match_count": {"type": "integer", "minimum": 0},
+    "replay_strategy_exit_policy_mismatch_count": {"type": "integer", "minimum": 0},
+    "replay_strategy_exit_policy_status": {"enum": ["PASS", "FAIL", "UNTESTED", "BLOCKED"]},
+    "replay_strategy_exit_reason_counts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["reason_code", "count"],
+        "additionalProperties": false,
+        "properties": {
+          "reason_code": {"type": "string", "minLength": 1},
+          "count": {"type": "integer", "minimum": 1}
+        }
+      }
+    },
+    "replay_profit_factor": {"type": "number", "minimum": 0},
+    "replay_profit_factor_status": {"enum": ["PASS", "FAIL", "UNTESTED", "BLOCKED"]},
+    "replay_max_drawdown_bps": {"type": "number", "minimum": 0},
+    "replay_realized_vs_expected_edge_bps": {"type": "number"},
+    "replay_realized_vs_expected_edge_status": {"enum": ["PASS", "FAIL", "UNTESTED", "BLOCKED"]},
+    "replay_fill_quality_score": {"type": "number", "minimum": 0, "maximum": 1},
+    "replay_execution_cost_delta_bps": {"type": "number"},
+    "replay_execution_cost_status": {"enum": ["PASS", "FAIL", "UNTESTED", "BLOCKED"]},
+    "replay_performance_scope": {"const": "PUBLIC_REPLAY_ONLY_NOT_PAPER_RANKING"},
     "performance_ready": {
       "type": "boolean"
     },
