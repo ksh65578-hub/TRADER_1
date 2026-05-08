@@ -403,6 +403,15 @@ def update_promotion_thresholds(rollup: dict[str, Any], scorecard: dict[str, Any
         thresholds["fill_quality_status"] = "PASS"
         missing_codes.discard("FILL_QUALITY_NOT_PASS")
 
+    execution_cost_delta = safe_float(scorecard.get("execution_cost_delta_bps"), 999.0)
+    max_execution_cost_delta = safe_float(scorecard.get("max_allowed_execution_cost_delta_bps"))
+    if (
+        scorecard.get("execution_cost_comparison_status") == "PASS"
+        and execution_cost_delta <= max_execution_cost_delta
+    ):
+        thresholds["execution_cost_comparison_status"] = "PASS"
+        missing_codes.discard("EXECUTION_COST_COMPARISON_NOT_PASS")
+
     thresholds["missing_threshold_codes"] = sorted(missing_codes)
     thresholds["status"] = "BLOCKED_FOR_THRESHOLD_EVIDENCE"
     thresholds["paper_runtime_hours_gate_role"] = "OBSERVED_CONTEXT_ONLY_NO_FIXED_RUNTIME_FLOOR"

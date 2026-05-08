@@ -414,6 +414,7 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
             "PROFIT_FACTOR_NOT_PASS",
             "MAX_DRAWDOWN_NOT_PASS",
             "FILL_QUALITY_NOT_PASS",
+            "EXECUTION_COST_COMPARISON_NOT_PASS",
         }
         self.assertTrue(expected_missing.issubset(set(thresholds["missing_threshold_codes"])))
 
@@ -435,6 +436,9 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
                 "fill_quality_status": "PASS",
                 "fill_quality_score": 0.91,
                 "min_fill_quality_score": 0.80,
+                "execution_cost_comparison_status": "PASS",
+                "execution_cost_delta_bps": 1.0,
+                "max_allowed_execution_cost_delta_bps": 2.0,
             },
             {"oos_status": "PASS", "walk_forward_status": "PASS"},
         )

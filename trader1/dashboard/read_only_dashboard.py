@@ -866,6 +866,7 @@ PROFITABILITY_PROMOTION_THRESHOLD_BLOCKER_CODES = {
     "PROFIT_FACTOR_NOT_PASS",
     "MAX_DRAWDOWN_NOT_PASS",
     "FILL_QUALITY_NOT_PASS",
+    "EXECUTION_COST_COMPARISON_NOT_PASS",
     "PAPER_LIVE_GAP_NOT_AVAILABLE",
     "HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN",
     "BLOCKING_VALIDATOR_FAIL_PRESENT",
@@ -8924,6 +8925,7 @@ def _promotion_threshold_projection(threshold: Any, *, missing_status: str = "NO
             "promotion_threshold_profit_factor_status": "UNTESTED",
             "promotion_threshold_max_drawdown_status": "UNTESTED",
             "promotion_threshold_fill_quality_status": "UNTESTED",
+            "promotion_threshold_execution_cost_comparison_status": "UNTESTED",
             "promotion_threshold_paper_live_gap_status": "NOT_AVAILABLE",
             "promotion_threshold_high_or_critical_contract_gap_count": 0,
             "promotion_threshold_blocking_validator_fail_count": 0,
@@ -8961,12 +8963,14 @@ def _promotion_threshold_projection(threshold: Any, *, missing_status: str = "NO
     min_shadow_opportunities = _safe_count(threshold.get("min_shadow_signal_opportunities"))
     oos_pct = _safe_number(threshold.get("walk_forward_or_oos_coverage_pct"))
     min_oos_pct = _safe_number(threshold.get("min_walk_forward_or_oos_coverage_pct"))
+    execution_cost_status = str(threshold.get("execution_cost_comparison_status") or "UNTESTED")
     return {
         "promotion_threshold_status": status,
         "promotion_threshold_summary": (
             f"Replay {replay_trades}/{min_replay_trades}, OOS/walk-forward {oos_pct}/{min_oos_pct}%, "
             f"PAPER trades {paper_trades}/{min_paper_trades}, PAPER runtime {paper_hours}h observed only, "
-            f"SHADOW opportunities {shadow_opportunities}/{min_shadow_opportunities}; "
+            f"SHADOW opportunities {shadow_opportunities}/{min_shadow_opportunities}, "
+            f"execution cost {execution_cost_status}; "
             f"{len(known_missing_codes)} threshold blockers remain."
         ),
         "promotion_threshold_missing_code_count": len(known_missing_codes),
@@ -8986,6 +8990,9 @@ def _promotion_threshold_projection(threshold: Any, *, missing_status: str = "NO
         "promotion_threshold_profit_factor_status": str(threshold.get("profit_factor_status") or "UNTESTED"),
         "promotion_threshold_max_drawdown_status": str(threshold.get("max_drawdown_status") or "UNTESTED"),
         "promotion_threshold_fill_quality_status": str(threshold.get("fill_quality_status") or "UNTESTED"),
+        "promotion_threshold_execution_cost_comparison_status": str(
+            threshold.get("execution_cost_comparison_status") or "UNTESTED"
+        ),
         "promotion_threshold_paper_live_gap_status": str(threshold.get("paper_live_gap_status") or "NOT_AVAILABLE"),
         "promotion_threshold_high_or_critical_contract_gap_count": _safe_count(
             threshold.get("high_or_critical_contract_gap_count")
@@ -24566,6 +24573,7 @@ def validate_read_only_dashboard_shell(
         "promotion_threshold_profit_factor_status",
         "promotion_threshold_max_drawdown_status",
         "promotion_threshold_fill_quality_status",
+        "promotion_threshold_execution_cost_comparison_status",
         "promotion_threshold_paper_live_gap_status",
     ):
         if maturity.get(field) not in PROFITABILITY_PROMOTION_THRESHOLD_METRIC_STATUSES:

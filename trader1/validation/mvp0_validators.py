@@ -852,6 +852,7 @@ PROFITABILITY_PROMOTION_THRESHOLD_BLOCKER_CODES = {
     "PROFIT_FACTOR_NOT_PASS",
     "MAX_DRAWDOWN_NOT_PASS",
     "FILL_QUALITY_NOT_PASS",
+    "EXECUTION_COST_COMPARISON_NOT_PASS",
     "PAPER_LIVE_GAP_NOT_AVAILABLE",
     "HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN",
     "BLOCKING_VALIDATOR_FAIL_PRESENT",
@@ -20210,6 +20211,7 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
             ("profit_factor_status", "PROFIT_FACTOR_NOT_PASS"),
             ("max_drawdown_status", "MAX_DRAWDOWN_NOT_PASS"),
             ("fill_quality_status", "FILL_QUALITY_NOT_PASS"),
+            ("execution_cost_comparison_status", "EXECUTION_COST_COMPARISON_NOT_PASS"),
         ]
         for status_field, missing_code in status_checks:
             if promotion_thresholds.get(status_field) != "PASS" and missing_code not in missing_codes:
