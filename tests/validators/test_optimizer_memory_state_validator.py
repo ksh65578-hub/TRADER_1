@@ -80,6 +80,22 @@ class OptimizerMemoryStateValidatorTest(unittest.TestCase):
 
         self.assertIn("failed_candidate_count must match FAILED candidate records", errors)
 
+    def test_active_memory_requires_candidate_scoped_performance_source_binding(self):
+        report = load_json(FIXTURE_DIR / "optimizer_memory_state_pass.json")
+        tampered = copy.deepcopy(report)
+        tampered["source_artifact_ids"] = [
+            source_id
+            for source_id in tampered["source_artifact_ids"]
+            if not str(source_id).startswith(("closed_trades:", "execution_quality:", "performance_summary:"))
+        ]
+
+        errors = _optimizer_memory_state_errors(tampered)
+
+        self.assertIn(
+            "ACTIVE optimizer memory record requires candidate-scoped performance source artifact ids: candidate_active_after_cost",
+            errors,
+        )
+
     def test_current_validator_fixtures_pass(self):
         result = optimizer_memory_state_validator().as_dict()
 

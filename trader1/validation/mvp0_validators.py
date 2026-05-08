@@ -15991,6 +15991,7 @@ def _optimizer_memory_state_errors(report: dict[str, Any]) -> list[str]:
         errors.append("optimizer memory mode LIVE is forbidden before independent live-enabling evidence")
     if "LIVE" in set(report.get("source_modes", [])):
         errors.append("optimizer memory source_modes must not include LIVE")
+    source_artifact_ids = [str(item) for item in report.get("source_artifact_ids", [])]
 
     warning_lower = str(report.get("operator_warning", "")).lower()
     if "not live_ready" not in warning_lower or "live orders" not in warning_lower:
@@ -16026,6 +16027,9 @@ def _optimizer_memory_state_errors(report: dict[str, Any]) -> list[str]:
             errors.append(f"FAILED candidate must preserve positive failure_count: {candidate_id}")
         if status == "FAILED" and record.get("primary_root_cause_code") == "UNKNOWN_ROOT_CAUSE":
             errors.append(f"FAILED candidate must not be promoted with UNKNOWN_ROOT_CAUSE: {candidate_id}")
+        if status == "ACTIVE" or record.get("last_outcome_status") == "IMPROVED_AFTER_COST":
+            if not has_required_performance_source_ids(source_artifact_ids, candidate_id=str(candidate_id)):
+                errors.append(f"ACTIVE optimizer memory record requires candidate-scoped performance source artifact ids: {candidate_id}")
 
     if report.get("memory_status") == "ACTIVE_APPEND_ONLY":
         if report.get("blockers"):

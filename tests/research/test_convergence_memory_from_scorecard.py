@@ -245,6 +245,55 @@ class ConvergenceMemoryFromScorecardTest(unittest.TestCase):
         self.assertFalse(memory["live_order_allowed"])
         self.assertFalse(memory["scale_up_allowed"])
 
+    def test_untrusted_ranking_claim_blocks_failure_analysis_and_optimizer_memory(self):
+        scorecard = _ranking_ready_scorecard()
+        mutated = copy.deepcopy(scorecard)
+        mutated["source_evidence_ids"] = [
+            source_id
+            for source_id in mutated["source_evidence_ids"]
+            if not str(source_id).startswith(("closed_trades:", "execution_quality:", "performance_summary:"))
+        ]
+        mutated["performance_source_binding_status"] = "MISSING_OR_MISMATCHED"
+        mutated["performance_source_history_id"] = None
+        mutated["performance_source_history_hash"] = None
+        self.assertTrue(mutated["ranking_eligible"])
+        self.assertEqual(mutated["blockers"], [])
+
+        failure = failure_analysis_from_scorecard(mutated)
+        optimizer_memory = optimizer_memory_state_from_scorecard(mutated, failure_analysis=failure)
+        strategy_memory = strategy_performance_memory_from_scorecard(mutated, extra_source_modes=["SHADOW"])
+        objective_profile = convergence_objective_profile_from_scorecard(mutated, strategy_memory=strategy_memory)
+        exploration_policy = exploration_exploitation_policy_from_scorecard(
+            mutated,
+            objective_profile=objective_profile,
+            strategy_memory=strategy_memory,
+            optimizer_memory=optimizer_memory,
+            failure_analysis=failure,
+        )
+        cycle = profit_convergence_cycle_from_scorecard(
+            mutated,
+            objective_profile=objective_profile,
+            strategy_memory=strategy_memory,
+            optimizer_memory=optimizer_memory,
+            exploration_policy=exploration_policy,
+            failure_analysis=failure,
+        )
+
+        self.assertIsNotNone(failure)
+        self.assertEqual(_failure_analysis_errors(failure), [])
+        self.assertEqual(_optimizer_memory_state_errors(optimizer_memory), [])
+        self.assertEqual(_exploration_exploitation_policy_errors(exploration_policy), [])
+        self.assertEqual(_profit_convergence_cycle_errors(cycle), [])
+        self.assertEqual(failure["primary_root_cause_code"], "EXECUTION_FEEDBACK_DIVERGENT")
+        self.assertEqual(optimizer_memory["candidate_memory_records"][-1]["memory_record_status"], "BLOCKED")
+        self.assertEqual(optimizer_memory["candidate_memory_records"][-1]["last_outcome_status"], "BLOCKED_BY_GUARDRAIL")
+        self.assertEqual(optimizer_memory["blocked_candidate_count"], 1)
+        self.assertEqual(cycle["cycle_status"], "BLOCKED")
+        self.assertFalse(cycle["candidate_ranking_allowed_for_paper"])
+        self.assertIn("EXECUTION_FEEDBACK_DIVERGENT", {blocker["code"] for blocker in cycle["blockers"]})
+        self.assertFalse(optimizer_memory["live_order_allowed"])
+        self.assertFalse(cycle["live_order_allowed"])
+
     def test_blocked_scorecard_creates_failure_analysis_and_optimizer_memory(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="convergence-memory-blocked")
         scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)

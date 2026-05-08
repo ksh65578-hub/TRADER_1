@@ -401,6 +401,39 @@ def _scorecard_performance_source_bound(scorecard: dict[str, Any]) -> bool:
     )
 
 
+def _scorecard_ranking_claim_trusted(scorecard: dict[str, Any]) -> bool:
+    return (
+        scorecard.get("ranking_eligible") is True
+        and not scorecard.get("blockers")
+        and scorecard.get("performance_ready") is True
+        and _scorecard_performance_source_bound(scorecard)
+        and _scorecard_robustness_passes(scorecard)
+    )
+
+
+def _untrusted_ranking_claim_blocker(scorecard: dict[str, Any]) -> dict[str, str] | None:
+    if scorecard.get("ranking_eligible") is not True:
+        return None
+    if not _scorecard_performance_source_bound(scorecard):
+        return blocker(
+            "EXECUTION_FEEDBACK_DIVERGENT",
+            "Ranking claim is ignored because candidate-scoped closed-trade, execution-quality, and performance-summary source binding is missing.",
+        )
+    if scorecard.get("performance_ready") is not True:
+        return blocker(
+            "EXECUTION_FEEDBACK_DIVERGENT",
+            "Ranking claim is ignored because closed-trade, exit-policy, regime, fill-quality, and realized-vs-expected performance gates are not ready.",
+        )
+    if not _scorecard_robustness_passes(scorecard):
+        return blocker(
+            "OVERFIT_RISK_HIGH",
+            "Ranking claim is ignored because OOS, walk-forward, bootstrap, and overfit gates have not all passed.",
+        )
+    if scorecard.get("blockers"):
+        return blocker("CONVERGENCE_CLAIM_UNVERIFIED", "Ranking claim is ignored because scorecard blockers are present.")
+    return None
+
+
 def _exploration_candidate_count(scorecard: dict[str, Any]) -> int:
     evaluated = _int_value(scorecard.get("evaluated_symbol_count"), 0)
     paper_review = _int_value(scorecard.get("paper_entry_review_symbol_count"), 0)
@@ -481,6 +514,7 @@ def exploration_exploitation_policy_from_scorecard(
         and (objective_profile or {}).get("objective_status") != "BLOCKED"
         and not any(item.get("code") in {"COST_AFTER_EDGE_UNVERIFIED", "FEE_EXCEEDS_EDGE"} for item in scorecard.get("blockers", []))
     )
+    ranking_claim_trusted = _scorecard_ranking_claim_trusted(scorecard)
     cooldown_cycles = min(5, max(1, _int_value((failure_analysis or {}).get("repeated_failure_count"), 0))) if failure_analysis else 0
     blockers = _dedupe_blockers(
         [
@@ -491,6 +525,9 @@ def exploration_exploitation_policy_from_scorecard(
             *_exploration_policy_dependency_blockers(statuses),
         ]
     )
+    untrusted_ranking_blocker = _untrusted_ranking_claim_blocker(scorecard)
+    if untrusted_ranking_blocker is not None and untrusted_ranking_blocker["code"] not in {item["code"] for item in blockers}:
+        blockers.append(untrusted_ranking_blocker)
     if "SHADOW" not in source_mode_set and not any(item["code"] == "MEASUREMENT_MISSING" for item in blockers):
         blockers.append(
             blocker(
@@ -519,7 +556,7 @@ def exploration_exploitation_policy_from_scorecard(
         all_dependencies_pass
         and candidate_budget_status == "PASS"
         and objective_valid
-        and scorecard.get("ranking_eligible") is True
+        and ranking_claim_trusted
         and {"PAPER", "SHADOW"}.issubset(source_mode_set)
         and cooldown_cycles == 0
         and not blockers
@@ -674,6 +711,7 @@ def profit_convergence_cycle_from_scorecard(
     raw_pnl_improved = gross_bps > 0
     net_ev_positive = net_bps > 0
     raw_positive_net_negative = raw_pnl_improved and not net_ev_positive
+    ranking_claim_trusted = _scorecard_ranking_claim_trusted(scorecard)
     pass_count = sum(1 for status in statuses.values() if status == "PASS")
     dependency_all_pass = pass_count == len(PROFIT_CONVERGENCE_CYCLE_DEPENDENCY_FIELDS)
     model_drift_status = "NO_DRIFT" if statuses["model_drift_validator_status"] == "PASS" else "NOT_EVALUATED"
@@ -686,6 +724,9 @@ def profit_convergence_cycle_from_scorecard(
             *_dependency_blockers(statuses),
         ]
     )
+    untrusted_ranking_blocker = _untrusted_ranking_claim_blocker(scorecard)
+    if untrusted_ranking_blocker is not None and untrusted_ranking_blocker["code"] not in {item["code"] for item in blockers}:
+        blockers.append(untrusted_ranking_blocker)
     if raw_positive_net_negative and not {"COST_AFTER_EDGE_UNVERIFIED", "FEE_EXCEEDS_EDGE"} & {item["code"] for item in blockers}:
         blockers.append(
             blocker(
@@ -706,7 +747,7 @@ def profit_convergence_cycle_from_scorecard(
         and data_fresh
         and net_ev_positive
         and not blockers
-        and scorecard.get("ranking_eligible") is True
+        and ranking_claim_trusted
         and model_drift_status == "NO_DRIFT"
     )
     if local_review_allowed:
@@ -716,7 +757,8 @@ def profit_convergence_cycle_from_scorecard(
         ranking_allowed = True
         blocks_promotion = False
     else:
-        cycle_status = "BLOCKED" if scorecard.get("blockers") or failure_analysis is not None or raw_positive_net_negative else "COLLECTING"
+        hard_untrusted_ranking_claim = scorecard.get("ranking_eligible") is True and not ranking_claim_trusted
+        cycle_status = "BLOCKED" if scorecard.get("blockers") or failure_analysis is not None or raw_positive_net_negative or hard_untrusted_ranking_claim else "COLLECTING"
         convergence_claim = "BLOCKED" if cycle_status == "BLOCKED" else "NO_CLAIM"
         objective_basis = "NET_EV_AFTER_COST" if net_ev_positive else "BLOCKED_NO_VALID_OBJECTIVE"
         ranking_allowed = False
@@ -1018,8 +1060,12 @@ def _root_cause_from_scorecard(scorecard: dict[str, Any]) -> str:
         code = str(item.get("code") or "")
         if code in ROOT_CAUSE_BY_BLOCKER:
             return ROOT_CAUSE_BY_BLOCKER[code]
-    if scorecard.get("performance_source_binding_status") != "PASS":
-        return "UNKNOWN_ROOT_CAUSE"
+    if not _scorecard_performance_source_bound(scorecard):
+        return "EXECUTION_FEEDBACK_DIVERGENT"
+    if scorecard.get("performance_ready") is not True:
+        return "EXECUTION_FEEDBACK_DIVERGENT"
+    if not _scorecard_robustness_passes(scorecard):
+        return "OVERFIT_RISK_HIGH"
     if scorecard.get("ranking_eligible") is not True:
         return "UNKNOWN_ROOT_CAUSE"
     return "UNKNOWN_ROOT_CAUSE"
@@ -1031,7 +1077,7 @@ def failure_analysis_from_scorecard(
     authority: dict[str, str] | None = None,
     previous_failure_reports: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
-    if scorecard.get("ranking_eligible") is True and not scorecard.get("blockers"):
+    if _scorecard_ranking_claim_trusted(scorecard):
         return None
     previous = [
         item
@@ -1112,9 +1158,10 @@ def optimizer_memory_state_from_scorecard(
 ) -> dict[str, Any]:
     previous_records = list((previous_memory_state or {}).get("candidate_memory_records") or [])
     previous_count = sum(1 for item in previous_records if item.get("candidate_id") == scorecard.get("candidate_id"))
-    blocked = scorecard.get("ranking_eligible") is not True or bool(scorecard.get("blockers"))
+    ranking_claim_trusted = _scorecard_ranking_claim_trusted(scorecard)
+    blocked = not ranking_claim_trusted or bool(scorecard.get("blockers"))
     primary_root = (failure_analysis or {}).get("primary_root_cause_code") or ("NONE" if not blocked else _root_cause_from_scorecard(scorecard))
-    if scorecard.get("ranking_eligible") is True and not scorecard.get("blockers"):
+    if ranking_claim_trusted:
         memory_status = "ACTIVE"
         outcome_status = "IMPROVED_AFTER_COST"
         failure_count = 0
