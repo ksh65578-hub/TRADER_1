@@ -9,6 +9,12 @@ from tools.run_upbit_paper_candidate_scorecard import (
     _select_scorecard_runtime_sample,
     build_current_upbit_paper_candidate_scorecard,
 )
+from trader1.adapters.upbit.market_data import (
+    build_upbit_krw_market_symbols_from_rest_payload,
+    build_upbit_public_candle_fixture,
+    build_upbit_public_krw_symbol_discovery_report_from_payload,
+    build_upbit_public_ticker_snapshot_from_rest_payload,
+)
 from trader1.research.profitability.candidate_scorecard import (
     PERFORMANCE_PASS,
     performance_source_evidence_id,
@@ -226,6 +232,77 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertFalse(profit_cycle["live_order_allowed"])
         blocker_codes = {blocker["code"] for blocker in scorecard["blockers"]}
         self.assertTrue({"OOS_MISSING", "WALK_FORWARD_MISSING", "BOOTSTRAP_UNSTABLE", "OVERFIT_RISK_HIGH"}.issubset(blocker_codes))
+
+    def test_bounded_public_discovery_can_supply_non_live_alternative_candidate(self):
+        def fake_market_symbols_fetcher(*, session_id: str, timeout_seconds: float):
+            payload = [{"market": "KRW-ETH"}, {"market": "KRW-XRP"}]
+            return build_upbit_public_krw_symbol_discovery_report_from_payload(
+                payload=payload,
+                session_id=session_id,
+            )
+
+        def fake_ticker_fetcher(*, symbols: list[str], session_id: str, timeout_seconds: float):
+            requested = build_upbit_krw_market_symbols_from_rest_payload([{"market": symbol} for symbol in symbols])
+            return build_upbit_public_ticker_snapshot_from_rest_payload(
+                requested_symbols=requested,
+                session_id=session_id,
+                payload=[
+                    {
+                        "market": "KRW-ETH",
+                        "trade_price": "1000000",
+                        "acc_trade_price_24h": "9000000000",
+                        "signed_change_rate": "0.035",
+                        "acc_trade_volume_24h": "9000",
+                    }
+                ],
+            )
+
+        def fake_candle_fetcher(*, symbol: str, session_id: str, timeout_seconds: float):
+            return build_upbit_public_candle_fixture(
+                symbol=symbol,
+                session_id=session_id,
+                profile="UPTREND_PULLBACK",
+            )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _run_short_paper(root)
+
+            result = build_current_upbit_paper_candidate_scorecard(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                attempt_public_discovery=True,
+                candidate_discovery_symbol_limit=1,
+                market_symbols_fetcher=fake_market_symbols_fetcher,
+                public_ticker_fetcher=fake_ticker_fetcher,
+                public_candle_fetcher=fake_candle_fetcher,
+            )
+            generation_report = _load_written(root, result, "candidate_generation_report_path")
+            discovery_runtime = _load_written(root, result, "candidate_discovery_runtime_cycle_path")
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["candidate_discovery_status"], "PASS")
+        self.assertIn("read-only public KRW", result["candidate_discovery_message"])
+        self.assertEqual(result["candidate_discovery_symbol_count"], 1)
+        self.assertGreaterEqual(result["candidate_discovery_ranked_symbol_count"], 1)
+        self.assertGreaterEqual(result["candidate_discovery_eligible_symbol_count"], 1)
+        self.assertEqual(generation_report["generation_status"], "ALTERNATIVE_REVIEW_READY")
+        self.assertEqual(generation_report["best_alternative_symbol"], "KRW-ETH")
+        self.assertEqual(generation_report["alternative_candidate_count"], 1)
+        best_item = next(
+            item
+            for item in generation_report["candidate_items"]
+            if item["candidate_id"] == generation_report["best_alternative_candidate_id"]
+        )
+        self.assertEqual(best_item["candidate_source_role"], "BOUNDED_PUBLIC_DISCOVERY_RUNTIME")
+        self.assertEqual(best_item["source_runtime_cycle_id"], discovery_runtime["cycle_id"])
+        self.assertFalse(generation_report["live_order_allowed"])
+        self.assertFalse(result["credential_load_attempted"])
+        self.assertFalse(result["private_endpoint_called"])
+        self.assertFalse(result["order_endpoint_called"])
+        self.assertFalse(result["order_adapter_called"])
+        self.assertFalse(result["live_key_loaded"])
+        self.assertFalse(result["live_order_allowed"])
 
     def test_missing_bound_cycle_sources_overwrite_stale_history_with_blocked_truth(self):
         with tempfile.TemporaryDirectory() as tmp:

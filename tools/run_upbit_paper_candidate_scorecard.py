@@ -4,7 +4,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 sys.dont_write_bytecode = True
 
@@ -20,6 +20,12 @@ from trader1.research.profitability.candidate_scorecard import (
     write_upbit_paper_candidate_generation_report,
     write_upbit_paper_candidate_scorecard,
 )
+from trader1.adapters.upbit.market_data import (
+    DEFAULT_DISCOVERY_EVALUATION_LIMIT,
+    fetch_upbit_krw_market_symbols_read_only,
+    fetch_upbit_public_ticker_snapshot_read_only,
+    rank_upbit_krw_symbols_by_public_ticker,
+)
 from trader1.research.profitability.convergence_memory import write_upbit_paper_convergence_memory_artifacts
 from trader1.research.profitability.overfit_diagnostic import (
     overfit_diagnostic_from_upbit_paper_runtime,
@@ -31,7 +37,15 @@ from trader1.research.replay.replay_runner import (
     validate_public_replay_robustness_report,
 )
 from trader1.research.shadow.shadow_runner import validate_paper_shadow_evidence_accumulation_report
-from trader1.runtime.paper.upbit_paper_runtime import validate_upbit_paper_runtime_cycle_report
+from trader1.runtime.paper.upbit_paper_runtime import (
+    build_upbit_paper_runtime_cycle_report,
+    validate_upbit_paper_runtime_cycle_report,
+)
+from trader1.runtime.paper.upbit_public_collector import (
+    build_upbit_public_market_data_collection_report,
+    durable_atomic_write_json,
+    validate_upbit_public_market_data_collection_report,
+)
 from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
     build_upbit_paper_runtime_sample_history,
     validate_upbit_paper_runtime_sample_history_sources,
@@ -53,6 +67,10 @@ def _relative_path(path: Path, root: Path) -> str:
 
 def _paper_runtime_base(root: Path, session_id: str) -> Path:
     return root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / session_id
+
+
+def _candidate_discovery_runtime_path(root: Path, session_id: str) -> Path:
+    return _paper_runtime_base(root, session_id) / "profitability" / "candidate_generation_discovery_runtime_cycle.json"
 
 
 def _paper_shadow_evidence_accumulation_path(root: Path, session_id: str) -> Path:
@@ -148,6 +166,126 @@ def _safe_int(value: Any) -> int:
         return 0
 
 
+def _candidate_discovery_context(
+    *,
+    status: str,
+    blocker_code: str | None,
+    message: str,
+    symbol_count: int,
+    ranked_symbol_count: int = 0,
+    eligible_symbol_count: int = 0,
+) -> dict[str, Any]:
+    return {
+        "status": status,
+        "blocker_code": blocker_code,
+        "message": message,
+        "symbol_count": symbol_count,
+        "ranked_symbol_count": ranked_symbol_count,
+        "eligible_symbol_count": eligible_symbol_count,
+        "credential_load_attempted": False,
+        "private_endpoint_called": False,
+        "order_endpoint_called": False,
+        "order_adapter_called": False,
+        "live_key_loaded": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
+def _build_bounded_public_discovery_runtime_cycle(
+    *,
+    session_id: str,
+    symbol_limit: int,
+    timeout_seconds: float,
+    market_symbols_fetcher: Callable[..., dict[str, Any]] | None = None,
+    public_ticker_fetcher: Callable[..., dict[str, Any]] | None = None,
+    public_candle_fetcher: Callable[..., dict[str, Any]] | None = None,
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    safe_limit = max(1, min(int(symbol_limit), DEFAULT_DISCOVERY_EVALUATION_LIMIT))
+    discovery_fetcher = market_symbols_fetcher or fetch_upbit_krw_market_symbols_read_only
+    ticker_fetcher = public_ticker_fetcher or fetch_upbit_public_ticker_snapshot_read_only
+    symbol_report = discovery_fetcher(session_id=session_id, timeout_seconds=timeout_seconds)
+    symbols = [str(symbol) for symbol in symbol_report.get("symbols") or [] if str(symbol).startswith("KRW-")]
+    if symbol_report.get("discovery_status") != "PASS" or not symbols:
+        return None, _candidate_discovery_context(
+            status="BLOCKED",
+            blocker_code=symbol_report.get("primary_blocker_code") or "DATA_UNAVAILABLE",
+            message="bounded public candidate discovery could not load the KRW symbol universe",
+            symbol_count=len(symbols),
+        )
+
+    ticker_report = ticker_fetcher(symbols=symbols, session_id=session_id, timeout_seconds=timeout_seconds)
+    ticker_by_symbol = ticker_report.get("ticker_by_symbol") if isinstance(ticker_report.get("ticker_by_symbol"), dict) else {}
+    ranking = rank_upbit_krw_symbols_by_public_ticker(
+        symbols=symbols,
+        ticker_by_symbol=ticker_by_symbol,
+        session_id=session_id,
+        limit=safe_limit,
+    )
+    selected_symbols = [str(symbol) for symbol in ranking.get("selected_symbols_for_candle_evaluation") or []]
+    if ranking.get("ranking_status") != "PASS" or not selected_symbols:
+        return None, _candidate_discovery_context(
+            status="BLOCKED",
+            blocker_code=ranking.get("primary_blocker_code") or "DATA_UNAVAILABLE",
+            message="bounded public candidate discovery could not rank KRW symbols for candle evaluation",
+            symbol_count=0,
+            ranked_symbol_count=int(ranking.get("ranked_symbol_count") or 0),
+            eligible_symbol_count=int(ranking.get("eligible_symbol_count") or 0),
+        )
+
+    collection_reports: list[dict[str, Any]] = []
+    for index, symbol in enumerate(selected_symbols[:safe_limit], start=1):
+        collection = build_upbit_public_market_data_collection_report(
+            collector_id=f"candidate-generation-discovery-{index}-{symbol}",
+            session_id=session_id,
+            symbol=symbol,
+            attempt_network=True,
+            fetcher=public_candle_fetcher,
+            timeout_seconds=timeout_seconds,
+        )
+        validation = validate_upbit_public_market_data_collection_report(collection)
+        if validation.status == "PASS":
+            collection_reports.append(collection)
+
+    if not collection_reports:
+        return None, _candidate_discovery_context(
+            status="BLOCKED",
+            blocker_code="DATA_UNAVAILABLE",
+            message="bounded public candidate discovery found no valid public candle collections",
+            symbol_count=0,
+            ranked_symbol_count=int(ranking.get("ranked_symbol_count") or 0),
+            eligible_symbol_count=int(ranking.get("eligible_symbol_count") or 0),
+        )
+
+    runtime = build_upbit_paper_runtime_cycle_report(
+        cycle_id=f"candidate-generation-discovery-{session_id}",
+        session_id=session_id,
+        symbol=str(collection_reports[0].get("symbol") or selected_symbols[0]),
+        source_collection_reports=collection_reports,
+    )
+    runtime_validation = validate_upbit_paper_runtime_cycle_report(runtime)
+    if runtime_validation.status != "PASS":
+        return None, _candidate_discovery_context(
+            status=runtime_validation.status,
+            blocker_code=runtime_validation.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
+            message=runtime_validation.message,
+            symbol_count=len(collection_reports),
+            ranked_symbol_count=int(ranking.get("ranked_symbol_count") or 0),
+            eligible_symbol_count=int(ranking.get("eligible_symbol_count") or 0),
+        )
+
+    return runtime, _candidate_discovery_context(
+        status="PASS",
+        blocker_code=None,
+        message="bounded public candidate discovery runtime cycle built from read-only public KRW market and candle data",
+        symbol_count=len(collection_reports),
+        ranked_symbol_count=int(ranking.get("ranked_symbol_count") or 0),
+        eligible_symbol_count=int(ranking.get("eligible_symbol_count") or 0),
+    )
+
+
 def _select_scorecard_runtime_sample(history: dict[str, Any]) -> tuple[dict[str, Any], str]:
     samples = [sample for sample in history.get("samples") or [] if isinstance(sample, dict)]
     if not samples:
@@ -180,7 +318,17 @@ def _select_scorecard_runtime_sample(history: dict[str, Any]) -> tuple[dict[str,
     return samples[-1], "LATEST_RUNTIME_SAMPLE"
 
 
-def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str) -> dict[str, Any]:
+def build_current_upbit_paper_candidate_scorecard(
+    *,
+    root: Path,
+    session_id: str,
+    attempt_public_discovery: bool = False,
+    candidate_discovery_symbol_limit: int = 12,
+    candidate_discovery_timeout_seconds: float = 3.0,
+    market_symbols_fetcher: Callable[..., dict[str, Any]] | None = None,
+    public_ticker_fetcher: Callable[..., dict[str, Any]] | None = None,
+    public_candle_fetcher: Callable[..., dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     root = Path(root).resolve()
     history = build_upbit_paper_runtime_sample_history(root=root, session_id=session_id)
     history_result = validate_upbit_paper_runtime_sample_history_sources(root=root, history=history)
@@ -278,10 +426,36 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
             "SCORECARD_SCHEMA_INVALID",
             scorecard_errors=scorecard_errors,
         )
+    candidate_discovery_runtime: dict[str, Any] | None = None
+    candidate_discovery_context = _candidate_discovery_context(
+        status="NOT_REQUESTED",
+        blocker_code=None,
+        message="bounded public candidate discovery was not requested",
+        symbol_count=0,
+    )
     candidate_generation_report = candidate_generation_report_from_upbit_paper_runtime_cycle(
         runtime,
         candidate_scorecard=scorecard,
     )
+    if (
+        attempt_public_discovery
+        and candidate_generation_report.get("generation_status") == "NO_ALTERNATIVE_READY"
+        and candidate_generation_report.get("selected_candidate_retired_for_ranking") is True
+    ):
+        candidate_discovery_runtime, candidate_discovery_context = _build_bounded_public_discovery_runtime_cycle(
+            session_id=session_id,
+            symbol_limit=candidate_discovery_symbol_limit,
+            timeout_seconds=candidate_discovery_timeout_seconds,
+            market_symbols_fetcher=market_symbols_fetcher,
+            public_ticker_fetcher=public_ticker_fetcher,
+            public_candle_fetcher=public_candle_fetcher,
+        )
+        if candidate_discovery_runtime is not None:
+            candidate_generation_report = candidate_generation_report_from_upbit_paper_runtime_cycle(
+                runtime,
+                candidate_scorecard=scorecard,
+                additional_runtime_cycle_reports=[candidate_discovery_runtime],
+            )
     generation_status, generation_message, generation_blocker = validate_candidate_generation_report(
         candidate_generation_report,
         candidate_scorecard=scorecard,
@@ -305,6 +479,10 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
         root=root,
         report=candidate_generation_report,
     )
+    candidate_discovery_runtime_path = None
+    if candidate_discovery_runtime is not None:
+        candidate_discovery_runtime_path = _candidate_discovery_runtime_path(root, session_id)
+        durable_atomic_write_json(candidate_discovery_runtime_path, candidate_discovery_runtime)
     convergence_memory = write_upbit_paper_convergence_memory_artifacts(
         root=root,
         scorecard=scorecard,
@@ -320,6 +498,17 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
         "overfit_diagnostic_path": _relative_path(diagnostic_path, root),
         "candidate_scorecard_path": _relative_path(scorecard_path, root),
         "candidate_generation_report_path": _relative_path(candidate_generation_path, root),
+        "candidate_discovery_runtime_cycle_path": (
+            _relative_path(candidate_discovery_runtime_path, root)
+            if candidate_discovery_runtime_path is not None
+            else None
+        ),
+        "candidate_discovery_status": candidate_discovery_context["status"],
+        "candidate_discovery_blocker_code": candidate_discovery_context["blocker_code"],
+        "candidate_discovery_message": candidate_discovery_context["message"],
+        "candidate_discovery_symbol_count": candidate_discovery_context["symbol_count"],
+        "candidate_discovery_ranked_symbol_count": candidate_discovery_context["ranked_symbol_count"],
+        "candidate_discovery_eligible_symbol_count": candidate_discovery_context["eligible_symbol_count"],
         "strategy_performance_memory_path": _relative_path(convergence_memory["strategy_performance_memory_path"], root),
         "convergence_objective_profile_path": _relative_path(
             convergence_memory["convergence_objective_profile_path"],
@@ -407,6 +596,11 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
             blocker["code"] for blocker in convergence_memory["profit_convergence_cycle_report"]["blockers"]
         ],
         "invalid_runtime_source_count": history["invalid_source_count"],
+        "credential_load_attempted": False,
+        "private_endpoint_called": False,
+        "order_endpoint_called": False,
+        "order_adapter_called": False,
+        "live_key_loaded": False,
         "live_order_ready": False,
         "live_order_allowed": False,
         "can_live_trade": False,
@@ -420,12 +614,21 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--session-id", default="mvp1_upbit_paper_launcher")
+    parser.add_argument("--attempt-public-discovery", action="store_true")
+    parser.add_argument("--candidate-discovery-symbol-limit", type=int, default=12)
+    parser.add_argument("--candidate-discovery-timeout-seconds", type=float, default=3.0)
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    result = build_current_upbit_paper_candidate_scorecard(root=args.root, session_id=args.session_id)
+    result = build_current_upbit_paper_candidate_scorecard(
+        root=args.root,
+        session_id=args.session_id,
+        attempt_public_discovery=args.attempt_public_discovery,
+        candidate_discovery_symbol_limit=args.candidate_discovery_symbol_limit,
+        candidate_discovery_timeout_seconds=args.candidate_discovery_timeout_seconds,
+    )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0 if result.get("status") == "PASS" else 1
 

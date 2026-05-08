@@ -9,6 +9,7 @@ from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
 from trader1.research.profitability.candidate_scorecard import (
     PERFORMANCE_PASS,
     ROBUSTNESS_PASS,
+    candidate_generation_report_hash,
     candidate_generation_report_from_upbit_paper_runtime_cycle,
     candidate_scorecard_from_upbit_paper_runtime_cycle,
     has_required_performance_source_ids,
@@ -513,12 +514,41 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertEqual(report["alternative_candidate_count"], 0)
         self.assertIsNone(report["best_alternative_candidate_id"])
         self.assertIn("bounded public discovery", report["next_action"])
+        self.assertEqual(item_by_id[scorecard["candidate_id"]]["candidate_source_role"], "CURRENT_RUNTIME_CYCLE")
+        self.assertEqual(item_by_id[scorecard["candidate_id"]]["source_runtime_cycle_id"], runtime["cycle_id"])
+        self.assertEqual(item_by_id[scorecard["candidate_id"]]["source_runtime_cycle_hash"], runtime["cycle_hash"])
         self.assertFalse(report["live_order_ready"])
         self.assertFalse(report["live_order_allowed"])
         self.assertFalse(report["can_live_trade"])
         self.assertFalse(report["scale_up_allowed"])
         self.assertFalse(report["private_endpoint_called"])
         self.assertFalse(report["order_adapter_called"])
+
+        missing_source_role = copy.deepcopy(report)
+        missing_source_role["candidate_items"][0].pop("candidate_source_role")
+        missing_source_role["generation_hash"] = candidate_generation_report_hash(missing_source_role)
+        validation_status, validation_message, blocker_code = validate_candidate_generation_report(
+            missing_source_role,
+            candidate_scorecard=scorecard,
+        )
+        self.assertEqual(validation_status, "FAIL")
+        self.assertEqual(blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+        self.assertIn("missing source", validation_message)
+
+        missing_source_evidence = copy.deepcopy(report)
+        missing_source_evidence["source_evidence_ids"] = [
+            source_id
+            for source_id in missing_source_evidence["source_evidence_ids"]
+            if not source_id.startswith("upbit_paper_runtime_cycle:")
+        ]
+        missing_source_evidence["generation_hash"] = candidate_generation_report_hash(missing_source_evidence)
+        validation_status, validation_message, blocker_code = validate_candidate_generation_report(
+            missing_source_evidence,
+            candidate_scorecard=scorecard,
+        )
+        self.assertEqual(validation_status, "FAIL")
+        self.assertEqual(blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+        self.assertIn("source binding", validation_message)
 
     def test_candidate_generation_report_selects_different_entry_review_alternative(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-candidate-generation-alt")
@@ -557,7 +587,60 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertEqual(report["best_alternative_symbol"], "KRW-ETH")
         self.assertEqual(report["alternative_candidate_count"], 1)
         self.assertTrue(report["selected_candidate_retired_for_ranking"])
+        best_item = next(item for item in report["candidate_items"] if item["candidate_id"] == "KRW-ETH-pullback-trend-long")
+        self.assertEqual(best_item["candidate_source_role"], "CURRENT_RUNTIME_CYCLE")
         self.assertIn("bounded public replay robustness", report["next_action"])
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_candidate_generation_report_uses_bounded_public_discovery_runtime_alternative(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-candidate-generation-discovery-base")
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses={
+                "oos_status": "FAIL",
+                "walk_forward_status": "FAIL",
+                "bootstrap_status": "FAIL",
+                "overfit_status": "HIGH",
+            },
+            robustness_source_evidence_ids=[
+                "public_replay_robustness:replay-scorecard-runtime-candidate-generation-discovery-base:" + "A" * 64,
+                "public_market_data:KRW-BTC:" + "B" * 64,
+            ],
+        )
+        discovery_runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="scorecard-runtime-candidate-generation-discovery-alt",
+            market_data=build_upbit_public_candle_fixture(
+                symbol="KRW-ETH",
+                session_id="mvp4_upbit_paper_runtime",
+                profile="UPTREND_PULLBACK",
+            ),
+            symbol="KRW-ETH",
+        )
+
+        report = candidate_generation_report_from_upbit_paper_runtime_cycle(
+            runtime,
+            candidate_scorecard=scorecard,
+            additional_runtime_cycle_reports=[discovery_runtime],
+        )
+        validation_status, validation_message, blocker_code = validate_candidate_generation_report(
+            report,
+            candidate_scorecard=scorecard,
+        )
+        best_item = next(item for item in report["candidate_items"] if item["candidate_id"] == "KRW-ETH-pullback-trend-long")
+
+        self.assertEqual(validation_status, "PASS", validation_message)
+        self.assertEqual(blocker_code, None)
+        self.assertEqual(report["generation_status"], "ALTERNATIVE_REVIEW_READY")
+        self.assertEqual(report["best_alternative_candidate_id"], "KRW-ETH-pullback-trend-long")
+        self.assertEqual(best_item["candidate_source_role"], "BOUNDED_PUBLIC_DISCOVERY_RUNTIME")
+        self.assertEqual(best_item["source_runtime_cycle_id"], discovery_runtime["cycle_id"])
+        self.assertEqual(best_item["source_runtime_cycle_hash"], discovery_runtime["cycle_hash"])
+        self.assertTrue(
+            any(
+                source_id == f"upbit_paper_runtime_cycle:{discovery_runtime['cycle_id']}:{discovery_runtime['cycle_hash']}"
+                for source_id in report["source_evidence_ids"]
+            )
+        )
         self.assertFalse(report["live_order_allowed"])
 
     def test_robustness_source_evidence_must_cover_required_kinds(self):
