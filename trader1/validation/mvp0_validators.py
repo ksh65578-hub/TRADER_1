@@ -18708,6 +18708,7 @@ def _exploration_exploitation_policy_errors(report: dict[str, Any]) -> list[str]
     transition_decision = report.get("transition_decision")
     policy_status = report.get("policy_status")
     recommendation_scope = report.get("recommendation_scope")
+    source_evidence_ids = [str(item) for item in report.get("source_evidence_ids", []) if isinstance(item, str)]
     blockers = report.get("blockers", [])
 
     if non_pass_dependency:
@@ -18752,6 +18753,13 @@ def _exploration_exploitation_policy_errors(report: dict[str, Any]) -> list[str]
             errors.append("paper ranking exploitation requires PAPER_RANKING_REVIEW_ONLY scope")
         if not report.get("exploitation_candidate_id"):
             errors.append("paper ranking exploitation requires exploitation_candidate_id")
+        if not has_required_performance_source_ids(
+            source_evidence_ids,
+            candidate_id=str(report.get("exploitation_candidate_id", "")),
+        ):
+            errors.append(
+                "paper ranking exploitation requires candidate-scoped closed trade, execution quality, and performance summary source ids"
+            )
         if report.get("blocks_promotion") is True:
             errors.append("paper ranking exploitation cannot be marked blocks_promotion=true")
     else:
