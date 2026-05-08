@@ -20,6 +20,9 @@
   "source_evidence_ids": [
     "paper_convergence_assessment",
     "shadow_convergence_assessment",
+    "oos:convergence-assessment-robustness-cycle-001:2222222222222222222222222222222222222222222222222222222222222222",
+    "walk_forward:convergence-assessment-robustness-cycle-001:2222222222222222222222222222222222222222222222222222222222222222",
+    "bootstrap:convergence-assessment-robustness-cycle-001:2222222222222222222222222222222222222222222222222222222222222222",
     "closed_trades:candidate_trend_pullback_krw_btc_001:convergence-assessment-performance-history-001:1111111111111111111111111111111111111111111111111111111111111111",
     "execution_quality:candidate_trend_pullback_krw_btc_001:convergence-assessment-performance-history-001:1111111111111111111111111111111111111111111111111111111111111111",
     "performance_summary:candidate_trend_pullback_krw_btc_001:convergence-assessment-performance-history-001:1111111111111111111111111111111111111111111111111111111111111111"

@@ -20,6 +20,9 @@ class ConvergenceAssessmentValidatorTest(unittest.TestCase):
         errors = _convergence_assessment_errors(report)
 
         self.assertEqual(errors, [])
+        source_ids = report["source_evidence_ids"]
+        for prefix in ("oos:", "walk_forward:", "bootstrap:"):
+            self.assertTrue(any(source_id.startswith(prefix) for source_id in source_ids), prefix)
 
     def test_live_permission_is_rejected(self):
         report = load_json(FIXTURE_DIR / "convergence_assessment_live_flag_fail.json")
@@ -62,6 +65,22 @@ class ConvergenceAssessmentValidatorTest(unittest.TestCase):
 
         self.assertIn(
             "improving convergence assessment requires candidate-scoped closed trade, execution quality, and performance summary source ids",
+            errors,
+        )
+
+    def test_improving_assessment_requires_robustness_sources(self):
+        report = load_json(FIXTURE_DIR / "convergence_assessment_pass.json")
+        tampered = copy.deepcopy(report)
+        tampered["source_evidence_ids"] = [
+            source_id
+            for source_id in tampered["source_evidence_ids"]
+            if not source_id.startswith(("oos:", "walk_forward:", "bootstrap:"))
+        ]
+
+        errors = _convergence_assessment_errors(tampered)
+
+        self.assertIn(
+            "improving convergence assessment requires OOS, walk-forward, and bootstrap source evidence ids",
             errors,
         )
 
