@@ -197,6 +197,7 @@
           "enum": [
             null,
             "selected_candidate",
+            "strategy_candidates.candidate_id",
             "symbol_evidence_scorecards.best_candidate_id"
           ]
         },

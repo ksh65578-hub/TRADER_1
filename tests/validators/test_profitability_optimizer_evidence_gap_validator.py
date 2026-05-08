@@ -4,8 +4,10 @@ import unittest
 from pathlib import Path
 
 from tools.run_profitability_maturity_rollup_refresh import (
+    candidate_scorecard_runtime_membership_evidence,
     paper_shadow_next_required_evidence,
     refresh_current_scorecard_inputs,
+    scorecard_review_priority,
     update_promotion_thresholds,
     update_strategy_scorecard_components,
 )
@@ -140,7 +142,7 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
             self.assertIsNone(runtime_linkage["candidate_scorecard_runtime_membership_blocker_code"])
             self.assertIn(
                 runtime_linkage["candidate_scorecard_runtime_membership_source"],
-                {"selected_candidate", "symbol_evidence_scorecards.best_candidate_id"},
+                {"selected_candidate", "strategy_candidates.candidate_id", "symbol_evidence_scorecards.best_candidate_id"},
             )
             self.assertTrue(runtime_linkage["candidate_scorecard_runtime_symbol"])
             self.assertTrue(runtime_linkage["candidate_scorecard_runtime_decision"])
@@ -703,6 +705,67 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
             self.assertTrue(source_evidence["explicit_source_type_blocker"])
         self.assertFalse(rollup["live_order_allowed"])
         self.assertEqual(_profitability_evidence_maturity_rollup_errors(rollup), [])
+
+    def test_maturity_rollup_review_priority_prefers_replay_validated_alternative(self):
+        active_scorecard = {
+            "candidate_id": "KRW-BTC-pullback-trend-long",
+            "ranking_eligible": False,
+            "performance_ready": False,
+            "robustness_ready": False,
+            "net_ev_after_cost_bps": 14.0,
+            "source_evidence_ids": ["upbit_paper_runtime_cycle:active:" + "A" * 64],
+            "blockers": [{"code": "OOS_MISSING"}],
+        }
+        replay_validated_alternative = {
+            "candidate_id": "KRW-ETH-breakout-retest-long",
+            "ranking_eligible": False,
+            "performance_ready": False,
+            "robustness_ready": True,
+            "net_ev_after_cost_bps": 9.0,
+            "source_evidence_ids": [
+                "upbit_paper_runtime_cycle:alternative:" + "B" * 64,
+                "public_replay_robustness:alternative:" + "C" * 64,
+            ],
+            "blockers": [{"code": "SAMPLE_INSUFFICIENT"}],
+        }
+
+        self.assertGreater(
+            scorecard_review_priority(
+                replay_validated_alternative,
+                active_source=False,
+                has_matching_overfit=True,
+            ),
+            scorecard_review_priority(
+                active_scorecard,
+                active_source=True,
+                has_matching_overfit=True,
+            ),
+        )
+
+    def test_maturity_rollup_membership_accepts_runtime_strategy_candidate(self):
+        evidence = candidate_scorecard_runtime_membership_evidence(
+            {
+                "cycle_id": "cycle-1",
+                "selected_candidate": {"candidate_id": "KRW-BTC-pullback-trend-long"},
+                "strategy_candidates": [
+                    {
+                        "candidate_id": "KRW-ETH-breakout-retest-long",
+                        "symbol": "KRW-ETH",
+                        "decision": "PAPER_ENTRY_REVIEW",
+                        "live_order_allowed": False,
+                        "can_live_trade": False,
+                        "scale_up_allowed": False,
+                    }
+                ],
+                "symbol_evidence_scorecards": [],
+            },
+            {"candidate_id": "KRW-ETH-breakout-retest-long"},
+        )
+
+        self.assertEqual(evidence["candidate_scorecard_runtime_membership_status"], "PASS")
+        self.assertEqual(evidence["candidate_scorecard_runtime_membership_source"], "strategy_candidates.candidate_id")
+        self.assertEqual(evidence["candidate_scorecard_runtime_symbol"], "KRW-ETH")
+        self.assertEqual(evidence["candidate_scorecard_runtime_decision"], "PAPER_ENTRY_REVIEW")
 
     def test_maturity_rollup_helper_rejects_robustness_source_type_preliminary_false_pass(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)

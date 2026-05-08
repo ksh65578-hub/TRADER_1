@@ -20208,6 +20208,37 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
                                 errors.append(
                                     f"rollup runtime linkage selected scorecard candidate has forbidden true field: {field}"
                                 )
+                    elif membership_source == "strategy_candidates.candidate_id":
+                        strategy_candidates = runtime_report.get("strategy_candidates", [])
+                        if not isinstance(strategy_candidates, list):
+                            errors.append("rollup runtime linkage source strategy candidates must be a list")
+                            candidate_matches = []
+                        else:
+                            candidate_matches = [
+                                item
+                                for item in strategy_candidates
+                                if isinstance(item, dict) and item.get("candidate_id") == scorecard_candidate_id
+                            ]
+                        if len(candidate_matches) != 1:
+                            errors.append(
+                                "rollup runtime linkage scorecard candidate id is not present in source runtime strategy candidates"
+                            )
+                        else:
+                            candidate_match = candidate_matches[0]
+                            if runtime_linkage.get("candidate_scorecard_runtime_symbol") != candidate_match.get("symbol"):
+                                errors.append("rollup runtime linkage strategy candidate symbol mismatch")
+                            if runtime_linkage.get("candidate_scorecard_runtime_decision") != candidate_match.get("decision"):
+                                errors.append("rollup runtime linkage strategy candidate decision mismatch")
+                            for field in (
+                                "live_order_ready",
+                                "live_order_allowed",
+                                "can_live_trade",
+                                "scale_up_allowed",
+                            ):
+                                if _live_flag_is_true(candidate_match.get(field)):
+                                    errors.append(
+                                        f"rollup runtime linkage strategy candidate has forbidden true field: {field}"
+                                    )
                     else:
                         symbol_scorecards = runtime_report.get("symbol_evidence_scorecards", [])
                         if not isinstance(symbol_scorecards, list):

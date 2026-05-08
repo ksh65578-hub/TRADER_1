@@ -34,6 +34,7 @@ from trader1.research.profitability.overfit_diagnostic import (
     overfit_diagnostic_from_upbit_paper_runtime,
     overfit_diagnostic_report_hash,
     robustness_inputs_from_overfit_diagnostic,
+    write_overfit_diagnostic_report_snapshot,
     write_overfit_diagnostic_report,
 )
 from trader1.research.replay.replay_runner import (
@@ -788,6 +789,7 @@ def _build_and_write_alternative_review_scorecard(
             "blocker_code": None,
             "message": "alternative review scorecard is only written after alternative public replay passes",
             "path": None,
+            "overfit_diagnostic_path": None,
             "candidate_id": alternative_replay_context.get("candidate_id"),
             "ranking_eligible": False,
             "blocker_codes": [],
@@ -798,6 +800,7 @@ def _build_and_write_alternative_review_scorecard(
             "blocker_code": "SNAPSHOT_SCOPE_MISMATCH",
             "message": "alternative review scorecard requires the source runtime and base scorecard",
             "path": None,
+            "overfit_diagnostic_path": None,
             "candidate_id": alternative_replay_context.get("candidate_id"),
             "ranking_eligible": False,
             "blocker_codes": ["SNAPSHOT_SCOPE_MISMATCH"],
@@ -824,6 +827,7 @@ def _build_and_write_alternative_review_scorecard(
             "blocker_code": "SCHEMA_IDENTITY_MISMATCH",
             "message": "alternative review overfit diagnostic failed contract validation",
             "path": None,
+            "overfit_diagnostic_path": None,
             "candidate_id": base_scorecard.get("candidate_id"),
             "ranking_eligible": False,
             "blocker_codes": ["SCHEMA_IDENTITY_MISMATCH"],
@@ -845,16 +849,19 @@ def _build_and_write_alternative_review_scorecard(
             "blocker_code": "SCORECARD_SCHEMA_INVALID",
             "message": "alternative review scorecard failed contract validation",
             "path": None,
+            "overfit_diagnostic_path": None,
             "candidate_id": base_scorecard.get("candidate_id"),
             "ranking_eligible": False,
             "blocker_codes": ["SCORECARD_SCHEMA_INVALID"],
         }
     snapshot_path = write_upbit_paper_candidate_scorecard_snapshot(root=root, scorecard=review_scorecard)
+    diagnostic_snapshot_path = write_overfit_diagnostic_report_snapshot(root=root, report=diagnostic)
     return {
         "status": "PASS",
         "blocker_code": None,
-        "message": "alternative review scorecard snapshot written from passed public replay and runtime-bound performance inputs",
+        "message": "alternative review scorecard and overfit diagnostic snapshots written from passed public replay and runtime-bound performance inputs",
         "path": _relative_path(snapshot_path, root),
+        "overfit_diagnostic_path": _relative_path(diagnostic_snapshot_path, root),
         "candidate_id": review_scorecard["candidate_id"],
         "ranking_eligible": bool(review_scorecard["ranking_eligible"]),
         "blocker_codes": [blocker["code"] for blocker in review_scorecard["blockers"]],
@@ -1184,6 +1191,7 @@ def build_current_upbit_paper_candidate_scorecard(
         "alternative_review_scorecard_blocker_code": alternative_review_scorecard_context["blocker_code"],
         "alternative_review_scorecard_message": alternative_review_scorecard_context["message"],
         "alternative_review_scorecard_path": alternative_review_scorecard_context["path"],
+        "alternative_review_overfit_diagnostic_path": alternative_review_scorecard_context["overfit_diagnostic_path"],
         "alternative_review_scorecard_candidate_id": alternative_review_scorecard_context["candidate_id"],
         "alternative_review_scorecard_ranking_eligible": alternative_review_scorecard_context["ranking_eligible"],
         "alternative_review_scorecard_blocker_codes": alternative_review_scorecard_context["blocker_codes"],
