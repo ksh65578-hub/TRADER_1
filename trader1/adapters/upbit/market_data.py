@@ -7,6 +7,8 @@ from typing import Any
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from trader1.adapters.upbit.symbol_rules import validate_upbit_krw_symbol
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -54,18 +56,21 @@ def _public_read_only_safety_fields() -> dict[str, bool]:
     }
 
 
+def _valid_upbit_krw_symbol(symbol: Any) -> str | None:
+    if not isinstance(symbol, str):
+        return None
+    status, _, _ = validate_upbit_krw_symbol(symbol)
+    return symbol if status == "PASS" else None
+
+
 def build_upbit_krw_market_symbols_from_rest_payload(payload: list[dict[str, Any]]) -> list[str]:
     symbols: set[str] = set()
     for item in payload:
         if not isinstance(item, dict):
             continue
-        market = str(item.get("market", "")).strip().upper()
-        if not market.startswith("KRW-"):
-            continue
-        quote, _, base = market.partition("-")
-        if quote != "KRW" or not base or not base.replace("-", "").isalnum():
-            continue
-        symbols.add(market)
+        market = _valid_upbit_krw_symbol(item.get("market"))
+        if market is not None:
+            symbols.add(market)
     return sorted(symbols)
 
 
@@ -147,12 +152,14 @@ def build_upbit_public_ticker_snapshot_from_rest_payload(
     requested_symbols: list[str],
     session_id: str = "mvp1_upbit_paper_launcher",
 ) -> dict[str, Any]:
-    requested_set = {str(symbol).upper() for symbol in requested_symbols}
+    requested_set = {symbol for symbol in (_valid_upbit_krw_symbol(item) for item in requested_symbols) if symbol is not None}
     ticker_by_symbol: dict[str, dict[str, str]] = {}
     for item in payload:
         if not isinstance(item, dict):
             continue
-        symbol = str(item.get("market", "")).strip().upper()
+        symbol = _valid_upbit_krw_symbol(item.get("market"))
+        if symbol is None:
+            continue
         if symbol not in requested_set:
             continue
         ticker_by_symbol[symbol] = {
@@ -191,7 +198,7 @@ def fetch_upbit_public_ticker_snapshot_read_only(
     timeout_seconds: float = 3.0,
     chunk_size: int = 100,
 ) -> dict[str, Any]:
-    unique_symbols = sorted({str(symbol).strip().upper() for symbol in symbols if str(symbol).strip().upper().startswith("KRW-")})
+    unique_symbols = sorted({symbol for symbol in (_valid_upbit_krw_symbol(item) for item in symbols) if symbol is not None})
     if not unique_symbols:
         return build_upbit_public_ticker_snapshot_from_rest_payload(payload=[], requested_symbols=[], session_id=session_id)
     payload: list[dict[str, Any]] = []
@@ -238,7 +245,8 @@ def rank_upbit_krw_symbols_by_public_ticker(
 ) -> dict[str, Any]:
     safe_limit = max(1, min(int(limit), 80))
     rankings: list[dict[str, Any]] = []
-    for input_order, symbol in enumerate(sorted({str(item).strip().upper() for item in symbols if str(item).strip().upper().startswith("KRW-")}), start=1):
+    valid_symbols = sorted({symbol for symbol in (_valid_upbit_krw_symbol(item) for item in symbols) if symbol is not None})
+    for input_order, symbol in enumerate(valid_symbols, start=1):
         ticker = ticker_by_symbol.get(symbol, {})
         trade_price = _decimal_or_zero(ticker.get("trade_price"))
         quote_volume_24h = _decimal_or_zero(ticker.get("acc_trade_price_24h"))
@@ -309,7 +317,7 @@ def rank_upbit_krw_symbols_by_public_ticker(
         "ranking_status": status,
         "primary_blocker_code": primary_blocker_code,
         "selection_scope": "ALL_UPBIT_KRW_MARKETS_RANKED_BY_PUBLIC_TICKER",
-        "input_symbol_count": len({str(item).strip().upper() for item in symbols if str(item).strip().upper().startswith("KRW-")}),
+        "input_symbol_count": len(valid_symbols),
         "ranked_symbol_count": len(ranked),
         "eligible_symbol_count": len(eligible_symbols),
         "evaluation_limit": safe_limit,
