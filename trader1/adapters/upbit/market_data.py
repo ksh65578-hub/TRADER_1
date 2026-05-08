@@ -354,8 +354,15 @@ def build_upbit_public_candle_fixture(
     session_id: str = "mvp4_upbit_paper_runtime",
     profile: str = "UPTREND_PULLBACK",
 ) -> dict[str, Any]:
+    volumes: list[str] | None = None
     if profile == "WEAK_RANGE":
         closes = ["1000000", "1000040", "999970", "1000020", "1000005", "999990"]
+    elif profile == "QUIET_RANGE":
+        closes = ["1000000", "1000010", "999990", "1000005", "999995", "1000000"]
+        volumes = ["5", "4.8", "5.1", "4.9", "5", "4"]
+    elif profile == "PANIC":
+        closes = ["1050000", "1030000", "990000", "940000", "900000", "860000"]
+        volumes = ["5", "7", "11", "17", "24", "35"]
     elif profile == "DOWNTREND":
         closes = ["1020000", "1012000", "1007000", "1001000", "996000", "990000"]
     else:
@@ -370,7 +377,7 @@ def build_upbit_public_candle_fixture(
                 "high": str(price + 2500),
                 "low": str(price - 2500),
                 "close": close,
-                "volume": str(2 + index),
+                "volume": volumes[index] if volumes is not None else str(2 + index),
             }
         )
     return {

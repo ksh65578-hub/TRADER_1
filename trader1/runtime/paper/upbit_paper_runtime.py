@@ -175,9 +175,18 @@ BREAKOUT_INVALIDATION_BUFFER_ATR = Decimal("0.20")
 VWAP_REVERSION_FIXED_TP_ATR_MULTIPLIER = Decimal("0.80")
 QUIET_MAX_VOLATILITY_PCT = Decimal("0.35")
 QUIET_MAX_VOLUME_EXPANSION_RATIO = Decimal("0.90")
+QUIET_RANGE_MIN_VWAP_DISTANCE_PCT = Decimal("0.55")
+QUIET_RANGE_MIN_SYMBOL_SELECTION_SCORE = Decimal("0.60")
+QUIET_RANGE_EDGE_PENALTY_BPS = Decimal("12")
+QUIET_RANGE_SIGNAL_PENALTY = Decimal("0.08")
 VOLATILITY_EXPANSION_MIN_VOLATILITY_PCT = Decimal("2.50")
 VOLATILITY_EXPANSION_MIN_VOLUME_RATIO = Decimal("1.20")
 VOLATILITY_EXPANSION_MIN_RANGE_BREAKOUT_PCT = Decimal("0.03")
+PANIC_MOMENTUM_PCT = Decimal("-6.00")
+PANIC_VOLATILITY_PCT = Decimal("6.00")
+UNCERTAIN_MAX_ABS_MOMENTUM_PCT = Decimal("0.15")
+UNCERTAIN_MAX_ABS_VWAP_DISTANCE_PCT = Decimal("0.20")
+SPOT_LONG_BLOCKED_MARKET_STATES = frozenset({"RISK_OFF", "DOWNTREND", "PANIC", "DATA_BAD", "UNCERTAIN"})
 POSITION_ROTATION_EXIT_FIELDS = frozenset(
     {
         "rotation_candidate_symbol",
@@ -267,6 +276,70 @@ def _decimal_text(value: Decimal) -> str:
 
 def _clamp_decimal(value: Decimal, low: Decimal = Decimal("0"), high: Decimal = Decimal("1")) -> Decimal:
     return max(low, min(high, value))
+
+
+def _spot_long_entry_block_reason(*, regime: str, market_state: str) -> str | None:
+    normalized_regime = str(regime or "").upper()
+    normalized_state = str(market_state or normalized_regime).upper()
+    if normalized_state == "DATA_BAD":
+        return "DATA_BAD_BLOCK"
+    if normalized_state == "PANIC":
+        return "PANIC_BLOCK"
+    if normalized_state == "DOWNTREND":
+        return "DOWNTREND_SPOT_LONG_BLOCK"
+    if normalized_state == "UNCERTAIN":
+        return "UNCERTAIN_MARKET_BLOCK"
+    if normalized_state == "RISK_OFF" or normalized_regime == "RISK_OFF":
+        return "RISK_OFF_BLOCK"
+    return None
+
+
+def _strategy_entry_policy_evaluation(
+    *,
+    strategy_family: str,
+    regime: str,
+    market_state: str,
+    features: dict[str, Any],
+    symbol_score: Decimal,
+) -> tuple[bool, str]:
+    entry_block_reason = _spot_long_entry_block_reason(regime=regime, market_state=market_state)
+    if entry_block_reason:
+        return False, entry_block_reason
+    volume_expansion = _decimal(features.get("volume_expansion_ratio"))
+    range_breakout = max(Decimal("0"), _decimal(features.get("range_breakout_pct")))
+    vwap_distance = abs(_decimal(features.get("vwap_distance_pct")))
+    if market_state == "QUIET_RANGE":
+        if strategy_family != "VWAP_MEAN_REVERSION":
+            return False, "QUIET_RANGE_NO_TREND_OR_BREAKOUT_ENTRY"
+        if (
+            regime == "RANGE"
+            and vwap_distance >= QUIET_RANGE_MIN_VWAP_DISTANCE_PCT
+            and symbol_score >= QUIET_RANGE_MIN_SYMBOL_SELECTION_SCORE
+            and volume_expansion <= QUIET_MAX_VOLUME_EXPANSION_RATIO
+        ):
+            return True, "QUIET_RANGE_LIMITED_VWAP_REVERSION"
+        return False, "QUIET_RANGE_REQUIRES_DEEP_VWAP_DISLOCATION"
+    if strategy_family == "PULLBACK_TREND_LONG":
+        if (
+            regime == "UPTREND"
+            and features.get("trend_pullback_alignment_status") == "PASS"
+            and features.get("trend_exhaustion_status") != "WARN"
+        ):
+            return True, "PASS"
+        return False, "PULLBACK_REQUIRES_VALID_UPTREND_ALIGNMENT"
+    if strategy_family == "BREAKOUT_RETEST_LONG":
+        if market_state == "VOLATILITY_EXPANSION" or (
+            regime == "UPTREND"
+            and volume_expansion >= BREAKOUT_CONFIRMATION_MIN_VOLUME_EXPANSION
+            and range_breakout >= BREAKOUT_CONFIRMATION_MIN_RANGE_BREAKOUT_PCT
+        ):
+            return True, "PASS"
+        return False, "BREAKOUT_REQUIRES_VOLUME_CONFIRMED_EXPANSION_OR_RETEST"
+    if strategy_family == "VWAP_MEAN_REVERSION":
+        if regime == "RANGE" and market_state != "VOLATILITY_EXPANSION":
+            return True, "PASS"
+        return False, "VWAP_REVERSION_RANGE_ONLY"
+    return False, "UNKNOWN_STRATEGY_FAMILY"
 
 
 def _hash_report(report: dict[str, Any]) -> str:
@@ -1168,10 +1241,11 @@ def _feature_snapshot(market_data: dict[str, Any]) -> dict[str, Any]:
         for candle in candles
     ]
     total_volume = sum(volumes, Decimal("0"))
-    vwap = sum(price * volume for price, volume in zip(typical_values, volumes)) / total_volume
-    total_quote_volume = sum(close * volume for close, volume in zip(closes, volumes))
     last = closes[-1]
     first = closes[0]
+    data_bad_active = total_volume <= 0 or last <= 0 or first <= 0
+    vwap = last if total_volume <= 0 else sum(price * volume for price, volume in zip(typical_values, volumes)) / total_volume
+    total_quote_volume = sum(close * volume for close, volume in zip(closes, volumes))
     previous_high = max(_decimal(candle["high"]) for candle in candles[:-1])
     ema_fast = _ema(closes, 3)
     ema_slow = _ema(closes, 5)
@@ -1207,10 +1281,32 @@ def _feature_snapshot(market_data: dict[str, Any]) -> dict[str, Any]:
         and volume_expansion_ratio >= VOLATILITY_EXPANSION_MIN_VOLUME_RATIO
         and max(Decimal("0"), range_breakout_pct) >= VOLATILITY_EXPANSION_MIN_RANGE_BREAKOUT_PCT
     )
-    if volatility_expansion_active:
+    panic_active = regime == "RISK_OFF" and (
+        momentum_pct <= PANIC_MOMENTUM_PCT
+        or (
+            volatility_pct >= PANIC_VOLATILITY_PCT
+            and volume_expansion_ratio >= VOLATILITY_EXPANSION_MIN_VOLUME_RATIO
+        )
+    )
+    uncertain_active = (
+        regime == "RANGE"
+        and not quiet_range_active
+        and not volatility_expansion_active
+        and abs(momentum_pct) <= UNCERTAIN_MAX_ABS_MOMENTUM_PCT
+        and abs(vwap_distance_pct) <= UNCERTAIN_MAX_ABS_VWAP_DISTANCE_PCT
+    )
+    if data_bad_active:
+        market_state = "DATA_BAD"
+    elif panic_active:
+        market_state = "PANIC"
+    elif regime == "RISK_OFF":
+        market_state = "DOWNTREND"
+    elif volatility_expansion_active:
         market_state = "VOLATILITY_EXPANSION"
     elif quiet_range_active:
         market_state = "QUIET_RANGE"
+    elif uncertain_active:
+        market_state = "UNCERTAIN"
     else:
         market_state = regime
     trend_structure_score = Decimal("1") if regime == "UPTREND" else Decimal("0")
@@ -1281,8 +1377,9 @@ def _feature_snapshot(market_data: dict[str, Any]) -> dict[str, Any]:
         "quiet_range_status": "ACTIVE" if quiet_range_active else "CLEAR",
         "volatility_expansion_status": "ACTIVE" if volatility_expansion_active else "CLEAR",
         "regime_detail_formula": (
-            "Upbit KRW spot is long-only: RISK_OFF blocks new entries; QUIET_RANGE limits entry to range "
-            "candidates only; VOLATILITY_EXPANSION enables breakout candidates when volatility>=2.50pct, "
+            "Upbit KRW spot is long-only: DATA_BAD, PANIC, DOWNTREND/RISK_OFF, and UNCERTAIN block new entries; "
+            "QUIET_RANGE blocks trend/breakout and permits only limited VWAP range candidates when abs(vwap_distance)>=0.55pct "
+            "and symbol_score>=0.60; VOLATILITY_EXPANSION enables breakout candidates when volatility>=2.50pct, "
             "volume_expansion>=1.20, and range_breakout>=0.03pct"
         ),
         "trend_pullback_alignment_status": "PASS" if trend_pullback_alignment_reason == "PASS" else "FAIL",
@@ -1759,50 +1856,27 @@ def _candidate(
     )
     correlation_filtered = symbol_selection.get("correlation_cluster_status") == "DIVERSIFICATION_FILTERED"
     adaptive_top_n_filtered = symbol_selection.get("adaptive_top_n_filter_status") == "OUTSIDE_ADAPTIVE_TOP_N"
+    market_state = str(features.get("market_state") or regime)
+    entry_block_reason = _spot_long_entry_block_reason(regime=regime, market_state=market_state)
+    strategy_regime_allowed, strategy_policy_reason = _strategy_entry_policy_evaluation(
+        strategy_family=strategy_family,
+        regime=regime,
+        market_state=market_state,
+        features=features,
+        symbol_score=symbol_score,
+    )
     threshold_passed = (
         net_ev > MIN_ENTRY_NET_EV_BPS
         and signal_strength >= MIN_ENTRY_SIGNAL_STRENGTH
         and symbol_score >= MIN_SYMBOL_SELECTION_SCORE
-        and regime != "RISK_OFF"
+        and entry_block_reason is None
+        and strategy_regime_allowed
         and not correlation_filtered
         and not adaptive_top_n_filtered
     )
-    market_state = str(features.get("market_state") or regime)
-    volume_expansion = _decimal(features.get("volume_expansion_ratio"))
-    range_breakout = max(Decimal("0"), _decimal(features.get("range_breakout_pct")))
-    strategy_regime_allowed = True
-    strategy_policy_reason = "PASS"
-    if regime in {"RISK_OFF", "DOWNTREND", "PANIC", "DATA_BAD", "UNCERTAIN"}:
-        strategy_regime_allowed = False
-        strategy_policy_reason = "LONG_ONLY_SPOT_RISK_OFF_BLOCK"
-    elif strategy_family == "PULLBACK_TREND_LONG":
-        strategy_regime_allowed = (
-            regime == "UPTREND"
-            and features.get("trend_pullback_alignment_status") == "PASS"
-            and features.get("trend_exhaustion_status") != "WARN"
-        )
-        if not strategy_regime_allowed:
-            strategy_policy_reason = "PULLBACK_REQUIRES_VALID_UPTREND_ALIGNMENT"
-    elif strategy_family == "BREAKOUT_RETEST_LONG":
-        strategy_regime_allowed = (
-            market_state == "VOLATILITY_EXPANSION"
-            or (
-                regime == "UPTREND"
-                and volume_expansion >= BREAKOUT_CONFIRMATION_MIN_VOLUME_EXPANSION
-                and range_breakout >= BREAKOUT_CONFIRMATION_MIN_RANGE_BREAKOUT_PCT
-            )
-        )
-        if not strategy_regime_allowed:
-            strategy_policy_reason = "BREAKOUT_REQUIRES_VOLUME_CONFIRMED_EXPANSION_OR_RETEST"
-    elif strategy_family == "VWAP_MEAN_REVERSION":
-        strategy_regime_allowed = regime == "RANGE" and market_state != "VOLATILITY_EXPANSION"
-        if not strategy_regime_allowed:
-            strategy_policy_reason = "VWAP_REVERSION_RANGE_ONLY"
-    if not strategy_regime_allowed:
-        threshold_passed = False
     decision = "PAPER_ENTRY_REVIEW" if threshold_passed else "NO_TRADE"
     no_trade_reason = None if decision == "PAPER_ENTRY_REVIEW" else "MIN_EDGE_FAIL"
-    if regime == "RISK_OFF":
+    if entry_block_reason:
         decision = "NO_TRADE"
         no_trade_reason = "REGIME_MISMATCH"
     elif cooldown_active:
@@ -1834,6 +1908,10 @@ def _candidate(
         "strategy_regime_allowed": strategy_regime_allowed,
         "strategy_policy_reason": strategy_policy_reason,
         "market_state": market_state,
+        "entry_block_reason": entry_block_reason,
+        "quiet_range_entry_policy": (
+            "VWAP_ONLY_DEEP_DISLOCATION" if market_state == "QUIET_RANGE" else "NOT_APPLICABLE"
+        ),
         "signal_strength": _decimal_text(signal_strength),
         "signal_grade": "A" if signal_strength >= Decimal("0.7") else "B" if signal_strength >= Decimal("0.55") else "C",
         "expected_edge_bps": _decimal_text(expected_edge_bps),
@@ -1875,6 +1953,7 @@ def _build_candidates(
     recent_failure_feedback: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     regime = str(features["regime"])
+    market_state = str(features.get("market_state") or regime)
     cost_breakdown_bps = _paper_candidate_cost_breakdown(features)
     symbol_selection = symbol_selection or _symbol_selection_score(features)
     symbol_score = _decimal(symbol_selection["symbol_selection_score"])
@@ -1941,10 +2020,20 @@ def _build_candidates(
     if not mean_reversion_guard_passed:
         mean_reversion_edge -= FAILED_MEAN_REVERSION_EDGE_PENALTY_BPS
         mean_reversion_signal = _clamp_decimal(mean_reversion_signal - Decimal("0.12"))
-    if regime == "RISK_OFF":
+    if _spot_long_entry_block_reason(regime=regime, market_state=market_state):
         pullback_edge -= Decimal("30")
         breakout_edge -= Decimal("25")
         mean_reversion_edge -= Decimal("18")
+        pullback_signal = _clamp_decimal(pullback_signal - Decimal("0.25"))
+        breakout_signal = _clamp_decimal(breakout_signal - Decimal("0.22"))
+        mean_reversion_signal = _clamp_decimal(mean_reversion_signal - Decimal("0.16"))
+    if market_state == "QUIET_RANGE":
+        pullback_edge -= Decimal("24")
+        breakout_edge -= Decimal("24")
+        mean_reversion_edge -= QUIET_RANGE_EDGE_PENALTY_BPS
+        pullback_signal = _clamp_decimal(pullback_signal - Decimal("0.20"))
+        breakout_signal = _clamp_decimal(breakout_signal - Decimal("0.20"))
+        mean_reversion_signal = _clamp_decimal(mean_reversion_signal - QUIET_RANGE_SIGNAL_PENALTY)
     edge_shift = Decimal("-45") if edge_profile == "NEGATIVE" else Decimal("-25") if edge_profile == "WEAK" else Decimal("0")
     pullback_feedback = _recent_failure_feedback_for_candidate(
         symbol=symbol,
@@ -2316,23 +2405,55 @@ def _validate_candidate_costs(
         and candidate.get("strategy_entry_policy_id") != "UPBIT_KRW_SPOT_STRATEGY_ENTRY_ROUTER_V1"
     ):
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate strategy entry policy id mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if require_current_strategy_entry_policy and isinstance(features, dict) and candidate.get("regime") != features.get("regime"):
+        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "strategy candidate regime does not match runtime regime", "REGIME_MISMATCH")
     if require_current_strategy_entry_policy:
         if not isinstance(candidate.get("strategy_regime_allowed"), bool):
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate strategy_regime_allowed must be boolean", "SCHEMA_IDENTITY_MISMATCH")
         strategy_regime_allowed = candidate.get("strategy_regime_allowed") is True
+        candidate_market_state = str(candidate.get("market_state") or (features or {}).get("market_state") or candidate.get("regime"))
+        if isinstance(features, dict) and candidate_market_state != str(features.get("market_state") or features.get("regime")):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate market_state does not match runtime feature snapshot", "SCHEMA_IDENTITY_MISMATCH")
+        expected_entry_block_reason = _spot_long_entry_block_reason(
+            regime=str(candidate.get("regime") or ""),
+            market_state=candidate_market_state,
+        )
+        if "entry_block_reason" not in candidate:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate entry_block_reason missing", "SCHEMA_IDENTITY_MISMATCH")
+        if candidate.get("entry_block_reason") != expected_entry_block_reason:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate entry block reason mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        expected_strategy_allowed, expected_strategy_reason = _strategy_entry_policy_evaluation(
+            strategy_family=str(candidate.get("strategy_family") or ""),
+            regime=str(candidate.get("regime") or ""),
+            market_state=candidate_market_state,
+            features=features or {},
+            symbol_score=symbol_score,
+        )
+        if strategy_regime_allowed is not expected_strategy_allowed:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate strategy_regime_allowed does not match entry router", "SCHEMA_IDENTITY_MISMATCH")
+        if candidate.get("strategy_policy_reason") != expected_strategy_reason:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate strategy_policy_reason does not match entry router", "SCHEMA_IDENTITY_MISMATCH")
+        expected_quiet_policy = "VWAP_ONLY_DEEP_DISLOCATION" if candidate_market_state == "QUIET_RANGE" else "NOT_APPLICABLE"
+        if candidate.get("quiet_range_entry_policy") != expected_quiet_policy:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate quiet range policy marker mismatch", "SCHEMA_IDENTITY_MISMATCH")
     else:
         strategy_regime_allowed = (
             candidate.get("strategy_regime_allowed")
             if isinstance(candidate.get("strategy_regime_allowed"), bool)
             else candidate.get("regime") != "RISK_OFF"
         )
-    if candidate.get("regime") == "RISK_OFF" and candidate.get("decision") != "NO_TRADE":
-        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "risk-off candidate cannot be paper entry review", "REGIME_MISMATCH")
+        candidate_market_state = str(candidate.get("market_state") or candidate.get("regime"))
+        expected_entry_block_reason = _spot_long_entry_block_reason(
+            regime=str(candidate.get("regime") or ""),
+            market_state=candidate_market_state,
+        )
+    if expected_entry_block_reason and candidate.get("decision") != "NO_TRADE":
+        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "blocked spot market state cannot be paper entry review", "REGIME_MISMATCH")
     entry_threshold_passed = (
         reported_net_ev > MIN_ENTRY_NET_EV_BPS
         and signal_strength >= MIN_ENTRY_SIGNAL_STRENGTH
         and symbol_score >= MIN_SYMBOL_SELECTION_SCORE
-        and candidate.get("regime") != "RISK_OFF"
+        and expected_entry_block_reason is None
         and strategy_regime_allowed
         and not cooldown_active
         and not correlation_filtered
@@ -2361,7 +2482,7 @@ def _validate_candidate_costs(
     elif candidate.get("decision") == "NO_TRADE":
         if not isinstance(no_trade_reason, str) or not no_trade_reason:
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "no-trade candidate requires a no-trade reason", "SCHEMA_IDENTITY_MISMATCH")
-        if candidate.get("regime") == "RISK_OFF":
+        if expected_entry_block_reason:
             expected_reason = "REGIME_MISMATCH"
         elif cooldown_active:
             expected_reason = "COOLDOWN"
@@ -2762,6 +2883,10 @@ def build_upbit_paper_runtime_cycle_report(
     symbol_selection_by_symbol = _symbol_selection_scores_for_universe(feature_snapshots_by_symbol)
     for index, candidate_symbol, candidate_features in valid_symbol_rows:
         symbol_selection = symbol_selection_by_symbol[candidate_symbol]
+        entry_block_reason = _spot_long_entry_block_reason(
+            regime=str(candidate_features["regime"]),
+            market_state=str(candidate_features.get("market_state") or candidate_features["regime"]),
+        )
         symbol_candidates = _build_candidates(
             candidate_symbol,
             candidate_features,
@@ -2774,9 +2899,13 @@ def build_upbit_paper_runtime_cycle_report(
                 "rank_input_order": index,
                 "symbol": candidate_symbol,
                 "regime": candidate_features["regime"],
+                "market_state": candidate_features.get("market_state"),
+                "entry_block_reason": entry_block_reason,
+                "quiet_range_status": candidate_features.get("quiet_range_status"),
+                "volatility_expansion_status": candidate_features.get("volatility_expansion_status"),
                 **symbol_selection,
                 "eligible_for_entry_candidate": _decimal(symbol_selection["symbol_selection_score"]) >= MIN_SYMBOL_SELECTION_SCORE
-                and candidate_features["regime"] != "RISK_OFF"
+                and entry_block_reason is None
                 and symbol_selection.get("eligible_after_correlation") is True,
                 "live_order_ready": False,
                 "live_order_allowed": False,
@@ -2823,8 +2952,9 @@ def build_upbit_paper_runtime_cycle_report(
             "quiet_range_status": "CLEAR",
             "volatility_expansion_status": "CLEAR",
             "regime_detail_formula": (
-                "Upbit KRW spot is long-only: RISK_OFF blocks new entries; QUIET_RANGE limits entry to range "
-                "candidates only; VOLATILITY_EXPANSION enables breakout candidates when volatility>=2.50pct, "
+                "Upbit KRW spot is long-only: DATA_BAD, PANIC, DOWNTREND/RISK_OFF, and UNCERTAIN block new entries; "
+                "QUIET_RANGE blocks trend/breakout and permits only limited VWAP range candidates when abs(vwap_distance)>=0.55pct "
+                "and symbol_score>=0.60; VOLATILITY_EXPANSION enables breakout candidates when volatility>=2.50pct, "
                 "volume_expansion>=1.20, and range_breakout>=0.03pct"
             ),
         }
@@ -2841,6 +2971,10 @@ def build_upbit_paper_runtime_cycle_report(
                 "rank_input_order": 1,
                 "symbol": symbol,
                 "regime": feature_snapshots_by_symbol[symbol]["regime"],
+                "market_state": feature_snapshots_by_symbol[symbol].get("market_state"),
+                "entry_block_reason": "RISK_OFF_BLOCK",
+                "quiet_range_status": feature_snapshots_by_symbol[symbol].get("quiet_range_status"),
+                "volatility_expansion_status": feature_snapshots_by_symbol[symbol].get("volatility_expansion_status"),
                 **fallback_symbol_selection,
                 "eligible_for_entry_candidate": False,
                 "live_order_ready": False,
@@ -3704,13 +3838,21 @@ def validate_upbit_paper_runtime_cycle_report(
             except (KeyError, TypeError, ValueError):
                 return UpbitPaperRuntimeCycleValidationResult("FAIL", "symbol selection rank input order is invalid", "SCHEMA_IDENTITY_MISMATCH")
             expected_selection = expected_symbol_selection_by_symbol[universe_symbol]
+            expected_entry_block_reason = _spot_long_entry_block_reason(
+                regime=str(symbol_features["regime"]),
+                market_state=str(symbol_features.get("market_state") or symbol_features["regime"]),
+            )
             expected_selection_entry = {
                 "rank_input_order": rank_input_order,
                 "symbol": universe_symbol,
                 "regime": symbol_features["regime"],
+                "market_state": symbol_features.get("market_state"),
+                "entry_block_reason": expected_entry_block_reason,
+                "quiet_range_status": symbol_features.get("quiet_range_status"),
+                "volatility_expansion_status": symbol_features.get("volatility_expansion_status"),
                 **expected_selection,
                 "eligible_for_entry_candidate": _decimal(expected_selection["symbol_selection_score"]) >= MIN_SYMBOL_SELECTION_SCORE
-                and symbol_features["regime"] != "RISK_OFF"
+                and expected_entry_block_reason is None
                 and expected_selection.get("eligible_after_correlation") is True,
                 "live_order_ready": False,
                 "live_order_allowed": False,

@@ -1397,6 +1397,93 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(report["paper_ledger_events"], [])
         self.assertEqual(report["paper_portfolio_snapshot"]["open_position_count"], 0)
 
+    def test_downtrend_market_state_blocks_spot_new_entries(self):
+        data = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="DOWNTREND",
+        )
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-downtrend-market-state-block",
+            market_data=data,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["regime"], "RISK_OFF")
+        self.assertEqual(report["feature_snapshot"]["market_state"], "DOWNTREND")
+        self.assertEqual(report["final_decision"], "NO_TRADE")
+        self.assertIn("REGIME_MISMATCH", report["no_trade_reasons"])
+        self.assertEqual(report["selected_symbol_evidence_scorecard"]["market_state"], "DOWNTREND")
+        self.assertEqual(report["symbol_selection_universe"][0]["entry_block_reason"], "DOWNTREND_SPOT_LONG_BLOCK")
+        self.assertFalse(report["symbol_selection_universe"][0]["eligible_for_entry_candidate"])
+        for candidate in report["strategy_candidates"]:
+            self.assertEqual(candidate["decision"], "NO_TRADE")
+            self.assertFalse(candidate["strategy_regime_allowed"])
+            self.assertEqual(candidate["entry_block_reason"], "DOWNTREND_SPOT_LONG_BLOCK")
+            self.assertEqual(candidate["strategy_policy_reason"], "DOWNTREND_SPOT_LONG_BLOCK")
+            self.assertEqual(candidate["no_trade_reason"], "REGIME_MISMATCH")
+        self.assertIsNone(report["paper_fill"])
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_panic_market_state_blocks_spot_new_entries(self):
+        data = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="PANIC",
+        )
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-panic-market-state-block",
+            market_data=data,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["feature_snapshot"]["market_state"], "PANIC")
+        self.assertEqual(report["final_decision"], "NO_TRADE")
+        self.assertIn("REGIME_MISMATCH", report["no_trade_reasons"])
+        self.assertEqual(report["symbol_selection_universe"][0]["entry_block_reason"], "PANIC_BLOCK")
+        for candidate in report["strategy_candidates"]:
+            self.assertFalse(candidate["strategy_regime_allowed"])
+            self.assertEqual(candidate["entry_block_reason"], "PANIC_BLOCK")
+            self.assertEqual(candidate["strategy_policy_reason"], "PANIC_BLOCK")
+            self.assertEqual(candidate["no_trade_reason"], "REGIME_MISMATCH")
+        self.assertIsNone(report["paper_fill"])
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_quiet_range_blocks_trend_breakout_and_requires_deep_vwap_dislocation(self):
+        data = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="QUIET_RANGE",
+        )
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-quiet-range-entry-policy",
+            market_data=data,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["feature_snapshot"]["regime"], "RANGE")
+        self.assertEqual(report["feature_snapshot"]["market_state"], "QUIET_RANGE")
+        self.assertEqual(report["feature_snapshot"]["quiet_range_status"], "ACTIVE")
+        self.assertEqual(report["final_decision"], "NO_TRADE")
+        self.assertIn("STRATEGY_NOT_ELIGIBLE", report["no_trade_reasons"])
+        reasons_by_strategy = {
+            candidate["strategy_family"]: candidate["strategy_policy_reason"]
+            for candidate in report["strategy_candidates"]
+        }
+        self.assertEqual(reasons_by_strategy["PULLBACK_TREND_LONG"], "QUIET_RANGE_NO_TREND_OR_BREAKOUT_ENTRY")
+        self.assertEqual(reasons_by_strategy["BREAKOUT_RETEST_LONG"], "QUIET_RANGE_NO_TREND_OR_BREAKOUT_ENTRY")
+        self.assertEqual(reasons_by_strategy["VWAP_MEAN_REVERSION"], "QUIET_RANGE_REQUIRES_DEEP_VWAP_DISLOCATION")
+        for candidate in report["strategy_candidates"]:
+            self.assertEqual(candidate["decision"], "NO_TRADE")
+            self.assertFalse(candidate["strategy_regime_allowed"])
+            self.assertIsNone(candidate["entry_block_reason"])
+            self.assertEqual(candidate["quiet_range_entry_policy"], "VWAP_ONLY_DEEP_DISLOCATION")
+            self.assertEqual(candidate["no_trade_reason"], "STRATEGY_NOT_ELIGIBLE")
+        self.assertFalse(report["live_order_allowed"])
+
     def test_selected_candidate_must_be_highest_net_ev_candidate(self):
         report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-wrong-selected")
         lower_ranked = report["strategy_candidates"][-1]
