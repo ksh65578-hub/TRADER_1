@@ -10,6 +10,7 @@ from trader1.adapters.upbit.market_data import (
     build_upbit_public_candle_data_from_rest_payload,
     build_upbit_public_candle_fixture,
     build_upbit_public_ticker_snapshot_from_rest_payload,
+    rank_upbit_krw_symbols_by_public_ticker,
     validate_upbit_public_candle_data,
 )
 from trader1.core.sizing.position_sizing import sizing_decision_hash
@@ -831,6 +832,45 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
         self.assertEqual(loop["cycle_results"][0]["symbol_universe_evaluated_count"], 3)
         self.assertFalse(loop["live_order_allowed"])
         self.assertFalse(latest["live_order_allowed"])
+
+    def test_public_ticker_ranking_penalizes_negative_momentum_for_spot_long_discovery(self):
+        symbols = ["KRW-UP", "KRW-DOWN", "KRW-FLAT"]
+        ticker_by_symbol = {
+            "KRW-UP": {
+                "trade_price": "1000",
+                "acc_trade_price_24h": "1000000000",
+                "signed_change_rate": "0.04",
+            },
+            "KRW-DOWN": {
+                "trade_price": "1000",
+                "acc_trade_price_24h": "5000000000",
+                "signed_change_rate": "-0.06",
+            },
+            "KRW-FLAT": {
+                "trade_price": "1000",
+                "acc_trade_price_24h": "1200000000",
+                "signed_change_rate": "0",
+            },
+        }
+
+        ranking = rank_upbit_krw_symbols_by_public_ticker(
+            symbols=symbols,
+            ticker_by_symbol=ticker_by_symbol,
+            limit=3,
+        )
+        ranked_by_symbol = {item["symbol"]: item for item in ranking["symbol_rankings"]}
+
+        self.assertEqual(ranking["ranking_status"], "PASS")
+        self.assertEqual(ranking["selected_symbols_for_candle_evaluation"][0], "KRW-UP")
+        self.assertLess(
+            float(ranked_by_symbol["KRW-DOWN"]["rank_score"]),
+            float(ranked_by_symbol["KRW-UP"]["rank_score"]),
+        )
+        self.assertEqual(ranked_by_symbol["KRW-DOWN"]["momentum_score"], "0")
+        self.assertGreater(float(ranked_by_symbol["KRW-DOWN"]["downside_penalty_score"]), 0)
+        self.assertIn("positive_momentum_score", ranking["ranking_formula"])
+        self.assertFalse(ranked_by_symbol["KRW-UP"]["live_order_allowed"])
+        self.assertFalse(ranked_by_symbol["KRW-DOWN"]["live_order_allowed"])
 
     def test_bounded_paper_loop_skips_ranked_symbols_without_enough_public_candles(self):
         def fake_market_symbols_fetcher(**_: object) -> dict[str, object]:

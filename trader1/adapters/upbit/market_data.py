@@ -244,11 +244,20 @@ def rank_upbit_krw_symbols_by_public_ticker(
         quote_volume_24h = _decimal_or_zero(ticker.get("acc_trade_price_24h"))
         signed_change_rate = _decimal_or_zero(ticker.get("signed_change_rate"))
         liquidity_score = min(Decimal("1"), max(Decimal("0"), quote_volume_24h / Decimal("5000000000")))
-        momentum_score = min(Decimal("1"), max(Decimal("0"), abs(signed_change_rate) / Decimal("0.08")))
+        positive_change_rate = max(Decimal("0"), signed_change_rate)
+        negative_change_rate = max(Decimal("0"), -signed_change_rate)
+        positive_momentum_score = min(Decimal("1"), positive_change_rate / Decimal("0.08"))
+        downside_penalty_score = min(Decimal("1"), negative_change_rate / Decimal("0.08"))
         price_valid = trade_price > Decimal("0")
         quote_volume_valid = quote_volume_24h >= minimum_quote_volume_krw
         source_complete = bool(ticker)
-        score = Decimal("0.70") * liquidity_score + Decimal("0.20") * momentum_score + Decimal("0.10") * (Decimal("1") if price_valid else Decimal("0"))
+        raw_score = (
+            Decimal("0.60") * liquidity_score
+            + Decimal("0.30") * positive_momentum_score
+            + Decimal("0.10") * (Decimal("1") if price_valid else Decimal("0"))
+            - Decimal("0.45") * downside_penalty_score
+        )
+        score = max(Decimal("0"), raw_score)
         rankings.append(
             {
                 "rank_input_order": input_order,
@@ -258,10 +267,17 @@ def rank_upbit_krw_symbols_by_public_ticker(
                 "quote_volume_24h_krw": _decimal_text(quote_volume_24h),
                 "signed_change_rate": _decimal_text(signed_change_rate),
                 "abs_change_rate": _decimal_text(abs(signed_change_rate)),
+                "positive_change_rate": _decimal_text(positive_change_rate),
+                "negative_change_rate": _decimal_text(negative_change_rate),
                 "liquidity_score": _decimal_text(liquidity_score.quantize(Decimal("0.0001"))),
-                "momentum_score": _decimal_text(momentum_score.quantize(Decimal("0.0001"))),
+                "momentum_score": _decimal_text(positive_momentum_score.quantize(Decimal("0.0001"))),
+                "positive_momentum_score": _decimal_text(positive_momentum_score.quantize(Decimal("0.0001"))),
+                "downside_penalty_score": _decimal_text(downside_penalty_score.quantize(Decimal("0.0001"))),
                 "rank_score": _decimal_text(score.quantize(Decimal("0.0001"))),
-                "rank_formula": "0.70*liquidity_score+0.20*abs_change_rate_score+0.10*valid_price_score",
+                "rank_formula": (
+                    "max(0,0.60*liquidity_score+0.30*positive_momentum_score+"
+                    "0.10*valid_price_score-0.45*downside_penalty_score)"
+                ),
                 "minimum_quote_volume_24h_krw": _decimal_text(minimum_quote_volume_krw),
                 "eligible_for_candle_evaluation": source_complete and price_valid and quote_volume_valid,
                 "live_order_ready": False,
@@ -298,7 +314,10 @@ def rank_upbit_krw_symbols_by_public_ticker(
         "eligible_symbol_count": len(eligible_symbols),
         "evaluation_limit": safe_limit,
         "selected_symbols_for_candle_evaluation": selected_symbols,
-        "ranking_formula": "0.70*liquidity_score+0.20*abs_change_rate_score+0.10*valid_price_score",
+        "ranking_formula": (
+            "max(0,0.60*liquidity_score+0.30*positive_momentum_score+"
+            "0.10*valid_price_score-0.45*downside_penalty_score)"
+        ),
         "minimum_quote_volume_24h_krw": _decimal_text(minimum_quote_volume_krw),
         "symbol_rankings": ranked,
         "blockers": [] if status == "PASS" else [{"code": primary_blocker_code, "severity": "HIGH", "message": "No Upbit KRW symbols were available for candle evaluation"}],
