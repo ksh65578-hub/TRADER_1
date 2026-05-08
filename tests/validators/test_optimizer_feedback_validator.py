@@ -2,6 +2,7 @@ import copy
 import unittest
 from pathlib import Path
 
+from trader1.research.profitability.candidate_scorecard import has_required_performance_source_ids
 from trader1.validation.mvp0_validators import (
     _optimizer_feedback_errors,
     execution_feedback_loop_validator,
@@ -21,6 +22,12 @@ class OptimizerFeedbackValidatorTest(unittest.TestCase):
         errors = _optimizer_feedback_errors(report)
 
         self.assertEqual(errors, [])
+        self.assertTrue(
+            has_required_performance_source_ids(
+                report["source_evidence_ids"],
+                candidate_id=report["candidate_id"],
+            )
+        )
 
     def test_slippage_divergence_blocks_ranking(self):
         report = load_json(FIXTURE_DIR / "optimizer_feedback_slippage_divergent_fail.json")
@@ -61,6 +68,21 @@ class OptimizerFeedbackValidatorTest(unittest.TestCase):
         errors = _optimizer_feedback_errors(report)
 
         self.assertIn("feedback_eligible requires risk_review_status=PASS", errors)
+
+    def test_feedback_eligible_requires_bound_performance_sources(self):
+        report = load_json(FIXTURE_DIR / "optimizer_feedback_pass.json")
+        tampered = copy.deepcopy(report)
+        tampered["source_evidence_ids"] = [
+            source_id for source_id in tampered["source_evidence_ids"] if not source_id.startswith("performance_summary:")
+        ]
+        tampered["feedback_hash"] = optimizer_feedback_hash(tampered)
+
+        errors = _optimizer_feedback_errors(tampered)
+
+        self.assertIn(
+            "feedback_eligible requires candidate-scoped closed trade, execution quality, and performance summary source ids",
+            errors,
+        )
 
     def test_feedback_hash_must_match_payload(self):
         report = load_json(FIXTURE_DIR / "optimizer_feedback_pass.json")
