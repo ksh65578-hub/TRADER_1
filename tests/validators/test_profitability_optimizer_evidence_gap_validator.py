@@ -212,7 +212,23 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
             "top_symbol_evidence_scorecards": [
                 {"best_strategy_family": "VWAP_MEAN_REVERSION", "best_decision": "PAPER_ENTRY_REVIEW"},
                 {"best_strategy_family": "PULLBACK_TREND_LONG", "best_decision": "PAPER_ENTRY_REVIEW"},
-                {"best_strategy_family": "BREAKOUT_RETEST_LONG", "best_decision": "PAPER_ENTRY_REVIEW"},
+            ],
+            "strategy_family_evidence_scorecards": [
+                {
+                    "strategy_family": "VWAP_MEAN_REVERSION",
+                    "best_decision": "PAPER_ENTRY_REVIEW",
+                    "paper_entry_review_candidate_count": 1,
+                },
+                {
+                    "strategy_family": "PULLBACK_TREND_LONG",
+                    "best_decision": "PAPER_ENTRY_REVIEW",
+                    "paper_entry_review_candidate_count": 1,
+                },
+                {
+                    "strategy_family": "BREAKOUT_RETEST_LONG",
+                    "best_decision": "NO_TRADE",
+                    "paper_entry_review_candidate_count": 0,
+                },
             ],
         }
 

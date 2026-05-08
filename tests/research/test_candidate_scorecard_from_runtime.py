@@ -412,6 +412,27 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
             self.assertFalse(symbol_scorecard["scale_up_allowed"])
         self.assertFalse(scorecard["live_order_allowed"])
 
+    def test_scorecard_records_all_runtime_strategy_family_evidence_without_live_permission(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-family-coverage")
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        family_rows = {row["strategy_family"]: row for row in scorecard["strategy_family_evidence_scorecards"]}
+        self.assertEqual(
+            set(family_rows),
+            {"PULLBACK_TREND_LONG", "VWAP_MEAN_REVERSION", "BREAKOUT_RETEST_LONG"},
+        )
+        self.assertEqual(len(scorecard["top_symbol_evidence_scorecards"]), 1)
+        for row in family_rows.values():
+            self.assertEqual(row["evaluated_candidate_count"], 1)
+            self.assertTrue(row["strategy_id"])
+            self.assertFalse(row["live_order_ready"])
+            self.assertFalse(row["live_order_allowed"])
+            self.assertFalse(row["can_live_trade"])
+            self.assertFalse(row["scale_up_allowed"])
+
     def test_robustness_pass_requires_source_evidence_before_paper_ranking(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust-no-source")
 

@@ -484,9 +484,15 @@ def scorecard_strategy_family_counts(scorecard: dict[str, Any]) -> list[dict[str
     }
     source_rows = [
         item
-        for item in scorecard.get("top_symbol_evidence_scorecards") or []
+        for item in scorecard.get("strategy_family_evidence_scorecards") or []
         if isinstance(item, dict)
     ]
+    if not source_rows:
+        source_rows = [
+            item
+            for item in scorecard.get("top_symbol_evidence_scorecards") or []
+            if isinstance(item, dict)
+        ]
     if not source_rows:
         source_rows = [{"best_strategy_family": scorecard.get("strategy_id"), "best_decision": "PAPER_ENTRY_REVIEW"}]
     for row in source_rows:

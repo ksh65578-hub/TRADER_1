@@ -85,6 +85,7 @@ RUNTIME_CYCLE_SOURCE_PREFIX = "upbit_paper_runtime_cycle:"
 TOP_SYMBOL_SCORECARD_LIMIT = 5
 REGIME_OUTCOME_REGIMES = ("UPTREND", "RANGE", "DOWNTREND", "RISK_OFF")
 SPOT_LONG_NEW_ENTRY_BLOCKED_REGIMES = {"DOWNTREND", "RISK_OFF"}
+STRATEGY_FAMILY_EVIDENCE_ORDER = ("PULLBACK_TREND_LONG", "VWAP_MEAN_REVERSION", "BREAKOUT_RETEST_LONG")
 
 
 def utc_now() -> str:
@@ -354,6 +355,7 @@ def _record_regime_outcome_sample(
         bucket["no_trade_count"] = int(bucket.get("no_trade_count", 0)) + 1
 
     candidate_decision = str(candidate.get("decision") or "")
+    no_trade_reason = str(candidate.get("no_trade_reason") or candidate.get("strategy_policy_reason") or "")
     strategy_allowed = candidate.get("strategy_regime_allowed") is True
     disallowed_trade = regime in SPOT_LONG_NEW_ENTRY_BLOCKED_REGIMES and (
         trade_observed or strategy_allowed or candidate_decision == "PAPER_ENTRY_REVIEW"
@@ -361,6 +363,8 @@ def _record_regime_outcome_sample(
     if disallowed_trade:
         bucket["mismatch_count"] = int(bucket.get("mismatch_count", 0)) + 1
         bucket["primary_blocker_code"] = "RISK_VETO" if regime == "RISK_OFF" else "REGIME_MISMATCH"
+    elif not trade_observed and no_trade_reason and bucket.get("primary_blocker_code") is None:
+        bucket["primary_blocker_code"] = no_trade_reason
 
 
 def _expected_strategy_exit_variation(strategy_family: Any) -> str:
@@ -880,6 +884,85 @@ def _top_symbol_evidence_scorecards(runtime_cycle_report: dict[str, Any]) -> lis
     return compact
 
 
+def _candidate_family_evidence_rank_key(candidate: dict[str, Any]) -> tuple[Decimal, Decimal, int, str, str]:
+    return (
+        decimal_value(candidate.get("net_ev_after_cost_bps")),
+        decimal_value(candidate.get("candidate_selection_score")),
+        -int(candidate.get("selection_priority", 999) or 999),
+        str(candidate.get("symbol") or ""),
+        str(candidate.get("candidate_id") or ""),
+    )
+
+
+def _strategy_family_evidence_scorecards(runtime_cycle_report: dict[str, Any]) -> list[dict[str, Any]]:
+    by_family: dict[str, list[dict[str, Any]]] = {family: [] for family in STRATEGY_FAMILY_EVIDENCE_ORDER}
+    for candidate in runtime_cycle_report.get("strategy_candidates") or []:
+        if not isinstance(candidate, dict) or not _candidate_is_non_live(candidate):
+            continue
+        family = str(candidate.get("strategy_family") or "")
+        if family in by_family:
+            by_family[family].append(candidate)
+
+    compact: list[dict[str, Any]] = []
+    for family in STRATEGY_FAMILY_EVIDENCE_ORDER:
+        candidates = by_family[family]
+        if not candidates:
+            compact.append(
+                {
+                    "strategy_family": family,
+                    "strategy_id": strategy_id_for_family(family),
+                    "evaluated_candidate_count": 0,
+                    "paper_entry_review_candidate_count": 0,
+                    "best_candidate_id": None,
+                    "best_symbol": None,
+                    "best_decision": None,
+                    "best_no_trade_reason": "FAMILY_NOT_EVALUATED",
+                    "best_strategy_policy_reason": "FAMILY_NOT_EVALUATED",
+                    "best_net_ev_after_cost_bps": 0.0,
+                    "best_candidate_selection_score": 0.0,
+                    "no_trade_reasons": ["FAMILY_NOT_EVALUATED"],
+                    "live_order_ready": False,
+                    "live_order_allowed": False,
+                    "can_live_trade": False,
+                    "scale_up_allowed": False,
+                }
+            )
+            continue
+
+        best = max(candidates, key=_candidate_family_evidence_rank_key)
+        no_trade_reasons = sorted(
+            {
+                str(candidate.get("no_trade_reason") or candidate.get("strategy_policy_reason") or "")
+                for candidate in candidates
+                if candidate.get("decision") != "PAPER_ENTRY_REVIEW"
+                and (candidate.get("no_trade_reason") or candidate.get("strategy_policy_reason"))
+            }
+        )
+        compact.append(
+            {
+                "strategy_family": family,
+                "strategy_id": strategy_id_for_family(family),
+                "evaluated_candidate_count": len(candidates),
+                "paper_entry_review_candidate_count": sum(
+                    1 for candidate in candidates if candidate.get("decision") == "PAPER_ENTRY_REVIEW"
+                ),
+                "best_candidate_id": best.get("candidate_id"),
+                "best_symbol": best.get("symbol"),
+                "best_decision": best.get("decision"),
+                "best_no_trade_reason": best.get("no_trade_reason"),
+                "best_strategy_policy_reason": best.get("strategy_policy_reason"),
+                "best_net_ev_after_cost_bps": number_value(best.get("net_ev_after_cost_bps")),
+                "best_candidate_selection_score": number_value(best.get("candidate_selection_score")),
+                "no_trade_reasons": no_trade_reasons,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+        )
+    return compact
+
+
 def _best_alternative_candidate(
     runtime_cycle_report: dict[str, Any],
     selected_candidate_id: str,
@@ -1276,6 +1359,7 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         "evaluated_symbol_count": evaluated_symbol_count,
         "paper_entry_review_symbol_count": paper_entry_review_symbol_count,
         "top_symbol_evidence_scorecards": top_symbol_scorecards,
+        "strategy_family_evidence_scorecards": _strategy_family_evidence_scorecards(runtime_cycle_report),
         "alternative_candidate_count": alternative_count,
         "best_alternative_candidate_id": alternative.get("candidate_id") if alternative else None,
         "best_alternative_symbol": alternative.get("symbol") if alternative else None,
