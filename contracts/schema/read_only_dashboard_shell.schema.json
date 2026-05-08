@@ -6694,6 +6694,13 @@
         "candidate_scorecard_best_alternative_net_ev_after_cost_bps",
         "candidate_scorecard_rotation_review_required",
         "candidate_scorecard_rotation_review_reason_code",
+        "candidate_scorecard_performance_ready",
+        "candidate_scorecard_performance_summary",
+        "candidate_scorecard_closed_trade_status",
+        "candidate_scorecard_profit_factor_status",
+        "candidate_scorecard_max_drawdown_status",
+        "candidate_scorecard_realized_vs_expected_edge_status",
+        "candidate_scorecard_fill_quality_status",
         "paper_sample_count",
         "shadow_sample_count",
         "min_required_samples",
@@ -7156,6 +7163,68 @@
             "SELECTED_CANDIDATE_ROBUSTNESS_BLOCKED_WITH_ALTERNATIVE",
             "SELECTED_CANDIDATE_ROBUSTNESS_SOURCE_MISSING_WITH_ALTERNATIVE",
             "SELECTED_CANDIDATE_RANKING_BLOCKED_WITH_ALTERNATIVE"
+          ]
+        },
+        "candidate_scorecard_performance_ready": {
+          "type": "boolean"
+        },
+        "candidate_scorecard_performance_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_scorecard_closed_trade_status": {
+          "enum": [
+            "PASS",
+            "PARTIAL",
+            "FAIL",
+            "UNTESTED",
+            "BLOCKED",
+            "MISSING",
+            "NOT_AVAILABLE"
+          ]
+        },
+        "candidate_scorecard_profit_factor_status": {
+          "enum": [
+            "PASS",
+            "PARTIAL",
+            "FAIL",
+            "UNTESTED",
+            "BLOCKED",
+            "MISSING",
+            "NOT_AVAILABLE"
+          ]
+        },
+        "candidate_scorecard_max_drawdown_status": {
+          "enum": [
+            "PASS",
+            "PARTIAL",
+            "FAIL",
+            "UNTESTED",
+            "BLOCKED",
+            "MISSING",
+            "NOT_AVAILABLE"
+          ]
+        },
+        "candidate_scorecard_realized_vs_expected_edge_status": {
+          "enum": [
+            "PASS",
+            "PARTIAL",
+            "FAIL",
+            "UNTESTED",
+            "BLOCKED",
+            "MISSING",
+            "NOT_AVAILABLE"
+          ]
+        },
+        "candidate_scorecard_fill_quality_status": {
+          "enum": [
+            "PASS",
+            "PARTIAL",
+            "FAIL",
+            "UNTESTED",
+            "BLOCKED",
+            "MISSING",
+            "NOT_AVAILABLE"
           ]
         },
         "overfit_diagnostic_source": {

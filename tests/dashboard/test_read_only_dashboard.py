@@ -3905,6 +3905,16 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(maturity["candidate_scorecard_net_ev_after_cost_bps"], scorecard["net_ev_after_cost_bps"])
         self.assertEqual(maturity["candidate_scorecard_candidate_id"], scorecard["candidate_id"])
         self.assertFalse(maturity["candidate_scorecard_ranking_eligible"])
+        self.assertFalse(maturity["candidate_scorecard_performance_ready"])
+        self.assertEqual(maturity["candidate_scorecard_closed_trade_status"], scorecard["closed_trade_status"])
+        self.assertEqual(maturity["candidate_scorecard_profit_factor_status"], scorecard["profit_factor_status"])
+        self.assertEqual(maturity["candidate_scorecard_max_drawdown_status"], scorecard["max_drawdown_status"])
+        self.assertEqual(
+            maturity["candidate_scorecard_realized_vs_expected_edge_status"],
+            scorecard["realized_vs_expected_edge_status"],
+        )
+        self.assertEqual(maturity["candidate_scorecard_fill_quality_status"], scorecard["fill_quality_status"])
+        self.assertIn("closed trades", maturity["candidate_scorecard_performance_summary"])
         self.assertEqual(maturity["candidate_scorecard_evaluated_symbol_count"], scorecard["evaluated_symbol_count"])
         self.assertEqual(
             maturity["candidate_scorecard_paper_entry_review_symbol_count"],
@@ -3928,6 +3938,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("PAPER Scorecard", html)
         self.assertIn(scorecard["candidate_id"], html)
         self.assertIn("Net EV after cost", html)
+        self.assertIn("performance gates", html)
         self.assertEqual(validate_dashboard_visual_layout_contract(html).status, "PASS")
 
     def test_dashboard_projects_overfit_diagnostic_reason_codes_as_display_only(self):
