@@ -304,6 +304,10 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(result["candidate_discovery_symbol_count"], 1)
         self.assertGreaterEqual(result["candidate_discovery_ranked_symbol_count"], 1)
         self.assertGreaterEqual(result["candidate_discovery_eligible_symbol_count"], 1)
+        self.assertFalse(result["candidate_discovery_adaptive_expansion_attempted"])
+        self.assertEqual(result["candidate_discovery_initial_symbol_count"], 1)
+        self.assertEqual(result["candidate_discovery_expanded_symbol_count"], 1)
+        self.assertEqual(result["candidate_discovery_max_expanded_symbol_count"], 1)
         self.assertGreaterEqual(result["candidate_discovery_evaluated_candidate_count"], 1)
         self.assertGreaterEqual(result["candidate_discovery_paper_entry_review_candidate_count"], 1)
         self.assertEqual(
@@ -338,6 +342,114 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(result["candidate_generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_VALIDATED")
         self.assertIsNone(result["candidate_generation_primary_blocker_code"])
         self.assertEqual(result["candidate_generation_best_alternative_public_replay_status"], "PASS")
+        self.assertFalse(generation_report["live_order_allowed"])
+        self.assertFalse(result["credential_load_attempted"])
+        self.assertFalse(result["private_endpoint_called"])
+        self.assertFalse(result["order_endpoint_called"])
+        self.assertFalse(result["order_adapter_called"])
+        self.assertFalse(result["live_key_loaded"])
+        self.assertFalse(result["live_order_allowed"])
+
+    def test_bounded_public_discovery_expands_once_when_initial_public_set_has_no_entry_candidate(self):
+        def fake_market_symbols_fetcher(*, session_id: str, timeout_seconds: float):
+            del timeout_seconds
+            return build_upbit_public_krw_symbol_discovery_report_from_payload(
+                session_id=session_id,
+                payload=[
+                    {"market": "KRW-BEAR", "korean_name": "Bear", "english_name": "Bear"},
+                    {"market": "KRW-ALT", "korean_name": "Alt", "english_name": "Alt"},
+                    {"market": "KRW-RISK", "korean_name": "Risk", "english_name": "Risk"},
+                ],
+            )
+
+        def fake_ticker_fetcher(*, symbols: list[str], session_id: str, timeout_seconds: float):
+            del timeout_seconds
+            requested = build_upbit_krw_market_symbols_from_rest_payload([{"market": symbol} for symbol in symbols])
+            return build_upbit_public_ticker_snapshot_from_rest_payload(
+                requested_symbols=requested,
+                session_id=session_id,
+                payload=[
+                    {
+                        "market": "KRW-BEAR",
+                        "trade_price": "1000",
+                        "acc_trade_price_24h": "9000000000",
+                        "signed_change_rate": "0.020",
+                        "acc_trade_volume_24h": "9000000",
+                    },
+                    {
+                        "market": "KRW-ALT",
+                        "trade_price": "2000",
+                        "acc_trade_price_24h": "1500000000",
+                        "signed_change_rate": "0.050",
+                        "acc_trade_volume_24h": "750000",
+                    },
+                    {
+                        "market": "KRW-RISK",
+                        "trade_price": "1500",
+                        "acc_trade_price_24h": "1000000000",
+                        "signed_change_rate": "-0.020",
+                        "acc_trade_volume_24h": "600000",
+                    },
+                ],
+            )
+
+        def fake_candle_fetcher(*, symbol: str, session_id: str, timeout_seconds: float):
+            del timeout_seconds
+            profile = "UPTREND_PULLBACK" if symbol == "KRW-ALT" else "DOWNTREND"
+            return build_upbit_public_candle_fixture(
+                symbol=symbol,
+                session_id=session_id,
+                profile=profile,
+            )
+
+        def fake_replay_history_fetcher(
+            *,
+            symbol: str,
+            session_id: str,
+            target_count: int,
+            page_size: int,
+            timeout_seconds: float,
+        ):
+            del target_count, page_size, timeout_seconds
+            return build_upbit_public_candle_fixture(
+                symbol=symbol,
+                session_id=session_id,
+                profile="UPTREND_PULLBACK",
+            )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _run_short_paper(root)
+
+            result = build_current_upbit_paper_candidate_scorecard(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                attempt_public_discovery=True,
+                candidate_discovery_symbol_limit=1,
+                market_symbols_fetcher=fake_market_symbols_fetcher,
+                public_ticker_fetcher=fake_ticker_fetcher,
+                public_candle_fetcher=fake_candle_fetcher,
+                public_replay_history_fetcher=fake_replay_history_fetcher,
+                alternative_replay_max_windows=10,
+                alternative_replay_min_required_sample_count=1,
+            )
+            generation_report = _load_written(root, result, "candidate_generation_report_path")
+            discovery_runtime = _load_written(root, result, "candidate_discovery_runtime_cycle_path")
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["candidate_discovery_status"], "PASS")
+        self.assertTrue(result["candidate_discovery_adaptive_expansion_attempted"])
+        self.assertIn("expanded once", result["candidate_discovery_message"])
+        self.assertEqual(result["candidate_discovery_initial_symbol_count"], 1)
+        self.assertEqual(result["candidate_discovery_expanded_symbol_count"], 3)
+        self.assertEqual(result["candidate_discovery_max_expanded_symbol_count"], 3)
+        self.assertEqual(result["candidate_discovery_symbol_count"], 3)
+        self.assertEqual(discovery_runtime["symbol_evidence_scorecard_count"], 3)
+        self.assertGreaterEqual(result["candidate_discovery_paper_entry_review_candidate_count"], 1)
+        self.assertEqual(generation_report["generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_VALIDATED")
+        self.assertEqual(generation_report["best_alternative_symbol"], "KRW-ALT")
+        self.assertEqual(result["alternative_public_replay_status"], "PASS")
+        self.assertEqual(result["alternative_public_replay_symbol"], "KRW-ALT")
         self.assertFalse(generation_report["live_order_allowed"])
         self.assertFalse(result["credential_load_attempted"])
         self.assertFalse(result["private_endpoint_called"])
@@ -410,6 +522,10 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(generation_report["generation_status"], "NO_ALTERNATIVE_READY")
         self.assertEqual(result["candidate_generation_status"], "NO_ALTERNATIVE_READY")
         self.assertEqual(result["candidate_discovery_symbol_count"], 2)
+        self.assertFalse(result["candidate_discovery_adaptive_expansion_attempted"])
+        self.assertEqual(result["candidate_discovery_initial_symbol_count"], 2)
+        self.assertEqual(result["candidate_discovery_expanded_symbol_count"], 2)
+        self.assertEqual(result["candidate_discovery_max_expanded_symbol_count"], 2)
         self.assertGreaterEqual(result["candidate_discovery_evaluated_candidate_count"], 2)
         self.assertEqual(result["candidate_discovery_paper_entry_review_candidate_count"], 0)
         self.assertEqual(

@@ -182,6 +182,10 @@ def _candidate_discovery_empty_diagnostics() -> dict[str, Any]:
         "evaluated_candidate_count": 0,
         "paper_entry_review_candidate_count": 0,
         "blocked_candidate_count": 0,
+        "adaptive_expansion_attempted": False,
+        "initial_symbol_count": 0,
+        "expanded_symbol_count": 0,
+        "max_expanded_symbol_count": 0,
         "strategy_family_candidate_counts": [],
         "strategy_family_review_ready_counts": [],
         "strategy_family_blocked_counts": [],
@@ -247,6 +251,10 @@ def _candidate_discovery_diagnostics(runtime: dict[str, Any] | None) -> dict[str
         "evaluated_candidate_count": len(candidates),
         "paper_entry_review_candidate_count": review_ready_count,
         "blocked_candidate_count": len(candidates) - review_ready_count,
+        "adaptive_expansion_attempted": False,
+        "initial_symbol_count": len(scorecards),
+        "expanded_symbol_count": len(scorecards),
+        "max_expanded_symbol_count": len(scorecards),
         "strategy_family_candidate_counts": _ordered_count_items(strategy_family_counter),
         "strategy_family_review_ready_counts": _ordered_count_items(strategy_family_review_ready_counter),
         "strategy_family_blocked_counts": _ordered_count_items(strategy_family_blocked_counter),
@@ -255,6 +263,53 @@ def _candidate_discovery_diagnostics(runtime: dict[str, Any] | None) -> dict[str
         "entry_block_reason_counts": _ordered_count_items(entry_block_counter),
         "top_blocked_symbols": blocked_symbols[:5],
     }
+
+
+def _build_runtime_for_public_collection_reports(
+    *,
+    session_id: str,
+    collection_reports: list[dict[str, Any]],
+    selected_symbols: list[str],
+) -> tuple[dict[str, Any] | None, Any]:
+    runtime = build_upbit_paper_runtime_cycle_report(
+        cycle_id=f"candidate-generation-discovery-{session_id}",
+        session_id=session_id,
+        symbol=str(collection_reports[0].get("symbol") or selected_symbols[0]),
+        source_collection_reports=collection_reports,
+    )
+    runtime_validation = validate_upbit_paper_runtime_cycle_report(runtime)
+    if runtime_validation.status != "PASS":
+        return None, runtime_validation
+    return runtime, runtime_validation
+
+
+def _collect_public_candle_reports(
+    *,
+    session_id: str,
+    selected_symbols: list[str],
+    timeout_seconds: float,
+    public_candle_fetcher: Callable[..., dict[str, Any]] | None,
+    already_collected_symbols: set[str] | None = None,
+    start_index: int = 1,
+) -> list[dict[str, Any]]:
+    already_collected_symbols = already_collected_symbols or set()
+    collection_reports: list[dict[str, Any]] = []
+    for offset, symbol in enumerate(selected_symbols, start=start_index):
+        if symbol in already_collected_symbols:
+            continue
+        collection = build_upbit_public_market_data_collection_report(
+            collector_id=f"candidate-generation-discovery-{offset}-{symbol}",
+            session_id=session_id,
+            symbol=symbol,
+            attempt_network=True,
+            fetcher=public_candle_fetcher,
+            timeout_seconds=timeout_seconds,
+        )
+        validation = validate_upbit_public_market_data_collection_report(collection)
+        if validation.status == "PASS":
+            collection_reports.append(collection)
+            already_collected_symbols.add(symbol)
+    return collection_reports
 
 
 def _candidate_discovery_context(
@@ -367,20 +422,44 @@ def _build_bounded_public_discovery_runtime_cycle(
             eligible_symbol_count=int(ranking.get("eligible_symbol_count") or 0),
         )
 
-    collection_reports: list[dict[str, Any]] = []
-    for index, symbol in enumerate(selected_symbols[:safe_limit], start=1):
-        collection = build_upbit_public_market_data_collection_report(
-            collector_id=f"candidate-generation-discovery-{index}-{symbol}",
-            session_id=session_id,
-            symbol=symbol,
-            attempt_network=True,
-            fetcher=public_candle_fetcher,
-            timeout_seconds=timeout_seconds,
-        )
-        validation = validate_upbit_public_market_data_collection_report(collection)
-        if validation.status == "PASS":
-            collection_reports.append(collection)
+    ranked_symbols = [
+        str(item.get("symbol"))
+        for item in ranking.get("symbol_rankings") or []
+        if isinstance(item, dict) and item.get("eligible_for_candle_evaluation") is True and item.get("symbol")
+    ]
+    if not ranked_symbols:
+        ranked_symbols = selected_symbols
+    initial_symbols = ranked_symbols[:safe_limit]
+    attempted_symbol_count = len(initial_symbols)
+    collected_symbols: set[str] = set()
+    collection_reports = _collect_public_candle_reports(
+        session_id=session_id,
+        selected_symbols=initial_symbols,
+        timeout_seconds=timeout_seconds,
+        public_candle_fetcher=public_candle_fetcher,
+        already_collected_symbols=collected_symbols,
+    )
 
+    adaptive_expansion_attempted = False
+    max_expanded_symbol_count = max(
+        safe_limit,
+        min(DEFAULT_DISCOVERY_EVALUATION_LIMIT, safe_limit * 3, len(ranked_symbols)),
+    )
+
+    if not collection_reports:
+        adaptive_expansion_attempted = max_expanded_symbol_count > safe_limit
+        if adaptive_expansion_attempted:
+            collection_reports.extend(
+                _collect_public_candle_reports(
+                    session_id=session_id,
+                    selected_symbols=ranked_symbols[safe_limit:max_expanded_symbol_count],
+                    timeout_seconds=timeout_seconds,
+                    public_candle_fetcher=public_candle_fetcher,
+                    already_collected_symbols=collected_symbols,
+                    start_index=safe_limit + 1,
+                )
+            )
+            attempted_symbol_count = max_expanded_symbol_count
     if not collection_reports:
         return None, _candidate_discovery_context(
             status="BLOCKED",
@@ -389,15 +468,19 @@ def _build_bounded_public_discovery_runtime_cycle(
             symbol_count=0,
             ranked_symbol_count=int(ranking.get("ranked_symbol_count") or 0),
             eligible_symbol_count=int(ranking.get("eligible_symbol_count") or 0),
+            diagnostics={
+                "adaptive_expansion_attempted": adaptive_expansion_attempted,
+                "initial_symbol_count": len(initial_symbols),
+                "expanded_symbol_count": attempted_symbol_count,
+                "max_expanded_symbol_count": max_expanded_symbol_count,
+            },
         )
 
-    runtime = build_upbit_paper_runtime_cycle_report(
-        cycle_id=f"candidate-generation-discovery-{session_id}",
+    runtime, runtime_validation = _build_runtime_for_public_collection_reports(
         session_id=session_id,
-        symbol=str(collection_reports[0].get("symbol") or selected_symbols[0]),
-        source_collection_reports=collection_reports,
+        collection_reports=collection_reports,
+        selected_symbols=ranked_symbols,
     )
-    runtime_validation = validate_upbit_paper_runtime_cycle_report(runtime)
     if runtime_validation.status != "PASS":
         return None, _candidate_discovery_context(
             status=runtime_validation.status,
@@ -407,15 +490,70 @@ def _build_bounded_public_discovery_runtime_cycle(
             ranked_symbol_count=int(ranking.get("ranked_symbol_count") or 0),
             eligible_symbol_count=int(ranking.get("eligible_symbol_count") or 0),
         )
+    discovery_diagnostics = _candidate_discovery_diagnostics(runtime)
+    discovery_diagnostics.update(
+        {
+            "adaptive_expansion_attempted": adaptive_expansion_attempted,
+            "initial_symbol_count": len(initial_symbols),
+            "expanded_symbol_count": attempted_symbol_count,
+            "max_expanded_symbol_count": max_expanded_symbol_count,
+        }
+    )
+
+    if (
+        discovery_diagnostics["paper_entry_review_candidate_count"] == 0
+        and max_expanded_symbol_count > attempted_symbol_count
+    ):
+        adaptive_expansion_attempted = True
+        collection_reports.extend(
+            _collect_public_candle_reports(
+                session_id=session_id,
+                selected_symbols=ranked_symbols[attempted_symbol_count:max_expanded_symbol_count],
+                timeout_seconds=timeout_seconds,
+                public_candle_fetcher=public_candle_fetcher,
+                already_collected_symbols=collected_symbols,
+                start_index=attempted_symbol_count + 1,
+            )
+        )
+        attempted_symbol_count = max_expanded_symbol_count
+        expanded_runtime, expanded_runtime_validation = _build_runtime_for_public_collection_reports(
+            session_id=session_id,
+            collection_reports=collection_reports,
+            selected_symbols=ranked_symbols,
+        )
+        if expanded_runtime_validation.status == "PASS":
+            runtime = expanded_runtime
+            discovery_diagnostics = _candidate_discovery_diagnostics(runtime)
+            discovery_diagnostics.update(
+                {
+                    "adaptive_expansion_attempted": True,
+                    "initial_symbol_count": len(initial_symbols),
+                    "expanded_symbol_count": attempted_symbol_count,
+                    "max_expanded_symbol_count": max_expanded_symbol_count,
+                }
+            )
+        else:
+            discovery_diagnostics.update(
+                {
+                    "adaptive_expansion_attempted": True,
+                    "initial_symbol_count": len(initial_symbols),
+                    "expanded_symbol_count": attempted_symbol_count,
+                    "max_expanded_symbol_count": max_expanded_symbol_count,
+                }
+            )
 
     return runtime, _candidate_discovery_context(
         status="PASS",
         blocker_code=None,
-        message="bounded public candidate discovery runtime cycle built from read-only public KRW market and candle data",
+        message=(
+            "bounded public candidate discovery runtime cycle built from read-only public KRW market and candle data"
+            if not discovery_diagnostics["adaptive_expansion_attempted"]
+            else "bounded public candidate discovery expanded once after the initial public KRW set produced no entry-review candidate"
+        ),
         symbol_count=len(collection_reports),
         ranked_symbol_count=int(ranking.get("ranked_symbol_count") or 0),
         eligible_symbol_count=int(ranking.get("eligible_symbol_count") or 0),
-        diagnostics=_candidate_discovery_diagnostics(runtime),
+        diagnostics=discovery_diagnostics,
     )
 
 
@@ -766,6 +904,12 @@ def build_current_upbit_paper_candidate_scorecard(
         "candidate_discovery_symbol_count": candidate_discovery_context["symbol_count"],
         "candidate_discovery_ranked_symbol_count": candidate_discovery_context["ranked_symbol_count"],
         "candidate_discovery_eligible_symbol_count": candidate_discovery_context["eligible_symbol_count"],
+        "candidate_discovery_adaptive_expansion_attempted": candidate_discovery_context[
+            "adaptive_expansion_attempted"
+        ],
+        "candidate_discovery_initial_symbol_count": candidate_discovery_context["initial_symbol_count"],
+        "candidate_discovery_expanded_symbol_count": candidate_discovery_context["expanded_symbol_count"],
+        "candidate_discovery_max_expanded_symbol_count": candidate_discovery_context["max_expanded_symbol_count"],
         "candidate_discovery_evaluated_candidate_count": candidate_discovery_context["evaluated_candidate_count"],
         "candidate_discovery_paper_entry_review_candidate_count": candidate_discovery_context[
             "paper_entry_review_candidate_count"
