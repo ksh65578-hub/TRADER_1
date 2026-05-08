@@ -10,6 +10,7 @@ from trader1.research.replay.replay_runner import (
     build_public_replay_fetch_failure_report,
     build_replay_consistency_report,
     build_public_replay_robustness_report,
+    public_replay_robustness_report_hash,
     public_replay_robustness_values_from_report,
     validate_public_replay_robustness_report,
     replay_consistency_hash,
@@ -361,17 +362,15 @@ class ReplayDeterminismTest(unittest.TestCase):
             report,
             candidate_scorecard=scorecard,
         )
-        self.assertEqual(len(values), report["sample_count"])
-        self.assertEqual(len(samples), report["sample_count"])
+        self.assertEqual(len(values), report["replay_closed_trade_sample_count"])
+        self.assertEqual(len(samples), report["replay_closed_trade_sample_count"])
         self.assertIn(
             f"public_replay_robustness:{report['replay_id']}:{report['report_hash']}",
             source_ids,
         )
-        for row, value in zip(report["sample_rows"], values, strict=True):
-            if row["decision"] == "NO_TRADE":
-                self.assertEqual(value, 0.0)
-            else:
-                self.assertEqual(value, row["net_ev_after_cost_bps"])
+        for sample in samples:
+            self.assertTrue(sample["closed_trade"])
+            self.assertEqual(sample["value_source"], "PUBLIC_REPLAY_REALIZED_CLOSED_TRADE_PNL_BPS")
 
     def test_public_replay_robustness_report_matches_contract_schema(self):
         runtime = build_upbit_paper_runtime_cycle_report(
@@ -476,12 +475,13 @@ class ReplayDeterminismTest(unittest.TestCase):
             min_required_ranking_stability_score=0.0,
         )
 
-        self.assertEqual(diagnostic["sample_count"], report["sample_count"])
-        self.assertEqual(diagnostic["oos_status"], "PASS")
-        self.assertEqual(diagnostic["walk_forward_status"], "PASS")
-        self.assertEqual(diagnostic["bootstrap_status"], "PASS")
+        self.assertEqual(diagnostic["sample_count"], report["replay_closed_trade_sample_count"])
+        self.assertEqual(diagnostic["oos_status"], "BLOCKED")
+        self.assertEqual(diagnostic["walk_forward_status"], "BLOCKED")
+        self.assertEqual(diagnostic["bootstrap_status"], "BLOCKED")
         self.assertFalse(diagnostic["robustness_eligible"])
         self.assertEqual(diagnostic["promotion_eligible"], False)
+        self.assertIn("SAMPLE_INSUFFICIENT", {blocker["code"] for blocker in diagnostic["blockers"]})
         self.assertIn("SURVIVORSHIP_BIAS_RISK", {blocker["code"] for blocker in diagnostic["blockers"]})
         self.assertIn(
             f"public_replay_robustness:{report['replay_id']}:{report['report_hash']}",
@@ -504,6 +504,38 @@ class ReplayDeterminismTest(unittest.TestCase):
             market_data=_public_replay_fixture(symbol="KRW-AXL", count=70),
             min_required_sample_count=50,
         )
+        for row in report["sample_rows"]:
+            row["closed_trade"] = True
+            row["realized_trade_pnl_bps"] = -25.0
+            row["realized_vs_expected_edge_bps"] = -50.0
+            row["strategy_exit_policy_observed"] = True
+            row["strategy_exit_policy_matched"] = True
+            row["strategy_exit_policy_id"] = "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1"
+            row["strategy_exit_variation"] = row["expected_strategy_exit_variation"]
+            row["strategy_exit_reason_code"] = "TEST_REALIZED_LOSS"
+            row["strategy_exit_action"] = "FULL_EXIT"
+        report.update(
+            {
+                "replay_closed_trade_sample_count": report["sample_count"],
+                "replay_closed_trade_status": "PASS",
+                "replay_strategy_exit_policy_sample_count": report["sample_count"],
+                "replay_strategy_exit_policy_match_count": report["sample_count"],
+                "replay_strategy_exit_policy_mismatch_count": 0,
+                "replay_strategy_exit_policy_status": "PASS",
+                "replay_strategy_exit_reason_counts": [
+                    {"reason_code": "TEST_REALIZED_LOSS", "count": report["sample_count"]}
+                ],
+                "replay_profit_factor": 0.0,
+                "replay_profit_factor_status": "FAIL",
+                "replay_max_drawdown_bps": 25.0 * report["sample_count"],
+                "replay_realized_vs_expected_edge_bps": -50.0,
+                "replay_realized_vs_expected_edge_status": "FAIL",
+                "replay_fill_quality_score": 1.0,
+                "replay_execution_cost_delta_bps": 0.0,
+                "replay_execution_cost_status": "PASS",
+            }
+        )
+        report["report_hash"] = public_replay_robustness_report_hash(report)
         diagnostic = overfit_diagnostic_from_upbit_paper_runtime(
             candidate_scorecard=scorecard,
             runtime_sample_history={

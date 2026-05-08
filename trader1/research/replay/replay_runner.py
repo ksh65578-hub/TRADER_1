@@ -700,27 +700,28 @@ def public_replay_robustness_values_from_report(
     result = validate_public_replay_robustness_report(report, candidate_scorecard=candidate_scorecard)
     if result.status != "PASS":
         return [], [], []
+    source_ids = [
+        f"public_replay_robustness:{report['replay_id']}:{report['report_hash']}",
+        f"public_market_data:{report['symbol']}:{report['public_market_data_hash']}",
+    ]
     values: list[float] = []
     samples: list[dict[str, Any]] = []
     for row in report.get("sample_rows") or []:
         if not isinstance(row, dict) or row.get("candidate_id") != report.get("candidate_id"):
             continue
-        if row.get("decision") == "NO_TRADE":
-            values.append(0.0)
-        else:
-            values.append(_number(row.get("net_ev_after_cost_bps")))
+        if row.get("closed_trade") is not True or row.get("realized_trade_pnl_bps") is None:
+            continue
+        values.append(_number(row.get("realized_trade_pnl_bps")))
         samples.append(
             {
                 "loop_id": report["replay_id"],
                 "source_loop_report_hash": report["report_hash"],
                 "source_runtime_cycle_hash": row.get("runtime_cycle_hash"),
                 "source_runtime_cycle_id": row.get("runtime_cycle_id"),
+                "closed_trade": True,
+                "value_source": "PUBLIC_REPLAY_REALIZED_CLOSED_TRADE_PNL_BPS",
             }
         )
-    source_ids = [
-        f"public_replay_robustness:{report['replay_id']}:{report['report_hash']}",
-        f"public_market_data:{report['symbol']}:{report['public_market_data_hash']}",
-    ]
     return values, samples, source_ids
 
 

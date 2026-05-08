@@ -779,7 +779,7 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         )
         self.assertFalse(report["live_order_allowed"])
 
-    def test_candidate_generation_report_binds_passed_public_replay_for_best_alternative(self):
+    def test_candidate_generation_report_blocks_public_replay_without_closed_trade_profitability(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-candidate-generation-replay-base")
         scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
             runtime,
@@ -826,18 +826,20 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
 
         self.assertEqual(validation_status, "PASS", validation_message)
         self.assertEqual(blocker_code, None)
-        self.assertEqual(report["generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_VALIDATED")
-        self.assertEqual(report["status"], "PASS")
-        self.assertIsNone(report["primary_blocker_code"])
-        self.assertEqual(report["best_alternative_public_replay_status"], "PASS")
+        self.assertEqual(report["generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_BLOCKED")
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertIn(report["primary_blocker_code"], {"PUBLIC_REPLAY_ROBUSTNESS_FAILED", "SAMPLE_INSUFFICIENT"})
+        self.assertIn("SAMPLE_INSUFFICIENT", {blocker["code"] for blocker in report["blockers"]})
+        self.assertEqual(report["best_alternative_public_replay_status"], "BLOCKED")
         self.assertEqual(report["best_alternative_public_replay_sample_count"], replay_report["sample_count"])
+        self.assertEqual(report["best_alternative_public_replay_closed_trade_sample_count"], 0)
         self.assertTrue(
             any(
                 source_id.startswith(f"public_replay_robustness:{replay_report['replay_id']}:")
                 for source_id in report["source_evidence_ids"]
             )
         )
-        self.assertIn("Alternative public replay passed", report["next_action"])
+        self.assertIn("Run bounded public replay robustness", report["next_action"])
         self.assertFalse(report["live_order_allowed"])
 
     def test_robustness_source_evidence_must_cover_required_kinds(self):

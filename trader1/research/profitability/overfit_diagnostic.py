@@ -521,10 +521,10 @@ def overfit_diagnostic_from_upbit_paper_runtime(
         if isinstance(replay_robustness_report, dict)
         else ([], [], [])
     )
+    source_ids = sorted(set(source_ids + replay_source_ids))
     if len(values) < int(min_required_sample_count) and replay_values:
         values = replay_values
         samples = replay_samples
-        source_ids = sorted(set(source_ids + replay_source_ids))
 
     sample_count = len(values)
     min_preliminary_sample_count = max(2, min(int(min_preliminary_sample_count), int(min_required_sample_count)))
