@@ -134,6 +134,45 @@ def _paper_shadow_scorecard_binding(
     }
 
 
+def _safe_int(value: Any) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _select_scorecard_runtime_sample(history: dict[str, Any]) -> tuple[dict[str, Any], str]:
+    samples = [sample for sample in history.get("samples") or [] if isinstance(sample, dict)]
+    if not samples:
+        raise ValueError("no PAPER runtime samples are available for candidate scorecard input")
+
+    active_scope = history.get("active_candidate_scope")
+    active_scope = active_scope if isinstance(active_scope, dict) else {}
+    active_cycle_hash = str(active_scope.get("latest_runtime_cycle_hash") or "")
+    active_cycle_id = str(active_scope.get("latest_cycle_id") or "")
+    active_candidate_decision = str(active_scope.get("latest_candidate_decision") or "")
+    active_final_decision = str(active_scope.get("latest_final_decision") or "")
+    evidence_bearing_scope = (
+        active_scope
+        and (
+            active_candidate_decision == "PAPER_ENTRY_REVIEW"
+            or active_final_decision in {"ENTER_LONG", "EXIT_POSITION", "REDUCE_POSITION"}
+            or _safe_int(active_scope.get("entry_reason_count")) > 0
+            or _safe_int(active_scope.get("exit_reason_count")) > 0
+        )
+    )
+    if evidence_bearing_scope and (active_cycle_hash or active_cycle_id):
+        for sample in reversed(samples):
+            sample_hash = str(sample.get("source_runtime_cycle_hash") or "")
+            sample_path = str(sample.get("source_runtime_cycle_path") or "")
+            if (active_cycle_hash and sample_hash == active_cycle_hash) or (
+                active_cycle_id and active_cycle_id in sample_path
+            ):
+                return sample, "ACTIVE_CANDIDATE_SCOPE"
+
+    return samples[-1], "LATEST_RUNTIME_SAMPLE"
+
+
 def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str) -> dict[str, Any]:
     root = Path(root).resolve()
     history = build_upbit_paper_runtime_sample_history(root=root, session_id=session_id)
@@ -155,21 +194,27 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
             "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
         )
 
-    latest_sample = history["samples"][-1]
-    runtime_path = root / latest_sample["source_runtime_cycle_path"]
+    try:
+        scorecard_sample, scorecard_runtime_selection_source = _select_scorecard_runtime_sample(history)
+    except ValueError as exc:
+        return _blocked_result(str(exc), "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING")
+
+    runtime_path = root / scorecard_sample["source_runtime_cycle_path"]
     runtime = _load_json(runtime_path)
     runtime_result = validate_upbit_paper_runtime_cycle_report(runtime)
     if runtime_result.status != "PASS":
         return _blocked_result(
             runtime_result.message,
             runtime_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
-            source_runtime_cycle_path=str(latest_sample.get("source_runtime_cycle_path")),
+            source_runtime_cycle_path=str(scorecard_sample.get("source_runtime_cycle_path")),
+            scorecard_runtime_selection_source=scorecard_runtime_selection_source,
         )
-    if runtime.get("cycle_hash") != latest_sample.get("source_runtime_cycle_hash"):
+    if runtime.get("cycle_hash") != scorecard_sample.get("source_runtime_cycle_hash"):
         return _blocked_result(
-            "latest PAPER runtime sample hash does not match the runtime cycle artifact",
+            "selected PAPER runtime sample hash does not match the runtime cycle artifact",
             "RECONCILIATION_REQUIRED",
-            source_runtime_cycle_path=str(latest_sample.get("source_runtime_cycle_path")),
+            source_runtime_cycle_path=str(scorecard_sample.get("source_runtime_cycle_path")),
+            scorecard_runtime_selection_source=scorecard_runtime_selection_source,
         )
 
     base_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
@@ -249,8 +294,15 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
             convergence_memory["profit_convergence_cycle_report_path"],
             root,
         ),
-        "source_runtime_cycle_path": str(latest_sample["source_runtime_cycle_path"]),
+        "source_runtime_cycle_path": str(scorecard_sample["source_runtime_cycle_path"]),
         "source_runtime_cycle_hash": runtime["cycle_hash"],
+        "scorecard_runtime_selection_source": scorecard_runtime_selection_source,
+        "active_candidate_scope_candidate_id": (
+            history.get("active_candidate_scope", {}).get("candidate_id")
+            if isinstance(history.get("active_candidate_scope"), dict)
+            else None
+        ),
+        "active_candidate_scope_sample_count": history.get("active_candidate_scope_sample_count"),
         "scorecard_id": scorecard["scorecard_id"],
         "candidate_id": scorecard["candidate_id"],
         "scorecard_scope": scorecard["scorecard_scope"],

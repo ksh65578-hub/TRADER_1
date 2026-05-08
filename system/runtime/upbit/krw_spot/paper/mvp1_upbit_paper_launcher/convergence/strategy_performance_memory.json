@@ -6,16 +6,6 @@
   },
   "blockers": [
     {
-      "code": "STRATEGY_NOT_ELIGIBLE",
-      "message": "selected PAPER candidate is not entry-review eligible",
-      "severity": "HIGH"
-    },
-    {
-      "code": "MIN_EDGE_FAIL",
-      "message": "net EV after cost is below PAPER scorecard minimum",
-      "severity": "HIGH"
-    },
-    {
       "code": "OOS_MISSING",
       "message": "OOS evidence is required before PAPER scorecard ranking",
       "severity": "HIGH"
@@ -56,23 +46,8 @@
       "severity": "HIGH"
     },
     {
-      "code": "DRAWDOWN_FREEZE_ACTIVE",
-      "message": "max drawdown must remain inside policy before PAPER scorecard ranking",
-      "severity": "HIGH"
-    },
-    {
       "code": "EXECUTION_FEEDBACK_DIVERGENT",
       "message": "realized edge after fee/slippage/impact must match or exceed expected edge before ranking",
-      "severity": "HIGH"
-    },
-    {
-      "code": "EXECUTION_QUALITY_UNTESTED",
-      "message": "fill quality evidence is required before PAPER scorecard ranking",
-      "severity": "HIGH"
-    },
-    {
-      "code": "EXECUTION_FEEDBACK_DIVERGENT",
-      "message": "realized fee/slippage/impact cost must stay within expected execution cost before ranking",
       "severity": "HIGH"
     },
     {
@@ -87,7 +62,7 @@
   "downtrend_avoidance_enforced": true,
   "entry_reason_counts": [
     {
-      "count": 0,
+      "count": 1,
       "reason_code": "SCORECARD_ENTRY_EVIDENCE"
     }
   ],
@@ -96,24 +71,24 @@
   "exchange_market_type_scoped": true,
   "exit_reason_counts": [
     {
-      "count": 0,
-      "reason_code": "SCORECARD_CLOSED_TRADE_EVIDENCE"
+      "count": 1,
+      "reason_code": "NONE"
     }
   ],
   "fee_cost": 5.0,
-  "generated_at_utc": "2026-05-08T08:40:40Z",
-  "gross_pnl": -1.7552,
+  "generated_at_utc": "2026-05-08T08:50:48Z",
+  "gross_pnl": 37.09164421997755,
   "live_config_mutation_allowed": false,
   "live_order_allowed": false,
   "live_order_ready": false,
   "live_permission_created": false,
-  "market_impact_cost": 1.7649896348631504,
+  "market_impact_cost": 5.269608228382651,
   "market_type": "KRW_SPOT",
-  "max_drawdown_pct": 0.0,
+  "max_drawdown_pct": 0.041616104940226634,
   "min_required_sample_count": 30,
   "mode": "PAPER",
-  "net_ev_after_cost": -12.360799027797318,
-  "no_trade_count": 15,
+  "net_ev_after_cost": 22.63223113205939,
+  "no_trade_count": 10,
   "no_trade_reason_counts": [
     {
       "count": 1,
@@ -121,10 +96,6 @@
     },
     {
       "count": 1,
-      "reason_code": "DRAWDOWN_FREEZE_ACTIVE"
-    },
-    {
-      "count": 2,
       "reason_code": "EXECUTION_FEEDBACK_DIVERGENT"
     },
     {
@@ -132,16 +103,8 @@
       "reason_code": "EXECUTION_FEEDBACK_MISSING"
     },
     {
-      "count": 1,
-      "reason_code": "EXECUTION_QUALITY_UNTESTED"
-    },
-    {
       "count": 2,
       "reason_code": "MEASUREMENT_MISSING"
-    },
-    {
-      "count": 1,
-      "reason_code": "MIN_EDGE_FAIL"
     },
     {
       "count": 1,
@@ -161,10 +124,6 @@
     },
     {
       "count": 1,
-      "reason_code": "STRATEGY_NOT_ELIGIBLE"
-    },
-    {
-      "count": 1,
       "reason_code": "WALK_FORWARD_MISSING"
     }
   ],
@@ -173,21 +132,21 @@
   "order_submission_allowed": false,
   "paper_shadow_separated": false,
   "paper_winner_live_config_allowed": false,
-  "parameter_hash": "7CDCBE5F17A72D285683359BC58D7BED5581ED228B8C9BDEE6D84C61681E2FEA",
+  "parameter_hash": "B513FAA110ECC3C688258DE32FDFAB637C438F6C07A716040C8B4039F72836E1",
   "performance_scope": "PAPER_RUNTIME_SCORECARD_ONLY",
   "performance_status": "BLOCKED",
   "profit_factor": 0.0,
   "project_id": "TRADER_1",
   "regime_performance": [
     {
-      "max_drawdown_pct": 0.0,
-      "net_ev_after_cost": 0.0,
+      "max_drawdown_pct": 0.041616104940226634,
+      "net_ev_after_cost": 22.63223113205939,
       "no_trade_count": 1,
-      "primary_blocker_code": "STRATEGY_NOT_ELIGIBLE",
+      "primary_blocker_code": "REGIME_MISMATCH",
       "regime": "UPTREND",
-      "sample_count": 1,
+      "sample_count": 2,
       "trade_allowed": true,
-      "trade_count": 0
+      "trade_count": 1
     },
     {
       "max_drawdown_pct": 0.0,
@@ -222,7 +181,7 @@
   ],
   "regime_scope": "UPTREND_RANGE_DOWNTREND_RISK_OFF",
   "risk_off_no_trade_enforced": true,
-  "sample_count": 15,
+  "sample_count": 11,
   "scale_up_allowed": false,
   "scale_up_from_performance_allowed": false,
   "schema_id": "trader1.strategy_performance_memory.v1",
@@ -230,21 +189,21 @@
   "slippage_cost": 1.5,
   "slippage_fee_impact_included": true,
   "source_artifact_ids": [
-    "candidate_scorecard:scorecard:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:KRW-WIF-vwap-mean-reversion:2642516E6FFD666029041A70E9114E0696641BA9A04A4C84EE78799933E42BEC",
-    "closed_trades:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
-    "execution_quality:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
-    "performance_summary:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
-    "upbit_paper_runtime_cycle:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:8EE101172113BAC51FD2CCCC039E2F595C4DD164D63C7A5B51B1728C9CA4295A"
+    "candidate_scorecard:scorecard:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:KRW-AXL-pullback-trend-long:53CB68F82298CDA0CA12649D6A3E1C5AAC14218FE87C3B95AE67C48F4E077D0F",
+    "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:372F841654C03857A1538E4A7868311A902CA50563584995927CA9CD762D31C6",
+    "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:372F841654C03857A1538E4A7868311A902CA50563584995927CA9CD762D31C6",
+    "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:372F841654C03857A1538E4A7868311A902CA50563584995927CA9CD762D31C6",
+    "upbit_paper_runtime_cycle:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:03C49200365098990E75084EA0EDC3CD2F6A9846140F509551EF0D863EF13A00"
   ],
   "source_modes": [
     "PAPER"
   ],
   "spread_cost": 1.0,
   "strategy_build_id": "upbit_paper_runtime_cycle_v1",
-  "strategy_id": "vwap_mean_reversion",
-  "strategy_performance_memory_id": "strategy_performance_memory:scorecard:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:KRW-WIF-vwap-mean-reversion",
+  "strategy_id": "trend_pullback",
+  "strategy_performance_memory_id": "strategy_performance_memory:scorecard:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:KRW-AXL-pullback-trend-long",
   "timeframe_scope": "runtime_cycle_fixture_or_public_collection",
-  "trade_count": 0,
+  "trade_count": 1,
   "win_rate": 0.0,
   "writes_live_ready_snapshot": false
 }

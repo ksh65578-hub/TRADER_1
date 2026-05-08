@@ -1,0 +1,62 @@
+{
+  "audit_hash": "C71C255CD57070D487CBC98443AC58F8946AB1D473560549EEE7523025A96B7C",
+  "audit_prev_hash": null,
+  "authority": {
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B"
+  },
+  "blockers": [
+    {
+      "code": "OOS_MISSING",
+      "message": "Candidate scorecard cannot promote; failure analysis keeps ranking, live orders, and scale-up blocked.",
+      "severity": "HIGH"
+    }
+  ],
+  "blocks_live_order": true,
+  "blocks_promotion": true,
+  "can_live_trade": false,
+  "candidate_id": "KRW-AXL-pullback-trend-long",
+  "dashboard_display_truth_only": true,
+  "exchange": "UPBIT",
+  "failure_analysis_id": "failure_analysis:scorecard:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:KRW-AXL-pullback-trend-long:1",
+  "failure_event_id": "scorecard_failure:scorecard:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:KRW-AXL-pullback-trend-long",
+  "failure_status": "ANALYZED",
+  "generated_at_utc": "2026-05-08T08:50:48Z",
+  "live_affecting": true,
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "market_type": "KRW_SPOT",
+  "memory_write_required": true,
+  "memory_write_status": "APPEND_ONLY_RECORDED",
+  "mode": "PAPER",
+  "notes": "Generated from non-live candidate scorecard evidence only.",
+  "optimizer_ranking_action": "BLOCK_RANKING",
+  "parameter_hash": "B513FAA110ECC3C688258DE32FDFAB637C438F6C07A716040C8B4039F72836E1",
+  "previous_failure_analysis_ids": [],
+  "primary_root_cause_code": "OVERFIT_RISK_HIGH",
+  "project_id": "TRADER_1",
+  "promotion_eligible": false,
+  "recommended_response": "PENALIZE_RANKING",
+  "regime_scope": "TRENDING",
+  "repeated_failure_count": 1,
+  "repeated_failure_same_root_cause": false,
+  "root_cause_status": "KNOWN",
+  "scale_up_allowed": false,
+  "schema_id": "trader1.failure_analysis_report.v1",
+  "secondary_root_cause_codes": [
+    "REGIME_MISMATCH",
+    "EXECUTION_FEEDBACK_DIVERGENT"
+  ],
+  "session_id": "mvp1_upbit_paper_launcher",
+  "source_evidence_ids": [
+    "candidate_scorecard:scorecard:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:KRW-AXL-pullback-trend-long:53CB68F82298CDA0CA12649D6A3E1C5AAC14218FE87C3B95AE67C48F4E077D0F",
+    "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:372F841654C03857A1538E4A7868311A902CA50563584995927CA9CD762D31C6",
+    "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:372F841654C03857A1538E4A7868311A902CA50563584995927CA9CD762D31C6",
+    "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:372F841654C03857A1538E4A7868311A902CA50563584995927CA9CD762D31C6",
+    "upbit_paper_runtime_cycle:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:03C49200365098990E75084EA0EDC3CD2F6A9846140F509551EF0D863EF13A00"
+  ],
+  "strategy_build_id": "upbit_paper_runtime_cycle_v1",
+  "strategy_id": "trend_pullback",
+  "symbol": "KRW-AXL",
+  "timeframe_scope": "runtime_cycle_fixture_or_public_collection"
+}

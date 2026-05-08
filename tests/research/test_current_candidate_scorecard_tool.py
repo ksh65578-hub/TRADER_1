@@ -5,7 +5,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.run_upbit_paper_candidate_scorecard import build_current_upbit_paper_candidate_scorecard
+from tools.run_upbit_paper_candidate_scorecard import (
+    _select_scorecard_runtime_sample,
+    build_current_upbit_paper_candidate_scorecard,
+)
 from trader1.research.profitability.candidate_scorecard import (
     PERFORMANCE_PASS,
     performance_source_evidence_id,
@@ -64,6 +67,72 @@ def _paper_shadow_evidence_path(root: Path) -> Path:
 
 
 class CurrentCandidateScorecardToolTest(unittest.TestCase):
+    def test_scorecard_runtime_selection_prefers_active_evidence_scope_over_latest_no_trade(self):
+        entry_exit_sample = {
+            "source_runtime_cycle_path": (
+                "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/"
+                "paper_runtime/cycles/active-exit.runtime_cycle.json"
+            ),
+            "source_runtime_cycle_hash": "A" * 64,
+        }
+        latest_no_trade_sample = {
+            "source_runtime_cycle_path": (
+                "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/"
+                "paper_runtime/cycles/latest-no-trade.runtime_cycle.json"
+            ),
+            "source_runtime_cycle_hash": "B" * 64,
+        }
+        history = {
+            "active_candidate_scope": {
+                "candidate_id": "KRW-AXL-pullback-trend-long",
+                "latest_cycle_id": "active-exit",
+                "latest_runtime_cycle_hash": "A" * 64,
+                "latest_candidate_decision": "PAPER_ENTRY_REVIEW",
+                "latest_final_decision": "EXIT_POSITION",
+                "entry_reason_count": 1,
+                "exit_reason_count": 2,
+            },
+            "samples": [entry_exit_sample, latest_no_trade_sample],
+        }
+
+        selected, selection_source = _select_scorecard_runtime_sample(history)
+
+        self.assertIs(selected, entry_exit_sample)
+        self.assertEqual(selection_source, "ACTIVE_CANDIDATE_SCOPE")
+
+    def test_scorecard_runtime_selection_uses_latest_when_active_scope_has_no_entry_or_exit_evidence(self):
+        first_sample = {
+            "source_runtime_cycle_path": (
+                "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/"
+                "paper_runtime/cycles/older-no-trade.runtime_cycle.json"
+            ),
+            "source_runtime_cycle_hash": "A" * 64,
+        }
+        latest_sample = {
+            "source_runtime_cycle_path": (
+                "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/"
+                "paper_runtime/cycles/latest-no-trade.runtime_cycle.json"
+            ),
+            "source_runtime_cycle_hash": "B" * 64,
+        }
+        history = {
+            "active_candidate_scope": {
+                "candidate_id": "KRW-WIF-vwap-mean-reversion",
+                "latest_cycle_id": "older-no-trade",
+                "latest_runtime_cycle_hash": "A" * 64,
+                "latest_candidate_decision": "NO_TRADE",
+                "latest_final_decision": "NO_TRADE",
+                "entry_reason_count": 0,
+                "exit_reason_count": 0,
+            },
+            "samples": [first_sample, latest_sample],
+        }
+
+        selected, selection_source = _select_scorecard_runtime_sample(history)
+
+        self.assertIs(selected, latest_sample)
+        self.assertEqual(selection_source, "LATEST_RUNTIME_SAMPLE")
+
     def test_empty_runtime_history_blocks_without_live_permission(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
