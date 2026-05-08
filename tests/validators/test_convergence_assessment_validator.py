@@ -1,3 +1,4 @@
+import copy
 import unittest
 from pathlib import Path
 
@@ -47,6 +48,22 @@ class ConvergenceAssessmentValidatorTest(unittest.TestCase):
         errors = _convergence_assessment_errors(report)
 
         self.assertIn("DRIFT_DETECTED requires blocks_promotion=true", errors)
+
+    def test_improving_assessment_requires_candidate_scoped_performance_sources(self):
+        report = load_json(FIXTURE_DIR / "convergence_assessment_pass.json")
+        tampered = copy.deepcopy(report)
+        tampered["source_evidence_ids"] = [
+            source_id
+            for source_id in tampered["source_evidence_ids"]
+            if not source_id.startswith("performance_summary:")
+        ]
+
+        errors = _convergence_assessment_errors(tampered)
+
+        self.assertIn(
+            "improving convergence assessment requires candidate-scoped closed trade, execution quality, and performance summary source ids",
+            errors,
+        )
 
     def test_writer_input_eligibility_is_rejected(self):
         report = load_json(FIXTURE_DIR / "convergence_assessment_writer_input_fail.json")

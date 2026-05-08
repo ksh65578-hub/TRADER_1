@@ -1,3 +1,4 @@
+import copy
 import unittest
 from pathlib import Path
 
@@ -44,6 +45,22 @@ class ProfitConvergenceCycleValidatorTest(unittest.TestCase):
 
         self.assertIn("DRIFT_DETECTED cannot allow profit convergence improvement review, claim, or ranking", errors)
         self.assertIn("DRIFT_DETECTED requires blocks_promotion=true", errors)
+
+    def test_improvement_and_paper_ranking_require_candidate_scoped_performance_sources(self):
+        report = load_json(FIXTURE_DIR / "profit_convergence_cycle_pass.json")
+        tampered = copy.deepcopy(report)
+        tampered["source_evidence_ids"] = [
+            source_id
+            for source_id in tampered["source_evidence_ids"]
+            if not source_id.startswith("performance_summary:")
+        ]
+
+        errors = _profit_convergence_cycle_errors(tampered)
+
+        self.assertIn(
+            "profit convergence improvement or paper ranking requires candidate-scoped closed trade, execution quality, and performance summary source ids",
+            errors,
+        )
 
     def test_live_flag_is_schema_blocked(self):
         report = load_json(FIXTURE_DIR / "profit_convergence_cycle_live_flag_fail.json")

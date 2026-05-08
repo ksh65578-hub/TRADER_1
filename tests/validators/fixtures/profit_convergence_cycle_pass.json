@@ -19,7 +19,13 @@
   "timeframe_scope": "15m",
   "regime_scope": "TRENDING_RANGE_RISK_OFF",
   "source_modes": ["PAPER", "SHADOW"],
-  "source_evidence_ids": ["paper_cycle_evidence", "shadow_cycle_evidence"],
+  "source_evidence_ids": [
+    "paper_cycle_evidence",
+    "shadow_cycle_evidence",
+    "closed_trades:candidate_trend_pullback_krw_btc_001:profit-cycle-performance-history-001:1111111111111111111111111111111111111111111111111111111111111111",
+    "execution_quality:candidate_trend_pullback_krw_btc_001:profit-cycle-performance-history-001:1111111111111111111111111111111111111111111111111111111111111111",
+    "performance_summary:candidate_trend_pullback_krw_btc_001:profit-cycle-performance-history-001:1111111111111111111111111111111111111111111111111111111111111111"
+  ],
   "convergence_objective_profile_validator_status": "PASS",
   "optimizer_memory_state_validator_status": "PASS",
   "strategy_performance_memory_validator_status": "PASS",
