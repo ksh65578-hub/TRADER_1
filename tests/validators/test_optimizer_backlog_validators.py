@@ -7,6 +7,10 @@ from trader1.runtime.readiness.live_ready_snapshot import (
     build_writer_input,
     evaluate_live_ready_snapshot_writer,
 )
+from trader1.research.profitability.candidate_scorecard import (
+    has_required_performance_source_ids,
+    has_required_robustness_source_ids,
+)
 from trader1.validation.mvp0_validators import (
     _candidate_scorecard_net_ev_errors,
     _overfit_diagnostic_errors,
@@ -42,6 +46,30 @@ class OptimizerBacklogValidatorsTest(unittest.TestCase):
 
         self.assertIn(
             "ranking_stability_score below min_required_ranking_stability_score while robustness_eligible=true",
+            errors,
+        )
+
+    def test_ranking_stability_requires_bound_robustness_and_performance_sources(self):
+        diagnostic = load_json(FIXTURE_DIR / "overfit_diagnostic_pass.json")
+        self.assertTrue(has_required_robustness_source_ids(diagnostic["source_evidence_ids"]))
+        self.assertTrue(
+            has_required_performance_source_ids(
+                diagnostic["source_evidence_ids"],
+                candidate_id=diagnostic["candidate_id"],
+            )
+        )
+
+        missing_performance = copy.deepcopy(diagnostic)
+        missing_performance["source_evidence_ids"] = [
+            source_id
+            for source_id in missing_performance["source_evidence_ids"]
+            if not source_id.startswith("execution_quality:")
+        ]
+
+        errors = _overfit_diagnostic_errors(missing_performance)
+
+        self.assertIn(
+            "robustness_eligible requires candidate-scoped closed trade, execution quality, and performance summary source ids",
             errors,
         )
 

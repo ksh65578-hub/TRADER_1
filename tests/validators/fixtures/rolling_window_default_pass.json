@@ -49,9 +49,12 @@
   "dashboard_display_truth_only": true,
   "promotion_eligible": false,
   "source_evidence_ids": [
-    "paper_oos_rolling_window_fixture_001",
-    "shadow_walk_forward_rolling_window_fixture_001",
-    "bootstrap_rolling_window_fixture_001"
+    "oos:rolling_window_default_fixture_pass:5555555555555555555555555555555555555555555555555555555555555555",
+    "walk_forward:rolling_window_default_fixture_pass:5555555555555555555555555555555555555555555555555555555555555555",
+    "bootstrap:rolling_window_default_fixture_pass:5555555555555555555555555555555555555555555555555555555555555555",
+    "closed_trades:candidate_trend_pullback_krw_btc_rolling_default_001:rolling_window_performance_history_001:6666666666666666666666666666666666666666666666666666666666666666",
+    "execution_quality:candidate_trend_pullback_krw_btc_rolling_default_001:rolling_window_performance_history_001:6666666666666666666666666666666666666666666666666666666666666666",
+    "performance_summary:candidate_trend_pullback_krw_btc_rolling_default_001:rolling_window_performance_history_001:6666666666666666666666666666666666666666666666666666666666666666"
   ],
   "live_order_ready": false,
   "live_order_allowed": false,
@@ -59,5 +62,5 @@
   "scale_up_allowed": false,
   "blockers": [],
   "diagnostic_hash": "5555555555555555555555555555555555555555555555555555555555555555",
-  "notes": "Positive fixture proves default rolling sample, train, OOS, walk-forward, bootstrap, and source evidence minimums before paper review eligibility."
+  "notes": "Positive fixture proves default rolling sample, train, source-bound OOS, walk-forward, bootstrap, and candidate performance evidence before paper review eligibility."
 }

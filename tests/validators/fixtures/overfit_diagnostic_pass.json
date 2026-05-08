@@ -49,9 +49,12 @@
   "dashboard_display_truth_only": true,
   "promotion_eligible": false,
   "source_evidence_ids": [
-    "paper_oos_fixture_001",
-    "shadow_walk_forward_fixture_001",
-    "bootstrap_fixture_001"
+    "oos:overfit_diagnostic_fixture_pass:2222222222222222222222222222222222222222222222222222222222222222",
+    "walk_forward:overfit_diagnostic_fixture_pass:2222222222222222222222222222222222222222222222222222222222222222",
+    "bootstrap:overfit_diagnostic_fixture_pass:2222222222222222222222222222222222222222222222222222222222222222",
+    "closed_trades:candidate_trend_pullback_krw_btc_001:overfit_performance_history_001:4444444444444444444444444444444444444444444444444444444444444444",
+    "execution_quality:candidate_trend_pullback_krw_btc_001:overfit_performance_history_001:4444444444444444444444444444444444444444444444444444444444444444",
+    "performance_summary:candidate_trend_pullback_krw_btc_001:overfit_performance_history_001:4444444444444444444444444444444444444444444444444444444444444444"
   ],
   "live_order_ready": false,
   "live_order_allowed": false,
@@ -59,5 +62,5 @@
   "scale_up_allowed": false,
   "blockers": [],
   "diagnostic_hash": "2222222222222222222222222222222222222222222222222222222222222222",
-  "notes": "Positive fixture proves OOS, walk-forward, bootstrap, and bias checks before paper review eligibility."
+  "notes": "Positive fixture proves source-bound OOS, walk-forward, bootstrap, candidate performance, and bias checks before paper review eligibility."
 }
