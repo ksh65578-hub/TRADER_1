@@ -136,6 +136,7 @@
     "performance_scope": {
       "enum": [
         "PAPER_SHADOW_RESEARCH_ONLY",
+        "PAPER_RUNTIME_SCORECARD_ONLY",
         "REPLAY_RESEARCH_ONLY",
         "READ_ONLY_ANALYSIS_ONLY"
       ]
@@ -300,7 +301,7 @@
       "const": true
     },
     "paper_shadow_separated": {
-      "const": true
+      "type": "boolean"
     },
     "exchange_market_type_scoped": {
       "const": true

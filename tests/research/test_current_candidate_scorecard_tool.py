@@ -17,7 +17,13 @@ from trader1.research.profitability.overfit_diagnostic import (
     overfit_diagnostic_report_hash,
 )
 from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
-from trader1.validation.mvp0_validators import _candidate_scorecard_net_ev_errors, _overfit_diagnostic_errors
+from trader1.validation.mvp0_validators import (
+    _candidate_scorecard_net_ev_errors,
+    _failure_analysis_errors,
+    _optimizer_memory_state_errors,
+    _overfit_diagnostic_errors,
+    _strategy_performance_memory_errors,
+)
 
 
 def _load_written(root: Path, result: dict, key: str) -> dict:
@@ -69,6 +75,9 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
             scorecard = _load_written(root, result, "candidate_scorecard_path")
             diagnostic = _load_written(root, result, "overfit_diagnostic_path")
             history = _load_written(root, result, "runtime_sample_history_path")
+            strategy_memory = _load_written(root, result, "strategy_performance_memory_path")
+            optimizer_memory = _load_written(root, result, "optimizer_memory_state_path")
+            failure_analysis = _load_written(root, result, "failure_analysis_path")
             scoped_scorecard = json.loads(
                 _candidate_snapshot_path(root, result, scorecard).read_text(encoding="utf-8")
             )
@@ -81,6 +90,13 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(_overfit_diagnostic_errors(diagnostic), [])
         self.assertEqual(history["accepted_cycle_sample_count"], 2)
         self.assertEqual(diagnostic["sample_count"], 2)
+        self.assertEqual(_strategy_performance_memory_errors(strategy_memory), [])
+        self.assertEqual(_optimizer_memory_state_errors(optimizer_memory), [])
+        self.assertEqual(_failure_analysis_errors(failure_analysis), [])
+        self.assertEqual(strategy_memory["performance_scope"], "PAPER_RUNTIME_SCORECARD_ONLY")
+        self.assertFalse(strategy_memory["paper_shadow_separated"])
+        self.assertEqual(optimizer_memory["blocked_candidate_count"], 1)
+        self.assertEqual(failure_analysis["optimizer_ranking_action"], "BLOCK_RANKING")
         self.assertEqual(diagnostic["diagnostic_status"], "BLOCKED_FOR_ROBUSTNESS")
         self.assertFalse(diagnostic["robustness_eligible"])
         self.assertFalse(scorecard["ranking_eligible"])
@@ -99,6 +115,9 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertIn("rotation_review_required", scorecard)
         self.assertIn("rotation_review_reason_code", scorecard)
         self.assertFalse(result["live_order_allowed"])
+        self.assertFalse(strategy_memory["live_order_allowed"])
+        self.assertFalse(optimizer_memory["live_order_allowed"])
+        self.assertFalse(failure_analysis["live_order_allowed"])
         blocker_codes = {blocker["code"] for blocker in scorecard["blockers"]}
         self.assertTrue({"OOS_MISSING", "WALK_FORWARD_MISSING", "BOOTSTRAP_UNSTABLE", "OVERFIT_RISK_HIGH"}.issubset(blocker_codes))
 
@@ -323,11 +342,19 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
                     session_id="mvp1_upbit_paper_launcher",
                 )
             scorecard = _load_written(root, result, "candidate_scorecard_path")
+            strategy_memory = _load_written(root, result, "strategy_performance_memory_path")
+            optimizer_memory = _load_written(root, result, "optimizer_memory_state_path")
 
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(_candidate_scorecard_net_ev_errors(scorecard), [])
+        self.assertEqual(_strategy_performance_memory_errors(strategy_memory), [])
+        self.assertEqual(_optimizer_memory_state_errors(optimizer_memory), [])
         self.assertTrue(scorecard["ranking_eligible"])
         self.assertEqual(scorecard["scorecard_scope"], "PAPER_SCORECARD_INPUT_ONLY")
+        self.assertEqual(strategy_memory["performance_scope"], "PAPER_RUNTIME_SCORECARD_ONLY")
+        self.assertEqual(strategy_memory["performance_status"], "COLLECTING")
+        self.assertIsNone(result["failure_analysis_path"])
+        self.assertEqual(result["failure_analysis_status"], "NOT_REQUIRED")
         self.assertEqual(scorecard["closed_trade_status"], "PASS")
         self.assertEqual(scorecard["realized_vs_expected_sample_count"], 42)
         self.assertEqual(scorecard["fill_quality_sample_count"], 42)

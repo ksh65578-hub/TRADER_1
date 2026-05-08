@@ -16164,6 +16164,15 @@ def _strategy_performance_memory_errors(report: dict[str, Any]) -> list[str]:
         source_modes = set(report.get("source_modes", []))
         if not {"PAPER", "SHADOW"}.issubset(source_modes):
             errors.append("PAPER_SHADOW_RESEARCH_ONLY requires PAPER and SHADOW source modes")
+        if report.get("paper_shadow_separated") is not True:
+            errors.append("PAPER_SHADOW_RESEARCH_ONLY requires paper_shadow_separated=true")
+    if report.get("performance_scope") == "PAPER_RUNTIME_SCORECARD_ONLY":
+        if set(report.get("source_modes", [])) != {"PAPER"}:
+            errors.append("PAPER_RUNTIME_SCORECARD_ONLY requires exactly PAPER source mode")
+        if report.get("paper_shadow_separated") is not False:
+            errors.append("PAPER_RUNTIME_SCORECARD_ONLY requires paper_shadow_separated=false")
+        if not blockers:
+            errors.append("PAPER_RUNTIME_SCORECARD_ONLY must carry blocker evidence until SHADOW evidence is bound")
 
     return errors
 
@@ -16219,7 +16228,7 @@ def strategy_performance_memory_validator() -> ValidatorResult:
         reason_path: "minItems",
         downtrend_path: "DOWNTREND regime must not allow trading",
         mixed_source_path: "LIVE",
-        unscoped_path: "expected const True",
+        unscoped_path: "PAPER_SHADOW_RESEARCH_ONLY requires paper_shadow_separated=true",
     }
     for path, expected_fragment in negative_expectations.items():
         errors = _strategy_performance_memory_errors(load_json(path))
