@@ -1267,6 +1267,7 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
     authority: dict[str, str] | None = None,
     additional_runtime_cycle_reports: list[dict[str, Any]] | None = None,
     best_alternative_public_replay_report: dict[str, Any] | None = None,
+    preferred_alternative_candidate_id: str | None = None,
 ) -> dict[str, Any]:
     if any(candidate_scorecard.get(flag) is True for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
         raise ValueError("candidate generation refuses scorecard live or scale-up permission")
@@ -1410,7 +1411,16 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
 
     sorted_items = _dedupe_candidate_generation_items(items)[:safe_budget]
     review_ready_items = [item for item in sorted_items if item["candidate_status"] == "REVIEW_READY"]
-    best = review_ready_items[0] if review_ready_items else None
+    preferred_id = str(preferred_alternative_candidate_id or "")
+    preferred = next(
+        (
+            item
+            for item in review_ready_items
+            if preferred_id and str(item.get("candidate_id") or "") == preferred_id
+        ),
+        None,
+    )
+    best = preferred or (review_ready_items[0] if review_ready_items else None)
     blocked_count = sum(1 for item in sorted_items if item["candidate_status"] in {"BLOCKED_NO_TRADE", "REJECTED_LIVE_FLAG"})
     alternative_replay_binding, alternative_replay_blocker = _best_alternative_replay_binding(
         best=best,

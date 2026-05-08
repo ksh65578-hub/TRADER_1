@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from tools.run_upbit_paper_candidate_scorecard import (
@@ -573,6 +574,7 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
                 root=root,
                 session_id=runtime["session_id"],
                 candidate_generation_report=generation_report,
+                history={"history_id": "direct-alt-replay-history", "history_hash": "H" * 64, "samples": []},
                 runtime_cycle_report=runtime,
                 candidate_discovery_runtime=None,
                 target_count=70,
@@ -580,6 +582,7 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
                 timeout_seconds=1.0,
                 max_replay_windows=10,
                 min_required_sample_count=1,
+                candidate_limit=5,
                 public_replay_history_fetcher=fake_replay_history_fetcher,
             )
             alternative_replay = _load_written(root, context, "report_path")
@@ -596,6 +599,153 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertFalse(context["order_endpoint_called"])
         self.assertFalse(context["order_adapter_called"])
         self.assertFalse(context["live_key_loaded"])
+        self.assertFalse(context["live_order_allowed"])
+
+    def test_alternative_public_replay_prefers_robust_candidate_over_raw_ev(self):
+        cycle_hash = "A" * 64
+        generation_report = {
+            "generation_status": "ALTERNATIVE_REVIEW_READY",
+            "candidate_items": [
+                {
+                    "candidate_id": "KRW-ALPHA-pullback-trend-long",
+                    "symbol": "KRW-ALPHA",
+                    "candidate_status": "REVIEW_READY",
+                    "source_runtime_cycle_id": "cycle-robust-selection",
+                    "source_runtime_cycle_hash": cycle_hash,
+                    "net_ev_after_cost_bps": 50.0,
+                },
+                {
+                    "candidate_id": "KRW-BETA-pullback-trend-long",
+                    "symbol": "KRW-BETA",
+                    "candidate_status": "REVIEW_READY",
+                    "source_runtime_cycle_id": "cycle-robust-selection",
+                    "source_runtime_cycle_hash": cycle_hash,
+                    "net_ev_after_cost_bps": 10.0,
+                },
+            ],
+        }
+        runtime = {
+            "cycle_id": "cycle-robust-selection",
+            "cycle_hash": cycle_hash,
+            "exchange": "UPBIT",
+            "market_type": "KRW_SPOT",
+            "mode": "PAPER",
+        }
+        history = {"history_id": "multi-candidate-selection-history", "history_hash": "H" * 64, "samples": []}
+
+        def fake_scorecard(source_runtime: dict, *, candidate_id: str):
+            del source_runtime
+            symbol = candidate_id.split("-pullback", 1)[0]
+            return {
+                "candidate_id": candidate_id,
+                "symbol": symbol,
+                "session_id": "mvp1_upbit_paper_launcher",
+                "source_runtime_cycle_id": "cycle-robust-selection",
+                "source_runtime_cycle_hash": cycle_hash,
+                "strategy_id": "trend_pullback",
+                "strategy_build_id": "trend-pullback-v1",
+                "parameter_hash": "P" * 64,
+                "exchange": "UPBIT",
+                "market_type": "KRW_SPOT",
+                "mode": "PAPER",
+                "net_ev_after_cost_bps": 50.0 if "ALPHA" in candidate_id else 10.0,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+
+        def fake_replay_report(*, candidate_scorecard: dict, market_data: dict, replay_id: str, **kwargs):
+            del market_data, kwargs
+            return {
+                "schema_id": "trader1.public_replay_robustness_report.v1",
+                "replay_id": replay_id,
+                "exchange": "UPBIT",
+                "market_type": "KRW_SPOT",
+                "mode": "REPLAY",
+                "session_id": candidate_scorecard["session_id"],
+                "symbol": candidate_scorecard["symbol"],
+                "candidate_id": candidate_scorecard["candidate_id"],
+                "strategy_id": candidate_scorecard["strategy_id"],
+                "strategy_build_id": candidate_scorecard["strategy_build_id"],
+                "parameter_hash": candidate_scorecard["parameter_hash"],
+                "public_market_data_hash": "M" * 64,
+                "sample_count": 12,
+                "min_required_sample_count": 1,
+                "replay_status": "PASS",
+                "primary_blocker_code": None,
+                "blockers": [],
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+                "report_hash": ("B" if "BETA" in candidate_scorecard["candidate_id"] else "C") * 64,
+            }
+
+        def fake_overfit(*, candidate_scorecard: dict, **kwargs):
+            del kwargs
+            robust = "BETA" in candidate_scorecard["candidate_id"]
+            return {
+                "candidate_id": candidate_scorecard["candidate_id"],
+                "robustness_eligible": robust,
+                "oos_status": "PASS" if robust else "FAIL",
+                "walk_forward_status": "PASS" if robust else "FAIL",
+                "bootstrap_status": "PASS" if robust else "FAIL",
+                "overfit_status": "LOW" if robust else "HIGH",
+                "concentration_risk_status": "LOW" if robust else "HIGH",
+                "oos_net_ev_after_cost_bps": 8.0 if robust else 0.1,
+                "bootstrap_confidence_lower_bps": 2.0 if robust else 0.1,
+                "walk_forward_pass_rate": 0.8 if robust else 0.0,
+                "ranking_stability_score": 0.9 if robust else 0.0,
+                "blockers": [] if robust else [{"code": "OOS_FAILED"}],
+                "source_evidence_ids": [],
+                "diagnostic_hash": "D" * 64,
+            }
+
+        def fake_history_fetcher(*, symbol: str, session_id: str, target_count: int, page_size: int, timeout_seconds: float):
+            del target_count, page_size, timeout_seconds
+            return _public_replay_fixture(symbol=symbol, session_id=session_id, count=20)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with patch("tools.run_upbit_paper_candidate_scorecard.candidate_scorecard_from_upbit_paper_runtime_cycle", side_effect=fake_scorecard), patch(
+                "tools.run_upbit_paper_candidate_scorecard.build_public_replay_robustness_report",
+                side_effect=fake_replay_report,
+            ), patch(
+                "tools.run_upbit_paper_candidate_scorecard.validate_public_replay_robustness_report",
+                return_value=SimpleNamespace(status="PASS", blocker_code=None, message="ok"),
+            ), patch(
+                "tools.run_upbit_paper_candidate_scorecard.overfit_diagnostic_from_upbit_paper_runtime",
+                side_effect=fake_overfit,
+            ), patch(
+                "tools.run_upbit_paper_candidate_scorecard.performance_inputs_from_runtime_sample_history",
+                return_value=({}, {}, ["performance_summary:multi-candidate-selection:" + "E" * 64]),
+            ), patch("tools.run_upbit_paper_candidate_scorecard._overfit_diagnostic_errors", return_value=[]):
+                context = _build_and_write_alternative_public_replay(
+                    root=root,
+                    session_id="mvp1_upbit_paper_launcher",
+                    candidate_generation_report=generation_report,
+                    history=history,
+                    runtime_cycle_report=runtime,
+                    candidate_discovery_runtime=None,
+                    target_count=20,
+                    page_size=20,
+                    timeout_seconds=1.0,
+                    max_replay_windows=10,
+                    min_required_sample_count=1,
+                    candidate_limit=2,
+                    public_replay_history_fetcher=fake_history_fetcher,
+                )
+
+        self.assertEqual(context["status"], "PASS")
+        self.assertEqual(context["candidate_id"], "KRW-BETA-pullback-trend-long")
+        self.assertEqual(context["candidate_review_evaluated_count"], 2)
+        self.assertEqual(context["candidate_review_robust_candidate_count"], 1)
+        self.assertEqual(context["candidate_review_selection_reason"], "ROBUSTNESS_ELIGIBLE_SELECTED")
+        self.assertEqual(
+            [item["candidate_id"] for item in context["candidate_review_evaluations"]],
+            ["KRW-ALPHA-pullback-trend-long", "KRW-BETA-pullback-trend-long"],
+        )
         self.assertFalse(context["live_order_allowed"])
 
     def test_alternative_public_replay_status_distinguishes_contract_pass_from_replay_blocked(self):

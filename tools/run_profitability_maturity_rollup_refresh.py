@@ -101,7 +101,12 @@ def sha256_json(data: Any) -> str:
 def refresh_current_scorecard_inputs(*, root: Path = ROOT, session_id: str = "mvp1_upbit_paper_launcher") -> dict[str, Any]:
     from tools.run_upbit_paper_candidate_scorecard import build_current_upbit_paper_candidate_scorecard
 
-    return build_current_upbit_paper_candidate_scorecard(root=root, session_id=session_id)
+    return build_current_upbit_paper_candidate_scorecard(
+        root=root,
+        session_id=session_id,
+        attempt_public_discovery=True,
+        alternative_replay_candidate_limit=5,
+    )
 
 
 def safe_int(value: Any, default: int = 0) -> int:
