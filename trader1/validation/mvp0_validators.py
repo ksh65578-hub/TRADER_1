@@ -15445,9 +15445,33 @@ def upbit_operational_paper_gate_validator() -> ValidatorResult:
     if sizing_result.status != "PASS":
         return fail_result("upbit_operational_paper_gate_validator", f"sizing failed: {sizing_result.message}", paths, sizing_result.blocker_code or "UNKNOWN_BLOCKED")
     selected = float(sizing["selected_notional"])
-    for cap_name in ("equity_cap", "cash_cap", "risk_cap", "liquidity_cap", "exposure_cap"):
+    for cap_name in (
+        "equity_cap",
+        "cash_cap",
+        "risk_cap",
+        "liquidity_cap",
+        "exposure_cap",
+        "atr_risk_cap",
+        "volatility_cap",
+    ):
         if selected > float(sizing["caps"][cap_name]):
             return fail_result("upbit_operational_paper_gate_validator", f"sizing exceeded {cap_name}", paths, "RISK_VETO")
+    for multiplier_name in (
+        "volatility_multiplier",
+        "drawdown_multiplier",
+        "regime_multiplier",
+        "correlation_multiplier",
+        "realized_performance_multiplier",
+        "combined_sizing_multiplier",
+    ):
+        multiplier = float(sizing["caps"][multiplier_name])
+        if multiplier < 0 or multiplier > 1:
+            return fail_result(
+                "upbit_operational_paper_gate_validator",
+                f"sizing multiplier out of range: {multiplier_name}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
 
     sizing_live = build_position_sizing_decision(sizing_decision_id="validator-operational-sizing-live", strategy_unit_id=strategy["strategy_unit_id"])
     sizing_live["can_submit_order"] = True

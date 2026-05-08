@@ -514,9 +514,12 @@ def _candidate_sizing_inputs(
     }.get(str(features.get("regime")), Decimal("0.00"))
     quote_volume = max(Decimal("0"), _decimal(features.get("total_quote_volume")))
     volatility_rate = max(Decimal("0"), _decimal(features.get("volatility_pct")) / Decimal("100"))
+    recent_failure_active = selected_candidate.get("recent_failure_cooldown_status") == "ACTIVE"
+    realized_performance_multiplier = Decimal("0.35") if recent_failure_active else Decimal("1.00")
     inputs.update(
         {
             "volatility": _decimal_text(volatility_rate),
+            "atr_rate": _decimal_text(max(MIN_EXIT_ATR_RATE, volatility_rate)),
             "liquidity": _decimal_text(quote_volume),
             "spread": _decimal_text(max(Decimal("0"), _decimal(features.get("spread_bps"))) / Decimal("10000")),
             "orderbook_depth": _decimal_text(max(Decimal("0"), quote_volume * Decimal("0.10"))),
@@ -527,10 +530,22 @@ def _candidate_sizing_inputs(
             "fee": _decimal_text(max(Decimal("0"), _decimal(costs.get("fee_bps"))) / Decimal("10000")),
             "slippage": _decimal_text(max(Decimal("0"), _decimal(costs.get("slippage_bps"))) / Decimal("10000")),
             "market_impact": _decimal_text(max(Decimal("0"), _decimal(costs.get("market_impact_bps"))) / Decimal("10000")),
+            "drawdown_pct": str(risk_state.get("drawdown_pct", "0")),
+            "regime": str(features.get("regime") or "UNKNOWN"),
+            "market_state": str(features.get("market_state") or features.get("regime") or "UNKNOWN"),
+            "correlation_cluster_status": str(selected_candidate.get("correlation_cluster_status") or "LEADER"),
+            "correlation_penalty": str(selected_candidate.get("correlation_penalty") or "0"),
+            "realized_performance_feedback_status": (
+                "ACTIVE" if recent_failure_active else str(selected_candidate.get("recent_failure_cooldown_status") or "CLEAR")
+            ),
+            "realized_performance_multiplier": _decimal_text(realized_performance_multiplier),
             "risk_state": str(risk_state.get("risk_state") or "unknown"),
             "risk_drawdown_pct": str(risk_state.get("drawdown_pct", "0")),
             "orderbook_depth_source": "PUBLIC_CANDLE_QUOTE_VOLUME_10PCT_PROXY",
-            "sizing_formula": "min(equity_cap,cash_cap,risk_cap,liquidity_cap,exposure_cap)*min(signal,strategy,regime)",
+            "sizing_formula": (
+                "min(equity_cap,cash_cap,risk_cap,liquidity_cap,exposure_cap,atr_risk_cap,volatility_cap)"
+                "*confidence*volatility*drawdown*regime*correlation*performance"
+            ),
         }
     )
     return inputs
@@ -3728,7 +3743,9 @@ def build_upbit_paper_runtime_cycle_report(
         inputs=sizing_inputs,
     )
     sizing_result = validate_position_sizing_decision(sizing)
-    if managed_position is None and (sizing_result.status != "PASS" or sizing.get("sizing_status") != "PASS"):
+    if managed_position is None and final_decision == "ENTER_LONG" and (
+        sizing_result.status != "PASS" or sizing.get("sizing_status") != "PASS"
+    ):
         sizing_blocker = sizing.get("primary_blocker_code") or sizing_result.blocker_code or "RISK_VETO"
         sizing_message = sizing_result.message
         if sizing.get("sizing_status") != "PASS":

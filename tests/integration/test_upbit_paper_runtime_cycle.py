@@ -231,7 +231,11 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertLess(float(report["exit_plan"]["hard_stop"]), float(report["exit_plan"]["entry_price"]))
         self.assertGreater(float(report["exit_plan"]["tp1"]), float(report["exit_plan"]["entry_price"]))
         self.assertGreater(float(report["exit_plan"]["tp2"]), float(report["exit_plan"]["tp1"]))
-        self.assertEqual(report["sizing_decision"]["inputs"]["sizing_formula"], "min(equity_cap,cash_cap,risk_cap,liquidity_cap,exposure_cap)*min(signal,strategy,regime)")
+        self.assertEqual(
+            report["sizing_decision"]["inputs"]["sizing_formula"],
+            "min(equity_cap,cash_cap,risk_cap,liquidity_cap,exposure_cap,atr_risk_cap,volatility_cap)"
+            "*confidence*volatility*drawdown*regime*correlation*performance",
+        )
         self.assertEqual(report["summary"]["portfolio"]["source"], "LEDGER")
         self.assertEqual(report["summary"]["portfolio"]["freshness_status"], "PASS")
         self.assertTrue(report["summary"]["entry_candidates"])
