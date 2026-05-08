@@ -84,15 +84,30 @@ TREND_EXHAUSTION_FEATURE_PROJECTION_FIELDS = frozenset(
 REGIME_DETAIL_FEATURE_PROJECTION_FIELDS = frozenset(
     {"market_state", "quiet_range_status", "volatility_expansion_status", "regime_detail_formula"}
 )
+BREAKOUT_GUARD_FEATURE_PROJECTION_FIELDS = frozenset(
+    {
+        "breakout_volume_confirmation_score",
+        "breakout_confirmation_score",
+        "breakout_retest_quality_score",
+        "breakout_false_breakout_guard_status",
+        "breakout_volatility_invalidation_status",
+        "breakout_entry_guard_formula",
+    }
+)
 CORRELATION_FEATURE_PROJECTION_FIELDS = frozenset({"return_signature", "return_signature_formula"})
 CURRENT_FEATURE_PROJECTION_UPGRADE_FIELDS = (
     TREND_EXHAUSTION_FEATURE_PROJECTION_FIELDS
     | TREND_PULLBACK_ALIGNMENT_FEATURE_PROJECTION_FIELDS
     | REGIME_DETAIL_FEATURE_PROJECTION_FIELDS
+    | BREAKOUT_GUARD_FEATURE_PROJECTION_FIELDS
     | CORRELATION_FEATURE_PROJECTION_FIELDS
 )
 BREAKOUT_CONFIRMATION_MIN_VOLUME_EXPANSION = Decimal("1.20")
 BREAKOUT_CONFIRMATION_MIN_RANGE_BREAKOUT_PCT = Decimal("0.03")
+BREAKOUT_RETEST_MIN_QUALITY_SCORE = Decimal("0.55")
+BREAKOUT_RETEST_MAX_RANGE_EXTENSION_PCT = Decimal("2.50")
+BREAKOUT_VOLATILITY_INVALIDATION_MIN_VOLATILITY_PCT = Decimal("5.50")
+BREAKOUT_VOLATILITY_INVALIDATION_MIN_VOLUME_CONFIRMATION = Decimal("0.75")
 MEAN_REVERSION_MIN_VWAP_DISTANCE_PCT = Decimal("0.35")
 MEAN_REVERSION_MAX_VOLUME_EXPANSION = Decimal("1.35")
 WEAK_TREND_EDGE_PENALTY_BPS = Decimal("24")
@@ -165,6 +180,11 @@ STRATEGY_EXIT_POLICY_ID = "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1"
 TREND_PULLBACK_EXIT_VARIATION = "trailing_tp"
 VWAP_REVERSION_EXIT_VARIATION = "fixed_tp"
 BREAKOUT_RETEST_EXIT_VARIATION = "invalidation_exit"
+ENTRY_STRATEGY_CONTEXT_FALLBACK_PRIORITY = {
+    "PULLBACK_TREND_LONG": 3,
+    "BREAKOUT_RETEST_LONG": 2,
+    "VWAP_MEAN_REVERSION": 1,
+}
 STRATEGY_EXIT_REASON_NONE = "NONE"
 STRATEGY_EXIT_ACTION_NONE = "NONE"
 STRATEGY_EXIT_ACTION_FULL_EXIT = "FULL_EXIT"
@@ -334,6 +354,9 @@ def _strategy_entry_policy_evaluation(
         return False, entry_block_reason
     volume_expansion = _decimal(features.get("volume_expansion_ratio"))
     range_breakout = max(Decimal("0"), _decimal(features.get("range_breakout_pct")))
+    breakout_retest_quality = _decimal(features.get("breakout_retest_quality_score"))
+    breakout_false_breakout_guard_status = str(features.get("breakout_false_breakout_guard_status") or "BLOCKED")
+    breakout_volatility_invalidation_status = str(features.get("breakout_volatility_invalidation_status") or "BLOCKED")
     vwap_distance = abs(_decimal(features.get("vwap_distance_pct")))
     if market_state == "QUIET_RANGE":
         if strategy_family != "VWAP_MEAN_REVERSION":
@@ -357,6 +380,12 @@ def _strategy_entry_policy_evaluation(
             return True, "PASS"
         return False, "PULLBACK_REQUIRES_VALID_UPTREND_ALIGNMENT"
     if strategy_family == "BREAKOUT_RETEST_LONG":
+        if breakout_volatility_invalidation_status == "BLOCKED":
+            return False, "BREAKOUT_VOLATILITY_INVALIDATED"
+        if breakout_false_breakout_guard_status != "PASS":
+            return False, "BREAKOUT_FALSE_BREAKOUT_GUARD"
+        if breakout_retest_quality < BREAKOUT_RETEST_MIN_QUALITY_SCORE:
+            return False, "BREAKOUT_RETEST_QUALITY_LOW"
         if market_state == "VOLATILITY_EXPANSION" or (
             regime == "UPTREND"
             and volume_expansion >= BREAKOUT_CONFIRMATION_MIN_VOLUME_EXPANSION
@@ -962,6 +991,19 @@ def _build_entry_strategy_context(
     }
 
 
+def _entry_strategy_context_fallback_rank(candidate: dict[str, Any]) -> tuple[int, int, int, Decimal, Decimal, int]:
+    strategy_family = str(candidate.get("strategy_family") or "")
+    rank_score, rank_net_ev, rank_priority = _candidate_rank_key(candidate)
+    return (
+        1 if candidate.get("decision") == "PAPER_ENTRY_REVIEW" else 0,
+        1 if candidate.get("strategy_regime_allowed") is True else 0,
+        ENTRY_STRATEGY_CONTEXT_FALLBACK_PRIORITY.get(strategy_family, 0),
+        rank_score,
+        rank_net_ev,
+        rank_priority,
+    )
+
+
 def _position_entry_strategy_candidate(
     *,
     position: dict[str, Any] | None,
@@ -1019,13 +1061,23 @@ def _position_entry_strategy_candidate(
             "entry_strategy_current_candidate_match": entry_candidate_id == fallback_candidate.get("candidate_id"),
             "entry_strategy_fallback_used": matched_candidate is None,
         }
-    return fallback_candidate, {
-        "entry_strategy_context_status": "FALLBACK_TO_CURRENT_SELECTED_CANDIDATE",
+    position_symbol_candidates = [
+        candidate
+        for candidate in candidates
+        if candidate.get("symbol") == position.get("symbol")
+        and candidate.get("strategy_family") in ENTRY_STRATEGY_CONTEXT_FALLBACK_PRIORITY
+    ]
+    fallback_entry_candidate = max(
+        position_symbol_candidates or [fallback_candidate],
+        key=_entry_strategy_context_fallback_rank,
+    )
+    return fallback_entry_candidate, {
+        "entry_strategy_context_status": "FALLBACK_TO_MANAGED_SYMBOL_STRATEGY_PRIORITY",
         "entry_strategy_context_source": "POSITION_ENTRY_CONTEXT_MISSING",
-        "entry_candidate_id": fallback_candidate.get("candidate_id"),
-        "entry_strategy_family": fallback_candidate.get("strategy_family"),
+        "entry_candidate_id": fallback_entry_candidate.get("candidate_id"),
+        "entry_strategy_family": fallback_entry_candidate.get("strategy_family"),
         "entry_strategy_exit_variation": None,
-        "entry_strategy_current_candidate_match": True,
+        "entry_strategy_current_candidate_match": fallback_entry_candidate.get("candidate_id") == fallback_candidate.get("candidate_id"),
         "entry_strategy_fallback_used": True,
     }
 
@@ -1453,6 +1505,42 @@ def _feature_snapshot(market_data: dict[str, Any]) -> dict[str, Any]:
         and momentum_pct >= TREND_EXHAUSTION_MIN_MOMENTUM_PCT
         and volume_expansion_ratio >= TREND_EXHAUSTION_MIN_VOLUME_EXPANSION
     )
+    breakout_positive_range_pct = max(Decimal("0"), range_breakout_pct)
+    breakout_volume_confirmation_score = _clamp_decimal(
+        (volume_expansion_ratio - Decimal("0.85")) / Decimal("0.65")
+    )
+    breakout_confirmation_score = (
+        _clamp_decimal(breakout_positive_range_pct / Decimal("0.75")) * breakout_volume_confirmation_score
+        if breakout_positive_range_pct > 0
+        else Decimal("0")
+    )
+    breakout_extension_score = (
+        _clamp_decimal(
+            (BREAKOUT_RETEST_MAX_RANGE_EXTENSION_PCT - breakout_positive_range_pct)
+            / BREAKOUT_RETEST_MAX_RANGE_EXTENSION_PCT
+        )
+        if breakout_positive_range_pct > 0
+        else Decimal("0")
+    )
+    breakout_retest_quality_score = breakout_confirmation_score * (
+        Decimal("0.65") + Decimal("0.35") * breakout_extension_score
+    )
+    breakout_false_breakout_guard_status = (
+        "PASS"
+        if (
+            volume_expansion_ratio >= BREAKOUT_CONFIRMATION_MIN_VOLUME_EXPANSION
+            and breakout_positive_range_pct >= BREAKOUT_CONFIRMATION_MIN_RANGE_BREAKOUT_PCT
+        )
+        else "BLOCKED"
+    )
+    breakout_volatility_invalidation_status = (
+        "BLOCKED"
+        if (
+            volatility_pct >= BREAKOUT_VOLATILITY_INVALIDATION_MIN_VOLATILITY_PCT
+            and breakout_volume_confirmation_score < BREAKOUT_VOLATILITY_INVALIDATION_MIN_VOLUME_CONFIRMATION
+        )
+        else "PASS"
+    )
     return {
         "source": market_data.get("source", "UNAVAILABLE"),
         "symbol": market_data["symbol"],
@@ -1476,6 +1564,22 @@ def _feature_snapshot(market_data: dict[str, Any]) -> dict[str, Any]:
         "market_state": market_state,
         "quiet_range_status": "ACTIVE" if quiet_range_active else "CLEAR",
         "volatility_expansion_status": "ACTIVE" if volatility_expansion_active else "CLEAR",
+        "breakout_volume_confirmation_score": _decimal_text(
+            breakout_volume_confirmation_score.quantize(Decimal("0.0001"))
+        ),
+        "breakout_confirmation_score": _decimal_text(
+            breakout_confirmation_score.quantize(Decimal("0.0001"))
+        ),
+        "breakout_retest_quality_score": _decimal_text(
+            breakout_retest_quality_score.quantize(Decimal("0.0001"))
+        ),
+        "breakout_false_breakout_guard_status": breakout_false_breakout_guard_status,
+        "breakout_volatility_invalidation_status": breakout_volatility_invalidation_status,
+        "breakout_entry_guard_formula": (
+            "PASS when volume_expansion>=1.20, range_breakout>=0.03, "
+            "retest_quality>=0.55, and not(volatility>=5.50 with volume_confirmation<0.75); "
+            "retest_quality=range_breakout_confirmation*(0.65+0.35*extension_score)"
+        ),
         "regime_detail_formula": (
             "Upbit KRW spot is long-only: DATA_BAD, PANIC, DOWNTREND/RISK_OFF, and UNCERTAIN block new entries; "
             "QUIET_RANGE blocks trend/breakout and permits only limited VWAP range candidates when abs(vwap_distance)>=0.55pct "
@@ -1917,12 +2021,22 @@ def _setup_confirmation_scores(features: dict[str, Any]) -> dict[str, Decimal]:
         if range_breakout > 0
         else Decimal("0")
     )
+    breakout_retest_quality = _decimal(features.get("breakout_retest_quality_score"))
+    if breakout_retest_quality <= 0 and range_breakout > 0:
+        breakout_extension_score = _clamp_decimal(
+            (BREAKOUT_RETEST_MAX_RANGE_EXTENSION_PCT - range_breakout)
+            / BREAKOUT_RETEST_MAX_RANGE_EXTENSION_PCT
+        )
+        breakout_retest_quality = breakout_confirmation * (
+            Decimal("0.65") + Decimal("0.35") * breakout_extension_score
+        )
     mean_reversion_distance = _clamp_decimal((vwap_distance - Decimal("0.25")) / Decimal("1.25"))
     mean_reversion_volume = _clamp_decimal((MEAN_REVERSION_MAX_VOLUME_EXPANSION - volume_expansion) / Decimal("0.65"))
     return {
         "trend_persistence": trend_persistence,
         "volume_confirmation": volume_confirmation,
         "breakout_confirmation": breakout_confirmation,
+        "breakout_retest_quality": breakout_retest_quality,
         "mean_reversion_quality": mean_reversion_distance * mean_reversion_volume,
     }
 
@@ -2012,6 +2126,9 @@ def _candidate(
         "quiet_range_entry_policy": (
             "VWAP_ONLY_DEEP_DISLOCATION" if market_state == "QUIET_RANGE" else "NOT_APPLICABLE"
         ),
+        "breakout_false_breakout_guard_status": features.get("breakout_false_breakout_guard_status", "BLOCKED"),
+        "breakout_retest_quality_score": features.get("breakout_retest_quality_score", "0"),
+        "breakout_volatility_invalidation_status": features.get("breakout_volatility_invalidation_status", "BLOCKED"),
         "signal_strength": _decimal_text(signal_strength),
         "signal_grade": "A" if signal_strength >= Decimal("0.7") else "B" if signal_strength >= Decimal("0.55") else "C",
         "expected_edge_bps": _decimal_text(expected_edge_bps),
@@ -2065,6 +2182,7 @@ def _build_candidates(
     trend_persistence = setup_scores["trend_persistence"]
     volume_confirmation = setup_scores["volume_confirmation"]
     breakout_confirmation = setup_scores["breakout_confirmation"]
+    breakout_retest_quality = setup_scores["breakout_retest_quality"]
     mean_reversion_quality = setup_scores["mean_reversion_quality"]
     pullback_edge = (
         Decimal("5")
@@ -2093,9 +2211,19 @@ def _build_candidates(
         pullback_edge -= TREND_EXHAUSTION_EDGE_PENALTY_BPS
         pullback_signal = _clamp_decimal(pullback_signal - TREND_EXHAUSTION_SIGNAL_PENALTY)
 
-    breakout_edge = Decimal("4") + symbol_score * Decimal("20") + volume_confirmation * Decimal("12") + breakout_confirmation * Decimal("10")
+    breakout_edge = (
+        Decimal("4")
+        + symbol_score * Decimal("20")
+        + volume_confirmation * Decimal("12")
+        + breakout_confirmation * Decimal("10")
+        + breakout_retest_quality * Decimal("12")
+    )
     breakout_signal = _clamp_decimal(
-        Decimal("0.38") + symbol_score * Decimal("0.22") + volume_confirmation * Decimal("0.16") + breakout_confirmation * Decimal("0.18")
+        Decimal("0.38")
+        + symbol_score * Decimal("0.22")
+        + volume_confirmation * Decimal("0.16")
+        + breakout_confirmation * Decimal("0.18")
+        + breakout_retest_quality * Decimal("0.12")
     )
     breakout_confirmation_passed = (
         volume_expansion >= BREAKOUT_CONFIRMATION_MIN_VOLUME_EXPANSION
@@ -2104,6 +2232,15 @@ def _build_candidates(
     if not breakout_confirmation_passed:
         breakout_edge -= FALSE_BREAKOUT_EDGE_PENALTY_BPS
         breakout_signal = _clamp_decimal(breakout_signal - Decimal("0.18"))
+    if features.get("breakout_false_breakout_guard_status") != "PASS":
+        breakout_edge -= FALSE_BREAKOUT_EDGE_PENALTY_BPS
+        breakout_signal = _clamp_decimal(breakout_signal - Decimal("0.20"))
+    if breakout_retest_quality < BREAKOUT_RETEST_MIN_QUALITY_SCORE:
+        breakout_edge -= Decimal("18")
+        breakout_signal = _clamp_decimal(breakout_signal - Decimal("0.14"))
+    if features.get("breakout_volatility_invalidation_status") == "BLOCKED":
+        breakout_edge -= VOLATILITY_LIQUIDITY_EDGE_PENALTY_BPS
+        breakout_signal = _clamp_decimal(breakout_signal - Decimal("0.16"))
     if features.get("trend_exhaustion_status") == "WARN":
         breakout_edge -= TREND_EXHAUSTION_EDGE_PENALTY_BPS
         breakout_signal = _clamp_decimal(breakout_signal - TREND_EXHAUSTION_SIGNAL_PENALTY)
@@ -2541,6 +2678,15 @@ def _validate_candidate_costs(
         expected_quiet_policy = "VWAP_ONLY_DEEP_DISLOCATION" if candidate_market_state == "QUIET_RANGE" else "NOT_APPLICABLE"
         if candidate.get("quiet_range_entry_policy") != expected_quiet_policy:
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate quiet range policy marker mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        for breakout_field in (
+            "breakout_false_breakout_guard_status",
+            "breakout_retest_quality_score",
+            "breakout_volatility_invalidation_status",
+        ):
+            if breakout_field not in candidate:
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", f"candidate {breakout_field} missing", "SCHEMA_IDENTITY_MISMATCH")
+            if isinstance(features, dict) and str(candidate.get(breakout_field)) != str(features.get(breakout_field)):
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", f"candidate {breakout_field} mismatch", "SCHEMA_IDENTITY_MISMATCH")
     else:
         strategy_regime_allowed = (
             candidate.get("strategy_regime_allowed")
@@ -3084,6 +3230,16 @@ def build_upbit_paper_runtime_cycle_report(
             "market_state": "RISK_OFF",
             "quiet_range_status": "CLEAR",
             "volatility_expansion_status": "CLEAR",
+            "breakout_volume_confirmation_score": "0",
+            "breakout_confirmation_score": "0",
+            "breakout_retest_quality_score": "0",
+            "breakout_false_breakout_guard_status": "BLOCKED",
+            "breakout_volatility_invalidation_status": "BLOCKED",
+            "breakout_entry_guard_formula": (
+                "PASS when volume_expansion>=1.20, range_breakout>=0.03, "
+                "retest_quality>=0.55, and not(volatility>=5.50 with volume_confirmation<0.75); "
+                "retest_quality=range_breakout_confirmation*(0.65+0.35*extension_score)"
+            ),
             "regime_detail_formula": (
                 "Upbit KRW spot is long-only: DATA_BAD, PANIC, DOWNTREND/RISK_OFF, and UNCERTAIN block new entries; "
                 "QUIET_RANGE blocks trend/breakout and permits only limited VWAP range candidates when abs(vwap_distance)>=0.55pct "
@@ -4156,6 +4312,7 @@ def validate_upbit_paper_runtime_cycle_report(
             "SELECTED_CANDIDATE_CONTEXT",
             "BOUND_TO_POSITION_ENTRY",
             "FALLBACK_TO_CURRENT_SELECTED_CANDIDATE",
+            "FALLBACK_TO_MANAGED_SYMBOL_STRATEGY_PRIORITY",
         }:
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "position lifecycle entry strategy context status is invalid", "SCHEMA_IDENTITY_MISMATCH")
         if lifecycle.get("entry_candidate_id") != exit_plan.get("source_candidate_id"):

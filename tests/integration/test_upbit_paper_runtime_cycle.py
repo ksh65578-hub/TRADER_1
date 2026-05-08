@@ -814,6 +814,15 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertLess(float(report["feature_snapshot"]["volume_expansion_ratio"]), 1.05)
         self.assertLess(float(report["feature_snapshot"]["momentum_pct"]), 1.50)
         self.assertLessEqual(float(report["feature_snapshot"]["range_breakout_pct"]), 0)
+        candidates_by_strategy = {
+            candidate["strategy_family"]: candidate
+            for candidate in report["strategy_candidates"]
+        }
+        self.assertEqual(report["feature_snapshot"]["breakout_false_breakout_guard_status"], "BLOCKED")
+        self.assertEqual(
+            candidates_by_strategy["BREAKOUT_RETEST_LONG"]["strategy_policy_reason"],
+            "BREAKOUT_FALSE_BREAKOUT_GUARD",
+        )
         self.assertTrue(all(candidate["decision"] == "NO_TRADE" for candidate in report["strategy_candidates"]))
         self.assertIsNone(report["paper_fill"])
         self.assertEqual(report["paper_ledger_events"], [])
@@ -1598,6 +1607,44 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         )
         self.assertEqual(report["selected_candidate"]["strategy_family"], "BREAKOUT_RETEST_LONG")
         self.assertIn(report["selected_candidate"]["decision"], {"PAPER_ENTRY_REVIEW", "NO_TRADE"})
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_breakout_volatility_invalidation_blocks_low_confirmation_expansion(self):
+        data = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        closes = ["1000000", "950000", "1010000", "970000", "1040000", "1060000"]
+        volumes = ["10", "10", "10", "10", "10", "12.5"]
+        for candle, close, volume in zip(data["candles"], closes, volumes):
+            price = int(close)
+            candle["open"] = str(price - 1000)
+            candle["high"] = str(price + 2500)
+            candle["low"] = str(price - 2500)
+            candle["close"] = close
+            candle["volume"] = volume
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-breakout-volatility-invalidation",
+            market_data=data,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["feature_snapshot"]["market_state"], "VOLATILITY_EXPANSION")
+        self.assertEqual(report["feature_snapshot"]["breakout_false_breakout_guard_status"], "PASS")
+        self.assertEqual(report["feature_snapshot"]["breakout_volatility_invalidation_status"], "BLOCKED")
+        candidates_by_strategy = {
+            candidate["strategy_family"]: candidate
+            for candidate in report["strategy_candidates"]
+        }
+        self.assertFalse(candidates_by_strategy["BREAKOUT_RETEST_LONG"]["strategy_regime_allowed"])
+        self.assertEqual(
+            candidates_by_strategy["BREAKOUT_RETEST_LONG"]["strategy_policy_reason"],
+            "BREAKOUT_VOLATILITY_INVALIDATED",
+        )
+        self.assertNotEqual(report["final_decision"], "ENTER_LONG")
+        self.assertIsNone(report["paper_fill"])
         self.assertFalse(report["live_order_allowed"])
 
     def test_selected_candidate_must_be_highest_net_ev_candidate(self):
