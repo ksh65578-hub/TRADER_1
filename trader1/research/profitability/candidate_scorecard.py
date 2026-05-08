@@ -36,6 +36,7 @@ ROBUSTNESS_PASS = {
 PERFORMANCE_PASS = {
     "closed_trade_status": "PASS",
     "strategy_exit_policy_status": "PASS",
+    "regime_outcome_status": "PASS",
     "profit_factor_status": "PASS",
     "max_drawdown_status": "PASS",
     "realized_vs_expected_edge_status": "PASS",
@@ -51,6 +52,14 @@ DEFAULT_PERFORMANCE_METRICS = {
     "strategy_exit_policy_mismatch_count": 0,
     "strategy_exit_reason_count": 0,
     "strategy_exit_reason_counts": [],
+    "regime_outcome_sample_count": 0,
+    "min_regime_outcome_sample_count": 4,
+    "regime_outcome_covered_count": 0,
+    "min_regime_outcome_covered_count": 4,
+    "regime_outcome_trade_count": 0,
+    "regime_outcome_no_trade_count": 0,
+    "regime_outcome_mismatch_count": 0,
+    "regime_outcome_counts": [],
     "realized_vs_expected_sample_count": 0,
     "fill_quality_sample_count": 0,
     "execution_cost_sample_count": 0,
@@ -74,6 +83,8 @@ ROBUSTNESS_SOURCE_PREFIXES = ("oos:", "walk_forward:", "bootstrap:")
 PERFORMANCE_SOURCE_PREFIXES = ("closed_trades:", "execution_quality:", "performance_summary:")
 RUNTIME_CYCLE_SOURCE_PREFIX = "upbit_paper_runtime_cycle:"
 TOP_SYMBOL_SCORECARD_LIMIT = 5
+REGIME_OUTCOME_REGIMES = ("UPTREND", "RANGE", "DOWNTREND", "RISK_OFF")
+SPOT_LONG_NEW_ENTRY_BLOCKED_REGIMES = {"DOWNTREND", "RISK_OFF"}
 
 
 def utc_now() -> str:
@@ -287,6 +298,71 @@ def _candidate_for_closed_trade(runtime: dict[str, Any], position_lifecycle: dic
     return selected if isinstance(selected, dict) else None
 
 
+def _candidate_by_id(runtime: dict[str, Any], candidate_id: str) -> dict[str, Any] | None:
+    selected = runtime.get("selected_candidate")
+    if isinstance(selected, dict) and selected.get("candidate_id") == candidate_id:
+        return selected
+    for candidate in runtime.get("strategy_candidates") or []:
+        if isinstance(candidate, dict) and candidate.get("candidate_id") == candidate_id:
+            return candidate
+    return None
+
+
+def _runtime_regime_outcome_key(runtime: dict[str, Any]) -> str:
+    features = runtime.get("feature_snapshot")
+    features = features if isinstance(features, dict) else {}
+    regime = str(runtime.get("regime") or features.get("regime") or "").upper()
+    market_state = str(features.get("market_state") or runtime.get("market_state") or regime).upper()
+    if market_state == "DOWNTREND":
+        return "DOWNTREND"
+    if market_state in {"PANIC", "DATA_BAD"} or regime == "RISK_OFF":
+        return "RISK_OFF"
+    if regime == "UPTREND":
+        return "UPTREND"
+    if regime == "RANGE":
+        return "RANGE"
+    return "RISK_OFF"
+
+
+def _empty_regime_outcome_counts() -> dict[str, dict[str, Any]]:
+    return {
+        regime: {
+            "regime": regime,
+            "sample_count": 0,
+            "trade_count": 0,
+            "no_trade_count": 0,
+            "mismatch_count": 0,
+            "trade_allowed": regime not in SPOT_LONG_NEW_ENTRY_BLOCKED_REGIMES,
+            "primary_blocker_code": None if regime not in SPOT_LONG_NEW_ENTRY_BLOCKED_REGIMES else "RISK_VETO",
+        }
+        for regime in REGIME_OUTCOME_REGIMES
+    }
+
+
+def _record_regime_outcome_sample(
+    *,
+    regime_counts: dict[str, dict[str, Any]],
+    regime: str,
+    candidate: dict[str, Any],
+    trade_observed: bool,
+) -> None:
+    bucket = regime_counts.setdefault(regime, _empty_regime_outcome_counts()[regime])
+    bucket["sample_count"] = int(bucket.get("sample_count", 0)) + 1
+    if trade_observed:
+        bucket["trade_count"] = int(bucket.get("trade_count", 0)) + 1
+    else:
+        bucket["no_trade_count"] = int(bucket.get("no_trade_count", 0)) + 1
+
+    candidate_decision = str(candidate.get("decision") or "")
+    strategy_allowed = candidate.get("strategy_regime_allowed") is True
+    disallowed_trade = regime in SPOT_LONG_NEW_ENTRY_BLOCKED_REGIMES and (
+        trade_observed or strategy_allowed or candidate_decision == "PAPER_ENTRY_REVIEW"
+    )
+    if disallowed_trade:
+        bucket["mismatch_count"] = int(bucket.get("mismatch_count", 0)) + 1
+        bucket["primary_blocker_code"] = "RISK_VETO" if regime == "RISK_OFF" else "REGIME_MISMATCH"
+
+
 def _expected_strategy_exit_variation(strategy_family: Any) -> str:
     mapping = {
         "PULLBACK_TREND_LONG": TREND_PULLBACK_EXIT_VARIATION,
@@ -414,6 +490,8 @@ def performance_inputs_from_runtime_sample_history(
     strategy_exit_policy_match_count = 0
     strategy_exit_policy_mismatch_count = 0
     strategy_exit_reason_counts: dict[str, int] = {}
+    regime_counts = _empty_regime_outcome_counts()
+    target_candidate_id = str(candidate_scorecard.get("candidate_id") or "")
 
     for sample in runtime_sample_history.get("samples") or []:
         if not isinstance(sample, dict):
@@ -421,6 +499,8 @@ def performance_inputs_from_runtime_sample_history(
         runtime = _load_valid_runtime_sample(root=root, sample=sample, candidate_scorecard=candidate_scorecard)
         if runtime is None:
             continue
+        runtime_regime = _runtime_regime_outcome_key(runtime)
+        runtime_candidate = _candidate_by_id(runtime, target_candidate_id)
         portfolio = runtime.get("paper_portfolio_snapshot")
         if isinstance(portfolio, dict):
             candidate_starting_cash = decimal_value(portfolio.get("starting_cash"))
@@ -442,6 +522,19 @@ def performance_inputs_from_runtime_sample_history(
             if isinstance(fill, dict)
             else False
         )
+        trade_observed = (
+            isinstance(fill, dict)
+            and fill.get("side") in {"BUY", "SELL"}
+            and candidate_fill
+            and runtime.get("final_decision") in {"ENTER_LONG", "EXIT_POSITION"}
+        )
+        if isinstance(runtime_candidate, dict):
+            _record_regime_outcome_sample(
+                regime_counts=regime_counts,
+                regime=runtime_regime,
+                candidate=runtime_candidate,
+                trade_observed=trade_observed,
+            )
         if isinstance(fill, dict) and fill.get("side") in {"BUY", "SELL"} and candidate_fill:
             execution_cost = _paper_fill_execution_cost_comparison(fill)
             expected_total = execution_cost["expected_total_execution_cost_bps"]
@@ -544,6 +637,12 @@ def performance_inputs_from_runtime_sample_history(
         if execution_cost_delta_values
         else Decimal("999")
     )
+    regime_outcome_counts = list(regime_counts.values())
+    regime_outcome_sample_count = sum(int(item["sample_count"]) for item in regime_outcome_counts)
+    regime_outcome_trade_count = sum(int(item["trade_count"]) for item in regime_outcome_counts)
+    regime_outcome_no_trade_count = sum(int(item["no_trade_count"]) for item in regime_outcome_counts)
+    regime_outcome_mismatch_count = sum(int(item["mismatch_count"]) for item in regime_outcome_counts)
+    regime_outcome_covered_count = sum(1 for item in regime_outcome_counts if int(item["sample_count"]) > 0)
     metrics = dict(DEFAULT_PERFORMANCE_METRICS)
     metrics.update(
         {
@@ -556,6 +655,12 @@ def performance_inputs_from_runtime_sample_history(
                 {"reason_code": reason_code, "count": count}
                 for reason_code, count in sorted(strategy_exit_reason_counts.items())
             ],
+            "regime_outcome_sample_count": regime_outcome_sample_count,
+            "regime_outcome_covered_count": regime_outcome_covered_count,
+            "regime_outcome_trade_count": regime_outcome_trade_count,
+            "regime_outcome_no_trade_count": regime_outcome_no_trade_count,
+            "regime_outcome_mismatch_count": regime_outcome_mismatch_count,
+            "regime_outcome_counts": regime_outcome_counts,
             "realized_vs_expected_sample_count": len(realized_vs_expected_values),
             "fill_quality_sample_count": len(fill_quality_values),
             "execution_cost_sample_count": len(execution_cost_delta_values),
@@ -573,6 +678,7 @@ def performance_inputs_from_runtime_sample_history(
     )
     closed_trade_observed = int(metrics["closed_trade_sample_count"])
     strategy_exit_policy_observed = int(metrics["strategy_exit_policy_sample_count"])
+    regime_outcome_observed = int(metrics["regime_outcome_sample_count"])
     realized_vs_expected_observed = int(metrics["realized_vs_expected_sample_count"])
     fill_quality_observed = int(metrics["fill_quality_sample_count"])
     execution_cost_observed = int(metrics["execution_cost_sample_count"])
@@ -591,6 +697,17 @@ def performance_inputs_from_runtime_sample_history(
                 strategy_exit_policy_observed >= int(metrics["min_strategy_exit_policy_sample_count"])
                 and int(metrics["strategy_exit_policy_mismatch_count"]) == 0
                 and int(metrics["strategy_exit_policy_match_count"]) >= int(metrics["min_strategy_exit_policy_sample_count"])
+            )
+            else "FAIL"
+        ),
+        "regime_outcome_status": (
+            "UNTESTED"
+            if regime_outcome_observed <= 0
+            else "PASS"
+            if (
+                regime_outcome_observed >= int(metrics["min_regime_outcome_sample_count"])
+                and int(metrics["regime_outcome_covered_count"]) >= int(metrics["min_regime_outcome_covered_count"])
+                and int(metrics["regime_outcome_mismatch_count"]) == 0
             )
             else "FAIL"
         ),
@@ -890,6 +1007,11 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         and int(performance_values["strategy_exit_policy_match_count"])
         >= int(performance_values["min_strategy_exit_policy_sample_count"])
         and int(performance_values["strategy_exit_policy_mismatch_count"]) == 0
+        and int(performance_values["regime_outcome_sample_count"])
+        >= int(performance_values["min_regime_outcome_sample_count"])
+        and int(performance_values["regime_outcome_covered_count"])
+        >= int(performance_values["min_regime_outcome_covered_count"])
+        and int(performance_values["regime_outcome_mismatch_count"]) == 0
         and int(performance_values["realized_vs_expected_sample_count"]) >= int(performance_values["min_closed_trade_sample_count"])
         and int(performance_values["fill_quality_sample_count"]) >= int(performance_values["min_closed_trade_sample_count"])
         and int(performance_values["execution_cost_sample_count"]) >= int(performance_values["min_closed_trade_sample_count"])
@@ -989,6 +1111,19 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
                     "closed PAPER trades must be bound to the entry strategy exit router before PAPER scorecard ranking",
                 )
             )
+        if performance["regime_outcome_status"] != "PASS" or int(
+            performance_values["regime_outcome_sample_count"]
+        ) < int(performance_values["min_regime_outcome_sample_count"]) or int(
+            performance_values["regime_outcome_covered_count"]
+        ) < int(performance_values["min_regime_outcome_covered_count"]) or int(
+            performance_values["regime_outcome_mismatch_count"]
+        ) > 0:
+            blockers.append(
+                blocker(
+                    "REGIME_MISMATCH",
+                    "PAPER scorecard ranking requires regime-labeled outcomes across uptrend, range, downtrend, and risk-off with zero spot-long blocked-regime entries",
+                )
+            )
         if performance["profit_factor_status"] != "PASS" or float(performance_values["profit_factor"]) < float(
             performance_values["min_profit_factor"]
         ):
@@ -1079,6 +1214,29 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         ],
         "expected_strategy_exit_policy_id": STRATEGY_EXIT_POLICY_ID,
         "expected_strategy_exit_variation": expected_strategy_exit_variation_for_family(str(selected["strategy_family"])),
+        "regime_outcome_status": performance["regime_outcome_status"],
+        "regime_outcome_sample_count": int(performance_values["regime_outcome_sample_count"]),
+        "min_regime_outcome_sample_count": int(performance_values["min_regime_outcome_sample_count"]),
+        "regime_outcome_covered_count": int(performance_values["regime_outcome_covered_count"]),
+        "min_regime_outcome_covered_count": int(performance_values["min_regime_outcome_covered_count"]),
+        "regime_outcome_trade_count": int(performance_values["regime_outcome_trade_count"]),
+        "regime_outcome_no_trade_count": int(performance_values["regime_outcome_no_trade_count"]),
+        "regime_outcome_mismatch_count": int(performance_values["regime_outcome_mismatch_count"]),
+        "regime_outcome_counts": [
+            {
+                "regime": str(item.get("regime") or ""),
+                "sample_count": int(item.get("sample_count", 0) or 0),
+                "trade_count": int(item.get("trade_count", 0) or 0),
+                "no_trade_count": int(item.get("no_trade_count", 0) or 0),
+                "mismatch_count": int(item.get("mismatch_count", 0) or 0),
+                "trade_allowed": bool(item.get("trade_allowed")),
+                "primary_blocker_code": (
+                    str(item.get("primary_blocker_code")) if item.get("primary_blocker_code") is not None else None
+                ),
+            }
+            for item in performance_values.get("regime_outcome_counts", [])
+            if isinstance(item, dict) and item.get("regime")
+        ],
         "realized_vs_expected_sample_count": int(performance_values["realized_vs_expected_sample_count"]),
         "fill_quality_sample_count": int(performance_values["fill_quality_sample_count"]),
         "execution_cost_sample_count": int(performance_values["execution_cost_sample_count"]),

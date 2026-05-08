@@ -40,6 +40,51 @@ PASS_PERFORMANCE_METRICS = {
     "strategy_exit_policy_mismatch_count": 0,
     "strategy_exit_reason_count": 42,
     "strategy_exit_reason_counts": [{"reason_code": "TRAILING_STOP", "count": 42}],
+    "regime_outcome_sample_count": 42,
+    "min_regime_outcome_sample_count": 4,
+    "regime_outcome_covered_count": 4,
+    "min_regime_outcome_covered_count": 4,
+    "regime_outcome_trade_count": 39,
+    "regime_outcome_no_trade_count": 3,
+    "regime_outcome_mismatch_count": 0,
+    "regime_outcome_counts": [
+        {
+            "regime": "UPTREND",
+            "sample_count": 39,
+            "trade_count": 39,
+            "no_trade_count": 0,
+            "mismatch_count": 0,
+            "trade_allowed": True,
+            "primary_blocker_code": None,
+        },
+        {
+            "regime": "RANGE",
+            "sample_count": 1,
+            "trade_count": 0,
+            "no_trade_count": 1,
+            "mismatch_count": 0,
+            "trade_allowed": True,
+            "primary_blocker_code": "REGIME_MISMATCH",
+        },
+        {
+            "regime": "DOWNTREND",
+            "sample_count": 1,
+            "trade_count": 0,
+            "no_trade_count": 1,
+            "mismatch_count": 0,
+            "trade_allowed": False,
+            "primary_blocker_code": "REGIME_MISMATCH",
+        },
+        {
+            "regime": "RISK_OFF",
+            "sample_count": 1,
+            "trade_count": 0,
+            "no_trade_count": 1,
+            "mismatch_count": 0,
+            "trade_allowed": False,
+            "primary_blocker_code": "RISK_VETO",
+        },
+    ],
     "realized_vs_expected_sample_count": 42,
     "fill_quality_sample_count": 42,
     "execution_cost_sample_count": 42,
@@ -153,6 +198,13 @@ class ConvergenceMemoryFromScorecardTest(unittest.TestCase):
         self.assertEqual(strategy_memory["performance_status"], "IMPROVING_AFTER_COST")
         self.assertTrue(strategy_memory["paper_shadow_separated"])
         self.assertIn("paper_shadow_evidence_accumulation:matched:ABC", strategy_memory["source_artifact_ids"])
+        regimes = {item["regime"]: item for item in strategy_memory["regime_performance"]}
+        self.assertEqual(regimes["UPTREND"]["trade_count"], 39)
+        self.assertEqual(regimes["RANGE"]["no_trade_count"], 1)
+        self.assertEqual(regimes["DOWNTREND"]["trade_count"], 0)
+        self.assertFalse(regimes["DOWNTREND"]["trade_allowed"])
+        self.assertEqual(regimes["RISK_OFF"]["trade_count"], 0)
+        self.assertFalse(regimes["RISK_OFF"]["trade_allowed"])
         self.assertEqual(optimizer_memory["source_modes"], ["PAPER", "SHADOW"])
         self.assertEqual(cycle["paper_shadow_evidence_accumulation_validator_status"], "PASS")
         self.assertNotIn("MEASUREMENT_MISSING", {blocker["code"] for blocker in strategy_memory["blockers"]})

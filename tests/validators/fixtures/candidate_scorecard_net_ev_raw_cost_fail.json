@@ -107,5 +107,51 @@
     }
   ],
   "expected_strategy_exit_policy_id": "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1",
-  "expected_strategy_exit_variation": "invalidation_exit"
+  "expected_strategy_exit_variation": "invalidation_exit",
+  "regime_outcome_status": "PASS",
+  "regime_outcome_sample_count": 42,
+  "min_regime_outcome_sample_count": 4,
+  "regime_outcome_covered_count": 4,
+  "min_regime_outcome_covered_count": 4,
+  "regime_outcome_trade_count": 39,
+  "regime_outcome_no_trade_count": 3,
+  "regime_outcome_mismatch_count": 0,
+  "regime_outcome_counts": [
+    {
+      "regime": "UPTREND",
+      "sample_count": 39,
+      "trade_count": 39,
+      "no_trade_count": 0,
+      "mismatch_count": 0,
+      "trade_allowed": true,
+      "primary_blocker_code": null
+    },
+    {
+      "regime": "RANGE",
+      "sample_count": 1,
+      "trade_count": 0,
+      "no_trade_count": 1,
+      "mismatch_count": 0,
+      "trade_allowed": true,
+      "primary_blocker_code": "REGIME_MISMATCH"
+    },
+    {
+      "regime": "DOWNTREND",
+      "sample_count": 1,
+      "trade_count": 0,
+      "no_trade_count": 1,
+      "mismatch_count": 0,
+      "trade_allowed": false,
+      "primary_blocker_code": "REGIME_MISMATCH"
+    },
+    {
+      "regime": "RISK_OFF",
+      "sample_count": 1,
+      "trade_count": 0,
+      "no_trade_count": 1,
+      "mismatch_count": 0,
+      "trade_allowed": false,
+      "primary_blocker_code": "RISK_VETO"
+    }
+  ]
 }

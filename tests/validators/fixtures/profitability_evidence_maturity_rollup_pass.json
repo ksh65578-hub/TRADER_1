@@ -516,6 +516,7 @@
       "MAX_DRAWDOWN_NOT_PASS",
       "NET_EV_AFTER_COST_NOT_PASS",
       "STRATEGY_EXIT_POLICY_NOT_PASS",
+      "REGIME_OUTCOME_NOT_PASS",
       "PAPER_CLOSED_TRADES_BELOW_MIN",
       "PAPER_LIVE_GAP_NOT_AVAILABLE",
       "PROFIT_FACTOR_NOT_PASS",
@@ -528,7 +529,8 @@
     "can_live_trade": false,
     "scale_up_allowed": false,
     "paper_runtime_hours_gate_role": "OBSERVED_CONTEXT_ONLY_NO_FIXED_RUNTIME_FLOOR",
-    "strategy_exit_policy_status": "UNTESTED"
+    "strategy_exit_policy_status": "UNTESTED",
+    "regime_outcome_status": "UNTESTED"
   },
   "robustness_source_type_evidence": {
     "status": "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE",

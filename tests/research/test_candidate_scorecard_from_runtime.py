@@ -43,6 +43,51 @@ PASS_PERFORMANCE_METRICS = {
     "strategy_exit_policy_mismatch_count": 0,
     "strategy_exit_reason_count": 42,
     "strategy_exit_reason_counts": [{"reason_code": "TRAILING_STOP", "count": 42}],
+    "regime_outcome_sample_count": 42,
+    "min_regime_outcome_sample_count": 4,
+    "regime_outcome_covered_count": 4,
+    "min_regime_outcome_covered_count": 4,
+    "regime_outcome_trade_count": 39,
+    "regime_outcome_no_trade_count": 3,
+    "regime_outcome_mismatch_count": 0,
+    "regime_outcome_counts": [
+        {
+            "regime": "UPTREND",
+            "sample_count": 39,
+            "trade_count": 39,
+            "no_trade_count": 0,
+            "mismatch_count": 0,
+            "trade_allowed": True,
+            "primary_blocker_code": None,
+        },
+        {
+            "regime": "RANGE",
+            "sample_count": 1,
+            "trade_count": 0,
+            "no_trade_count": 1,
+            "mismatch_count": 0,
+            "trade_allowed": True,
+            "primary_blocker_code": "REGIME_MISMATCH",
+        },
+        {
+            "regime": "DOWNTREND",
+            "sample_count": 1,
+            "trade_count": 0,
+            "no_trade_count": 1,
+            "mismatch_count": 0,
+            "trade_allowed": False,
+            "primary_blocker_code": "REGIME_MISMATCH",
+        },
+        {
+            "regime": "RISK_OFF",
+            "sample_count": 1,
+            "trade_count": 0,
+            "no_trade_count": 1,
+            "mismatch_count": 0,
+            "trade_allowed": False,
+            "primary_blocker_code": "RISK_VETO",
+        },
+    ],
     "realized_vs_expected_sample_count": 42,
     "fill_quality_sample_count": 42,
     "execution_cost_sample_count": 42,
@@ -122,6 +167,18 @@ def _closed_trade_runtime_for_candidate(*, symbol: str, cycle_id: str) -> dict:
         paper_equity=current_portfolio["equity"],
         paper_position_market_value=current_portfolio["position_market_value"],
         current_paper_portfolio_snapshot=current_portfolio,
+    )
+
+
+def _no_trade_runtime_for_candidate(*, symbol: str, cycle_id: str, profile: str) -> dict:
+    return build_upbit_paper_runtime_cycle_report(
+        cycle_id=cycle_id,
+        symbol=symbol,
+        market_data=build_upbit_public_candle_fixture(
+            symbol=symbol,
+            session_id="mvp4_upbit_paper_runtime",
+            profile=profile,
+        ),
     )
 
 
@@ -627,6 +684,72 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertLessEqual(metrics["execution_cost_delta_bps"], metrics["max_allowed_execution_cost_delta_bps"])
         self.assertTrue(all(f":{target_key}:" in source_id for source_id in source_ids))
 
+    def test_runtime_performance_inputs_collect_regime_outcome_coverage(self):
+        target_entry_runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="scorecard-regime-outcome-target-entry",
+            symbol="KRW-BTC",
+        )
+        target_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(target_entry_runtime)
+        runtimes = [
+            _closed_trade_runtime_for_candidate(
+                symbol="KRW-BTC",
+                cycle_id="scorecard-regime-outcome-uptrend-exit",
+            ),
+            _no_trade_runtime_for_candidate(
+                symbol="KRW-BTC",
+                cycle_id="scorecard-regime-outcome-range-no-trade",
+                profile="QUIET_RANGE",
+            ),
+            _no_trade_runtime_for_candidate(
+                symbol="KRW-BTC",
+                cycle_id="scorecard-regime-outcome-downtrend-no-trade",
+                profile="DOWNTREND",
+            ),
+            _no_trade_runtime_for_candidate(
+                symbol="KRW-BTC",
+                cycle_id="scorecard-regime-outcome-risk-off-no-trade",
+                profile="PANIC",
+            ),
+        ]
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            runtime_dir = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp4_upbit_paper_runtime"
+            runtime_dir.mkdir(parents=True)
+            samples = []
+            for runtime in runtimes:
+                runtime_path = runtime_dir / f"{runtime['cycle_id']}.runtime_cycle.json"
+                runtime_path.write_text(json.dumps(runtime, sort_keys=True), encoding="utf-8")
+                samples.append(
+                    {
+                        "source_runtime_cycle_path": runtime_path.relative_to(root).as_posix(),
+                        "source_runtime_cycle_hash": runtime["cycle_hash"],
+                    }
+                )
+            history = {
+                "history_id": "candidate-regime-outcome-history",
+                "history_hash": "E" * 64,
+                "samples": samples,
+            }
+
+            statuses, metrics, _ = performance_inputs_from_runtime_sample_history(
+                candidate_scorecard=target_scorecard,
+                runtime_sample_history=history,
+                root=root,
+            )
+
+        regimes = {item["regime"]: item for item in metrics["regime_outcome_counts"]}
+        self.assertEqual(metrics["regime_outcome_sample_count"], 4)
+        self.assertEqual(metrics["regime_outcome_covered_count"], 4)
+        self.assertEqual(metrics["regime_outcome_trade_count"], 1)
+        self.assertEqual(metrics["regime_outcome_no_trade_count"], 3)
+        self.assertEqual(metrics["regime_outcome_mismatch_count"], 0)
+        self.assertEqual(statuses["regime_outcome_status"], "PASS")
+        self.assertEqual(regimes["DOWNTREND"]["trade_count"], 0)
+        self.assertFalse(regimes["DOWNTREND"]["trade_allowed"])
+        self.assertEqual(regimes["RISK_OFF"]["trade_count"], 0)
+        self.assertFalse(regimes["RISK_OFF"]["trade_allowed"])
+
     def test_strategy_exit_policy_mismatch_blocks_paper_ranking(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-exit-policy-mismatch")
         weak_performance = dict(PASS_PERFORMANCE_METRICS)
@@ -652,6 +775,32 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertFalse(scorecard["ranking_eligible"])
         self.assertEqual(scorecard["strategy_exit_policy_status"], "FAIL")
         self.assertIn("EXECUTION_FEEDBACK_MISSING", {blocker["code"] for blocker in scorecard["blockers"]})
+
+    def test_regime_outcome_mismatch_blocks_paper_ranking(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-regime-outcome-mismatch")
+        weak_performance = copy.deepcopy(PASS_PERFORMANCE_METRICS)
+        weak_performance["regime_outcome_mismatch_count"] = 1
+        weak_performance["regime_outcome_counts"][-1]["mismatch_count"] = 1
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses=ROBUSTNESS_PASS,
+            robustness_source_evidence_ids=[
+                robustness_source_evidence_id("oos", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("walk_forward", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("bootstrap", runtime["cycle_id"], runtime["cycle_hash"]),
+            ],
+            performance_statuses={**PERFORMANCE_PASS, "regime_outcome_status": "FAIL"},
+            performance_metrics=weak_performance,
+            performance_source_evidence_ids=performance_source_evidence_ids(runtime),
+        )
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        self.assertFalse(scorecard["performance_ready"])
+        self.assertFalse(scorecard["ranking_eligible"])
+        self.assertEqual(scorecard["regime_outcome_status"], "FAIL")
+        self.assertIn("REGIME_MISMATCH", {blocker["code"] for blocker in scorecard["blockers"]})
 
     def test_scorecard_writer_preserves_candidate_scoped_snapshots_without_live_permission(self):
         btc_runtime = build_upbit_paper_runtime_cycle_report(

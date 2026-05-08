@@ -48,6 +48,15 @@
     "strategy_exit_reason_counts",
     "expected_strategy_exit_policy_id",
     "expected_strategy_exit_variation",
+    "regime_outcome_status",
+    "regime_outcome_sample_count",
+    "min_regime_outcome_sample_count",
+    "regime_outcome_covered_count",
+    "min_regime_outcome_covered_count",
+    "regime_outcome_trade_count",
+    "regime_outcome_no_trade_count",
+    "regime_outcome_mismatch_count",
+    "regime_outcome_counts",
     "realized_vs_expected_sample_count",
     "fill_quality_sample_count",
     "execution_cost_sample_count",
@@ -326,6 +335,94 @@
         "fixed_tp",
         "invalidation_exit"
       ]
+    },
+    "regime_outcome_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "regime_outcome_sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "min_regime_outcome_sample_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "regime_outcome_covered_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "min_regime_outcome_covered_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "regime_outcome_trade_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "regime_outcome_no_trade_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "regime_outcome_mismatch_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "regime_outcome_counts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "regime",
+          "sample_count",
+          "trade_count",
+          "no_trade_count",
+          "mismatch_count",
+          "trade_allowed",
+          "primary_blocker_code"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "regime": {
+            "enum": [
+              "UPTREND",
+              "RANGE",
+              "DOWNTREND",
+              "RISK_OFF"
+            ]
+          },
+          "sample_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "trade_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "no_trade_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "mismatch_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "trade_allowed": {
+            "type": "boolean"
+          },
+          "primary_blocker_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
     },
     "realized_vs_expected_sample_count": {
       "type": "integer",

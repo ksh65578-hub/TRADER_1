@@ -864,6 +864,7 @@ PROFITABILITY_PROMOTION_THRESHOLD_BLOCKER_CODES = {
     "SHADOW_SIGNAL_OPPORTUNITIES_BELOW_MIN",
     "NET_EV_AFTER_COST_NOT_PASS",
     "STRATEGY_EXIT_POLICY_NOT_PASS",
+    "REGIME_OUTCOME_NOT_PASS",
     "PROFIT_FACTOR_NOT_PASS",
     "MAX_DRAWDOWN_NOT_PASS",
     "FILL_QUALITY_NOT_PASS",
@@ -8924,6 +8925,7 @@ def _promotion_threshold_projection(threshold: Any, *, missing_status: str = "NO
             "promotion_threshold_min_shadow_signal_opportunities": 0,
             "promotion_threshold_net_ev_after_cost_status": "UNTESTED",
             "promotion_threshold_strategy_exit_policy_status": "UNTESTED",
+            "promotion_threshold_regime_outcome_status": "UNTESTED",
             "promotion_threshold_profit_factor_status": "UNTESTED",
             "promotion_threshold_max_drawdown_status": "UNTESTED",
             "promotion_threshold_fill_quality_status": "UNTESTED",
@@ -8967,6 +8969,7 @@ def _promotion_threshold_projection(threshold: Any, *, missing_status: str = "NO
     min_oos_pct = _safe_number(threshold.get("min_walk_forward_or_oos_coverage_pct"))
     execution_cost_status = str(threshold.get("execution_cost_comparison_status") or "UNTESTED")
     strategy_exit_policy_status = str(threshold.get("strategy_exit_policy_status") or "UNTESTED")
+    regime_outcome_status = str(threshold.get("regime_outcome_status") or "UNTESTED")
     return {
         "promotion_threshold_status": status,
         "promotion_threshold_summary": (
@@ -8974,6 +8977,7 @@ def _promotion_threshold_projection(threshold: Any, *, missing_status: str = "NO
             f"PAPER trades {paper_trades}/{min_paper_trades}, PAPER runtime {paper_hours}h observed only, "
             f"SHADOW opportunities {shadow_opportunities}/{min_shadow_opportunities}, "
             f"strategy exit policy {strategy_exit_policy_status}, "
+            f"regime outcomes {regime_outcome_status}, "
             f"execution cost {execution_cost_status}; "
             f"{len(known_missing_codes)} threshold blockers remain."
         ),
@@ -8992,6 +8996,7 @@ def _promotion_threshold_projection(threshold: Any, *, missing_status: str = "NO
         "promotion_threshold_min_shadow_signal_opportunities": min_shadow_opportunities,
         "promotion_threshold_net_ev_after_cost_status": str(threshold.get("net_ev_after_cost_status") or "UNTESTED"),
         "promotion_threshold_strategy_exit_policy_status": strategy_exit_policy_status,
+        "promotion_threshold_regime_outcome_status": regime_outcome_status,
         "promotion_threshold_profit_factor_status": str(threshold.get("profit_factor_status") or "UNTESTED"),
         "promotion_threshold_max_drawdown_status": str(threshold.get("max_drawdown_status") or "UNTESTED"),
         "promotion_threshold_fill_quality_status": str(threshold.get("fill_quality_status") or "UNTESTED"),
@@ -9301,6 +9306,10 @@ def _candidate_scorecard_projection(
         "candidate_scorecard_strategy_exit_policy_sample_count": 0,
         "candidate_scorecard_strategy_exit_policy_mismatch_count": 0,
         "candidate_scorecard_expected_strategy_exit_variation": None,
+        "candidate_scorecard_regime_outcome_status": "UNTESTED",
+        "candidate_scorecard_regime_outcome_sample_count": 0,
+        "candidate_scorecard_regime_outcome_covered_count": 0,
+        "candidate_scorecard_regime_outcome_mismatch_count": 0,
         "candidate_scorecard_performance_source_binding_status": "MISSING_OR_MISMATCHED",
         "candidate_scorecard_performance_source_history_id": None,
         "candidate_scorecard_performance_source_history_hash": None,
@@ -9388,6 +9397,10 @@ def _candidate_scorecard_projection(
     strategy_exit_policy_mismatch_count = safe_int(candidate_scorecard.get("strategy_exit_policy_mismatch_count"))
     strategy_exit_policy_status = str(candidate_scorecard.get("strategy_exit_policy_status") or "UNTESTED")
     expected_strategy_exit_variation = candidate_scorecard.get("expected_strategy_exit_variation")
+    regime_outcome_status = str(candidate_scorecard.get("regime_outcome_status") or "UNTESTED")
+    regime_outcome_sample_count = safe_int(candidate_scorecard.get("regime_outcome_sample_count"))
+    regime_outcome_covered_count = safe_int(candidate_scorecard.get("regime_outcome_covered_count"))
+    regime_outcome_mismatch_count = safe_int(candidate_scorecard.get("regime_outcome_mismatch_count"))
     realized_vs_expected_sample_count = safe_int(candidate_scorecard.get("realized_vs_expected_sample_count"))
     fill_quality_sample_count = safe_int(candidate_scorecard.get("fill_quality_sample_count"))
     profit_factor = safe_float(candidate_scorecard.get("profit_factor"))
@@ -9411,6 +9424,8 @@ def _candidate_scorecard_projection(
         f"closed trades {closed_trade_count}/{min_closed_trade_count}; "
         f"strategy exit policy {strategy_exit_policy_sample_count}/{min_closed_trade_count}, "
         f"mismatch {strategy_exit_policy_mismatch_count}, {strategy_exit_policy_status}; "
+        f"regime outcomes {regime_outcome_sample_count}/4, covered {regime_outcome_covered_count}/4, "
+        f"mismatch {regime_outcome_mismatch_count}, {regime_outcome_status}; "
         f"edge samples {realized_vs_expected_sample_count}/{min_closed_trade_count}; "
         f"fill samples {fill_quality_sample_count}/{min_closed_trade_count}; "
         f"source binding {performance_source_binding_status}; "
@@ -9451,6 +9466,10 @@ def _candidate_scorecard_projection(
         "candidate_scorecard_expected_strategy_exit_variation": (
             str(expected_strategy_exit_variation) if expected_strategy_exit_variation is not None else None
         ),
+        "candidate_scorecard_regime_outcome_status": regime_outcome_status,
+        "candidate_scorecard_regime_outcome_sample_count": regime_outcome_sample_count,
+        "candidate_scorecard_regime_outcome_covered_count": regime_outcome_covered_count,
+        "candidate_scorecard_regime_outcome_mismatch_count": regime_outcome_mismatch_count,
         "candidate_scorecard_performance_source_binding_status": performance_source_binding_status,
         "candidate_scorecard_performance_source_history_id": candidate_scorecard.get("performance_source_history_id"),
         "candidate_scorecard_performance_source_history_hash": candidate_scorecard.get("performance_source_history_hash"),
@@ -24448,6 +24467,9 @@ def validate_read_only_dashboard_shell(
         "candidate_scorecard_fill_quality_sample_count",
         "candidate_scorecard_strategy_exit_policy_sample_count",
         "candidate_scorecard_strategy_exit_policy_mismatch_count",
+        "candidate_scorecard_regime_outcome_sample_count",
+        "candidate_scorecard_regime_outcome_covered_count",
+        "candidate_scorecard_regime_outcome_mismatch_count",
     ):
         if not isinstance(maturity.get(count_field), int) or maturity.get(count_field) < 0:
             return DashboardValidationResult("FAIL", f"{count_field} must be non-negative", "SCHEMA_IDENTITY_MISMATCH")
@@ -24469,6 +24491,7 @@ def validate_read_only_dashboard_shell(
     for status_field in (
         "candidate_scorecard_closed_trade_status",
         "candidate_scorecard_strategy_exit_policy_status",
+        "candidate_scorecard_regime_outcome_status",
         "candidate_scorecard_profit_factor_status",
         "candidate_scorecard_max_drawdown_status",
         "candidate_scorecard_realized_vs_expected_edge_status",
@@ -24598,6 +24621,7 @@ def validate_read_only_dashboard_shell(
     for field in (
         "promotion_threshold_net_ev_after_cost_status",
         "promotion_threshold_strategy_exit_policy_status",
+        "promotion_threshold_regime_outcome_status",
         "promotion_threshold_profit_factor_status",
         "promotion_threshold_max_drawdown_status",
         "promotion_threshold_fill_quality_status",
@@ -26898,6 +26922,10 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"exit variation={safe_text(maturity.get('candidate_scorecard_expected_strategy_exit_variation') or 'n/a')}, "
         f"exit samples={safe_text(maturity.get('candidate_scorecard_strategy_exit_policy_sample_count', 0))}, "
         f"exit mismatches={safe_text(maturity.get('candidate_scorecard_strategy_exit_policy_mismatch_count', 0))}<br>"
+        f"regime outcome={safe_text(maturity.get('candidate_scorecard_regime_outcome_status', 'UNTESTED'))}, "
+        f"samples={safe_text(maturity.get('candidate_scorecard_regime_outcome_sample_count', 0))}, "
+        f"covered={safe_text(maturity.get('candidate_scorecard_regime_outcome_covered_count', 0))}/4, "
+        f"mismatch={safe_text(maturity.get('candidate_scorecard_regime_outcome_mismatch_count', 0))}<br>"
         f"edge samples={safe_text(maturity.get('candidate_scorecard_realized_vs_expected_sample_count', 0))}, "
         f"fill samples={safe_text(maturity.get('candidate_scorecard_fill_quality_sample_count', 0))}<br>"
         f"rotation review={safe_text(str(maturity.get('candidate_scorecard_rotation_review_required', False)).lower())}, "
