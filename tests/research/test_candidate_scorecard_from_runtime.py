@@ -446,6 +446,39 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertFalse(scorecard["ranking_eligible"])
         self.assertIn("SCORECARD_MISSING", {blocker["code"] for blocker in scorecard["blockers"]})
 
+    def test_public_replay_failed_robustness_blocks_as_failed_not_missing(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-public-replay-fail")
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses={
+                "oos_status": "FAIL",
+                "walk_forward_status": "FAIL",
+                "bootstrap_status": "FAIL",
+                "overfit_status": "HIGH",
+            },
+            robustness_source_evidence_ids=[
+                "public_replay_robustness:replay-scorecard-runtime-public-replay-fail:" + "A" * 64,
+                "public_market_data:KRW-BTC:" + "B" * 64,
+            ],
+        )
+        blocker_codes = {blocker["code"] for blocker in scorecard["blockers"]}
+
+        self.assertEqual(_candidate_scorecard_net_ev_errors(scorecard), [])
+        self.assertFalse(scorecard["ranking_eligible"])
+        self.assertFalse(scorecard["rotation_review_required"])
+        self.assertEqual(scorecard["rotation_review_reason_code"], "NONE")
+        self.assertIn("PUBLIC_REPLAY_ROBUSTNESS_FAILED", blocker_codes)
+        self.assertIn("OOS_FAILED", blocker_codes)
+        self.assertIn("WALK_FORWARD_FAILED", blocker_codes)
+        self.assertIn("BOOTSTRAP_FAILED", blocker_codes)
+        self.assertNotIn("OOS_MISSING", blocker_codes)
+        self.assertNotIn("WALK_FORWARD_MISSING", blocker_codes)
+        self.assertTrue(
+            any(source_id.startswith("public_replay_robustness:") for source_id in scorecard["source_evidence_ids"])
+        )
+        self.assertFalse(scorecard["live_order_allowed"])
+
     def test_robustness_source_evidence_must_cover_required_kinds(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust-partial-source")
 

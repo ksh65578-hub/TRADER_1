@@ -1050,6 +1050,23 @@ def _rotation_review_reason(
     return "SELECTED_CANDIDATE_RANKING_BLOCKED_WITH_ALTERNATIVE"
 
 
+def _has_public_replay_robustness_source(source_ids: list[str]) -> bool:
+    return any(str(source_id).startswith("public_replay_robustness:") for source_id in source_ids)
+
+
+def _robustness_failure_blocker(
+    *,
+    status: str,
+    missing_code: str,
+    failed_code: str,
+    missing_message: str,
+    failed_message: str,
+) -> dict[str, str]:
+    if status == "FAIL":
+        return blocker(failed_code, failed_message)
+    return blocker(missing_code, missing_message)
+
+
 def candidate_scorecard_from_upbit_paper_runtime_cycle(
     runtime_cycle_report: dict[str, Any],
     *,
@@ -1120,6 +1137,7 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
     source_ids = [runtime_cycle_source_evidence_id(source_runtime_cycle_id, source_runtime_cycle_hash)]
     source_ids.extend(robustness_source_evidence_ids or [])
     source_ids.extend(performance_source_evidence_ids or [])
+    public_replay_robustness_bound = _has_public_replay_robustness_source(source_ids)
     enough_robustness_sources = has_required_robustness_source_ids(
         source_ids,
         cycle_id=source_runtime_cycle_id,
@@ -1168,12 +1186,46 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
     if net_ev < min_required_edge_bps:
         blockers.append(blocker("MIN_EDGE_FAIL", "net EV after cost is below PAPER scorecard minimum"))
     if not robustness_ready:
+        if public_replay_robustness_bound and any(
+            robustness[field] == "FAIL"
+            for field in ("oos_status", "walk_forward_status", "bootstrap_status")
+        ):
+            blockers.append(
+                blocker(
+                    "PUBLIC_REPLAY_ROBUSTNESS_FAILED",
+                    "public read-only replay robustness evidence failed; retire this candidate for ranking until a bounded alternative review passes",
+                )
+            )
         if robustness["oos_status"] != "PASS":
-            blockers.append(blocker("OOS_MISSING", "OOS evidence is required before PAPER scorecard ranking"))
+            blockers.append(
+                _robustness_failure_blocker(
+                    status=robustness["oos_status"],
+                    missing_code="OOS_MISSING",
+                    failed_code="OOS_FAILED",
+                    missing_message="OOS evidence is required before PAPER scorecard ranking",
+                    failed_message="OOS net EV after cost failed the required threshold",
+                )
+            )
         if robustness["walk_forward_status"] != "PASS":
-            blockers.append(blocker("WALK_FORWARD_MISSING", "walk-forward evidence is required before PAPER scorecard ranking"))
+            blockers.append(
+                _robustness_failure_blocker(
+                    status=robustness["walk_forward_status"],
+                    missing_code="WALK_FORWARD_MISSING",
+                    failed_code="WALK_FORWARD_FAILED",
+                    missing_message="walk-forward evidence is required before PAPER scorecard ranking",
+                    failed_message="walk-forward robustness failed the required threshold",
+                )
+            )
         if robustness["bootstrap_status"] != "PASS":
-            blockers.append(blocker("BOOTSTRAP_UNSTABLE", "bootstrap robustness evidence is required before PAPER scorecard ranking"))
+            blockers.append(
+                _robustness_failure_blocker(
+                    status=robustness["bootstrap_status"],
+                    missing_code="BOOTSTRAP_UNSTABLE",
+                    failed_code="BOOTSTRAP_FAILED",
+                    missing_message="bootstrap robustness evidence is required before PAPER scorecard ranking",
+                    failed_message="bootstrap confidence lower bound failed the required threshold",
+                )
+            )
         if robustness["overfit_status"] != "LOW":
             blockers.append(blocker("OVERFIT_RISK_HIGH", "overfit risk must be LOW before PAPER scorecard ranking"))
     if robustness_ready and not enough_robustness_sources:

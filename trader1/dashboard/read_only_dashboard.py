@@ -9400,6 +9400,7 @@ def _candidate_scorecard_projection(
         alternative_net_ev_value = None
     rotation_review_required = candidate_scorecard.get("rotation_review_required") is True
     rotation_reason = str(candidate_scorecard.get("rotation_review_reason_code") or "NONE")
+    public_replay_robustness_failed = "PUBLIC_REPLAY_ROBUSTNESS_FAILED" in set(blocker_codes)
     def safe_float(value: Any, default: float = 0.0) -> float:
         try:
             return float(value)
@@ -9568,6 +9569,8 @@ def _candidate_scorecard_projection(
         "candidate_scorecard_next_action": (
             "Review the PAPER rotation alternative before continuing ranking; live remains blocked."
             if rotation_review_required
+            else "Public replay robustness failed; stop treating this as a ranking candidate and run bounded alternative discovery."
+            if public_replay_robustness_failed
             else "Resolve scorecard blockers before PAPER ranking review; do not treat this as LIVE_READY."
         ),
     }

@@ -659,6 +659,48 @@ class OverfitDiagnosticFromRuntimeTest(unittest.TestCase):
         self.assertTrue({"OOS_MISSING", "WALK_FORWARD_MISSING", "BOOTSTRAP_UNSTABLE", "OVERFIT_RISK_HIGH"}.issubset(blocker_codes))
         self.assertFalse(rescored["live_order_allowed"])
 
+    def test_public_replay_failed_diagnostic_sources_are_forwarded_to_scorecard(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            runtime, scorecard, history = _short_paper_runtime_inputs(root)
+            report = overfit_diagnostic_from_upbit_paper_runtime(
+                candidate_scorecard=scorecard,
+                runtime_sample_history=history,
+                root=root,
+            )
+
+        replay_source_ids = [
+            "public_replay_robustness:failed-replay:" + "C" * 64,
+            "public_market_data:KRW-BTC:" + "D" * 64,
+        ]
+        replay_failed = copy.deepcopy(report)
+        replay_failed.update(
+            {
+                "oos_status": "FAIL",
+                "walk_forward_status": "FAIL",
+                "bootstrap_status": "FAIL",
+                "overfit_status": "HIGH",
+                "source_evidence_ids": sorted(set(replay_failed["source_evidence_ids"] + replay_source_ids)),
+                "robustness_eligible": False,
+            }
+        )
+        replay_failed["diagnostic_hash"] = overfit_diagnostic_report_hash(replay_failed)
+
+        statuses, source_ids = robustness_inputs_from_overfit_diagnostic(replay_failed)
+        rescored = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses=statuses,
+            robustness_source_evidence_ids=source_ids,
+        )
+        blocker_codes = {blocker["code"] for blocker in rescored["blockers"]}
+
+        self.assertEqual(statuses["oos_status"], "FAIL")
+        self.assertEqual(set(source_ids), set(replay_source_ids))
+        self.assertIn("PUBLIC_REPLAY_ROBUSTNESS_FAILED", blocker_codes)
+        self.assertIn("OOS_FAILED", blocker_codes)
+        self.assertFalse(rescored["ranking_eligible"])
+        self.assertFalse(rescored["live_order_allowed"])
+
     def test_robust_diagnostic_input_can_rank_paper_only_when_source_ids_match(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
