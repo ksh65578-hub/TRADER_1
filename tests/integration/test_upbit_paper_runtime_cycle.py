@@ -6,6 +6,7 @@ from trader1.core.sizing.position_sizing import sizing_decision_hash
 from trader1.runtime.paper.upbit_paper_runtime import (
     _build_runtime_exit_plan,
     _evaluate_existing_position_exit,
+    _strategy_entry_policy_evaluation,
     build_upbit_paper_runtime_cycle_report,
     upbit_paper_runtime_cycle_hash,
     validate_upbit_paper_runtime_cycle_report,
@@ -1572,6 +1573,82 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
             self.assertIsNone(candidate["entry_block_reason"])
             self.assertEqual(candidate["quiet_range_entry_policy"], "VWAP_ONLY_DEEP_DISLOCATION")
             self.assertEqual(candidate["no_trade_reason"], "STRATEGY_NOT_ELIGIBLE")
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_vwap_reversion_entry_requires_below_vwap_dislocation(self):
+        allowed, reason = _strategy_entry_policy_evaluation(
+            strategy_family="VWAP_MEAN_REVERSION",
+            regime="RANGE",
+            market_state="RANGE",
+            features={
+                "volume_expansion_ratio": "1.00",
+                "range_breakout_pct": "0",
+                "vwap_distance_pct": "0.50",
+                "vwap_mean_reversion_guard_status": "BLOCKED",
+                "vwap_liquidity_sweep_filter_status": "PASS",
+            },
+            symbol_score=Decimal("0.75"),
+        )
+
+        self.assertFalse(allowed)
+        self.assertEqual(reason, "VWAP_REVERSION_FAILED_GUARD")
+
+        quiet_allowed, quiet_reason = _strategy_entry_policy_evaluation(
+            strategy_family="VWAP_MEAN_REVERSION",
+            regime="RANGE",
+            market_state="QUIET_RANGE",
+            features={
+                "volume_expansion_ratio": "1.00",
+                "range_breakout_pct": "0",
+                "vwap_distance_pct": "0.70",
+                "vwap_mean_reversion_guard_status": "PASS",
+                "vwap_liquidity_sweep_filter_status": "PASS",
+            },
+            symbol_score=Decimal("0.75"),
+        )
+
+        self.assertFalse(quiet_allowed)
+        self.assertEqual(quiet_reason, "QUIET_RANGE_REQUIRES_DEEP_VWAP_DISLOCATION")
+
+    def test_vwap_liquidity_sweep_filter_blocks_range_reversion_entry(self):
+        data = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="WEAK_RANGE",
+        )
+        closes = ["1000000", "980000", "980000", "995000", "1020000", "990000"]
+        volumes = ["5", "5", "5", "5", "5", "8"]
+        for candle, close, volume in zip(data["candles"], closes, volumes):
+            price = int(close)
+            candle["open"] = str(price - 1200)
+            candle["high"] = str(price + 2500)
+            candle["low"] = str(price - 2500)
+            candle["close"] = close
+            candle["volume"] = volume
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-vwap-liquidity-sweep-filter",
+            market_data=data,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["feature_snapshot"]["regime"], "RANGE")
+        self.assertEqual(report["feature_snapshot"]["market_state"], "RANGE")
+        self.assertEqual(report["feature_snapshot"]["vwap_liquidity_sweep_filter_status"], "BLOCKED")
+        self.assertEqual(report["feature_snapshot"]["vwap_mean_reversion_guard_status"], "BLOCKED")
+        vwap_candidate = next(
+            candidate
+            for candidate in report["strategy_candidates"]
+            if candidate["strategy_family"] == "VWAP_MEAN_REVERSION"
+        )
+        self.assertFalse(vwap_candidate["strategy_regime_allowed"])
+        self.assertEqual(vwap_candidate["strategy_policy_reason"], "VWAP_LIQUIDITY_SWEEP_FILTER")
+        self.assertEqual(vwap_candidate["no_trade_reason"], "STRATEGY_NOT_ELIGIBLE")
+        self.assertEqual(
+            vwap_candidate["vwap_liquidity_sweep_filter_status"],
+            report["feature_snapshot"]["vwap_liquidity_sweep_filter_status"],
+        )
+        self.assertIsNone(report["paper_fill"])
         self.assertFalse(report["live_order_allowed"])
 
     def test_volatility_expansion_routes_entry_review_to_breakout_only(self):

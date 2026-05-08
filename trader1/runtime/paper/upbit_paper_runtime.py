@@ -94,12 +94,21 @@ BREAKOUT_GUARD_FEATURE_PROJECTION_FIELDS = frozenset(
         "breakout_entry_guard_formula",
     }
 )
+VWAP_REVERSION_GUARD_FEATURE_PROJECTION_FIELDS = frozenset(
+    {
+        "vwap_reversion_dislocation_pct",
+        "vwap_mean_reversion_guard_status",
+        "vwap_liquidity_sweep_filter_status",
+        "vwap_reversion_guard_formula",
+    }
+)
 CORRELATION_FEATURE_PROJECTION_FIELDS = frozenset({"return_signature", "return_signature_formula"})
 CURRENT_FEATURE_PROJECTION_UPGRADE_FIELDS = (
     TREND_EXHAUSTION_FEATURE_PROJECTION_FIELDS
     | TREND_PULLBACK_ALIGNMENT_FEATURE_PROJECTION_FIELDS
     | REGIME_DETAIL_FEATURE_PROJECTION_FIELDS
     | BREAKOUT_GUARD_FEATURE_PROJECTION_FIELDS
+    | VWAP_REVERSION_GUARD_FEATURE_PROJECTION_FIELDS
     | CORRELATION_FEATURE_PROJECTION_FIELDS
 )
 BREAKOUT_CONFIRMATION_MIN_VOLUME_EXPANSION = Decimal("1.20")
@@ -110,6 +119,9 @@ BREAKOUT_VOLATILITY_INVALIDATION_MIN_VOLATILITY_PCT = Decimal("5.50")
 BREAKOUT_VOLATILITY_INVALIDATION_MIN_VOLUME_CONFIRMATION = Decimal("0.75")
 MEAN_REVERSION_MIN_VWAP_DISTANCE_PCT = Decimal("0.35")
 MEAN_REVERSION_MAX_VOLUME_EXPANSION = Decimal("1.35")
+VWAP_LIQUIDITY_SWEEP_MIN_VOLUME_EXPANSION = Decimal("1.35")
+VWAP_LIQUIDITY_SWEEP_MIN_VOLATILITY_PCT = Decimal("1.20")
+VWAP_LIQUIDITY_SWEEP_MAX_RECOVERY_DISTANCE_PCT = Decimal("-0.15")
 WEAK_TREND_EDGE_PENALTY_BPS = Decimal("24")
 FALSE_BREAKOUT_EDGE_PENALTY_BPS = Decimal("22")
 FAILED_MEAN_REVERSION_EDGE_PENALTY_BPS = Decimal("18")
@@ -357,13 +369,20 @@ def _strategy_entry_policy_evaluation(
     breakout_retest_quality = _decimal(features.get("breakout_retest_quality_score"))
     breakout_false_breakout_guard_status = str(features.get("breakout_false_breakout_guard_status") or "BLOCKED")
     breakout_volatility_invalidation_status = str(features.get("breakout_volatility_invalidation_status") or "BLOCKED")
-    vwap_distance = abs(_decimal(features.get("vwap_distance_pct")))
+    vwap_reversion_dislocation = max(Decimal("0"), -_decimal(features.get("vwap_distance_pct")))
+    vwap_mean_reversion_guard_status = str(features.get("vwap_mean_reversion_guard_status") or "BLOCKED")
+    vwap_liquidity_sweep_filter_status = str(features.get("vwap_liquidity_sweep_filter_status") or "BLOCKED")
     if market_state == "QUIET_RANGE":
         if strategy_family != "VWAP_MEAN_REVERSION":
             return False, "QUIET_RANGE_NO_TREND_OR_BREAKOUT_ENTRY"
+        if vwap_reversion_dislocation < QUIET_RANGE_MIN_VWAP_DISTANCE_PCT:
+            return False, "QUIET_RANGE_REQUIRES_DEEP_VWAP_DISLOCATION"
+        if vwap_liquidity_sweep_filter_status != "PASS":
+            return False, "VWAP_LIQUIDITY_SWEEP_FILTER"
+        if vwap_mean_reversion_guard_status != "PASS":
+            return False, "VWAP_REVERSION_FAILED_GUARD"
         if (
             regime == "RANGE"
-            and vwap_distance >= QUIET_RANGE_MIN_VWAP_DISTANCE_PCT
             and symbol_score >= QUIET_RANGE_MIN_SYMBOL_SELECTION_SCORE
             and volume_expansion <= QUIET_MAX_VOLUME_EXPANSION_RATIO
         ):
@@ -394,9 +413,13 @@ def _strategy_entry_policy_evaluation(
             return True, "PASS"
         return False, "BREAKOUT_REQUIRES_VOLUME_CONFIRMED_EXPANSION_OR_RETEST"
     if strategy_family == "VWAP_MEAN_REVERSION":
-        if regime == "RANGE" and market_state != "VOLATILITY_EXPANSION":
-            return True, "PASS"
-        return False, "VWAP_REVERSION_RANGE_ONLY"
+        if regime != "RANGE" or market_state == "VOLATILITY_EXPANSION":
+            return False, "VWAP_REVERSION_RANGE_ONLY"
+        if vwap_liquidity_sweep_filter_status != "PASS":
+            return False, "VWAP_LIQUIDITY_SWEEP_FILTER"
+        if vwap_mean_reversion_guard_status != "PASS":
+            return False, "VWAP_REVERSION_FAILED_GUARD"
+        return True, "PASS"
     return False, "UNKNOWN_STRATEGY_FAMILY"
 
 
@@ -1541,6 +1564,23 @@ def _feature_snapshot(market_data: dict[str, Any]) -> dict[str, Any]:
         )
         else "PASS"
     )
+    vwap_reversion_dislocation_pct = max(Decimal("0"), -vwap_distance_pct)
+    vwap_liquidity_sweep_blocked = (
+        volume_expansion_ratio >= VWAP_LIQUIDITY_SWEEP_MIN_VOLUME_EXPANSION
+        and volatility_pct >= VWAP_LIQUIDITY_SWEEP_MIN_VOLATILITY_PCT
+        and vwap_distance_pct <= VWAP_LIQUIDITY_SWEEP_MAX_RECOVERY_DISTANCE_PCT
+    )
+    vwap_mean_reversion_guard_status = (
+        "PASS"
+        if (
+            regime == "RANGE"
+            and vwap_reversion_dislocation_pct >= MEAN_REVERSION_MIN_VWAP_DISTANCE_PCT
+            and volume_expansion_ratio <= MEAN_REVERSION_MAX_VOLUME_EXPANSION
+            and not vwap_liquidity_sweep_blocked
+        )
+        else "BLOCKED"
+    )
+    vwap_liquidity_sweep_filter_status = "BLOCKED" if vwap_liquidity_sweep_blocked else "PASS"
     return {
         "source": market_data.get("source", "UNAVAILABLE"),
         "symbol": market_data["symbol"],
@@ -1580,10 +1620,22 @@ def _feature_snapshot(market_data: dict[str, Any]) -> dict[str, Any]:
             "retest_quality>=0.55, and not(volatility>=5.50 with volume_confirmation<0.75); "
             "retest_quality=range_breakout_confirmation*(0.65+0.35*extension_score)"
         ),
+        "vwap_reversion_dislocation_pct": _decimal_text(
+            vwap_reversion_dislocation_pct.quantize(Decimal("0.0001"))
+        ),
+        "vwap_mean_reversion_guard_status": vwap_mean_reversion_guard_status,
+        "vwap_liquidity_sweep_filter_status": vwap_liquidity_sweep_filter_status,
+        "vwap_reversion_guard_formula": (
+            "Long-only VWAP_REVERSION PASS when RANGE, last is below VWAP by >=0.35pct, "
+            "volume_expansion<=1.35, and liquidity_sweep_filter PASS; "
+            "liquidity sweep blocks when volume_expansion>=1.35, volatility>=1.20pct, "
+            "and close remains <=-0.15pct below VWAP"
+        ),
         "regime_detail_formula": (
             "Upbit KRW spot is long-only: DATA_BAD, PANIC, DOWNTREND/RISK_OFF, and UNCERTAIN block new entries; "
-            "QUIET_RANGE blocks trend/breakout and permits only limited VWAP range candidates when abs(vwap_distance)>=0.55pct "
-            "and symbol_score>=0.60; VOLATILITY_EXPANSION enables breakout candidates only, and only when volatility>=2.50pct, "
+            "QUIET_RANGE blocks trend/breakout and permits only limited VWAP range candidates when price is below VWAP, "
+            "abs(vwap_distance)>=0.55pct, symbol_score>=0.60, and liquidity sweep is clear; "
+            "VOLATILITY_EXPANSION enables breakout candidates only, and only when volatility>=2.50pct, "
             "volume_expansion>=1.20, and range_breakout>=0.03pct"
         ),
         "trend_pullback_alignment_status": "PASS" if trend_pullback_alignment_reason == "PASS" else "FAIL",
@@ -2013,7 +2065,7 @@ def _setup_confirmation_scores(features: dict[str, Any]) -> dict[str, Decimal]:
     momentum = _decimal(features.get("momentum_pct"))
     volume_expansion = _decimal(features.get("volume_expansion_ratio"))
     range_breakout = max(Decimal("0"), _decimal(features.get("range_breakout_pct")))
-    vwap_distance = abs(_decimal(features.get("vwap_distance_pct")))
+    vwap_reversion_dislocation = max(Decimal("0"), -_decimal(features.get("vwap_distance_pct")))
     trend_persistence = _clamp_decimal((momentum - Decimal("0.35")) / Decimal("1.65"))
     volume_confirmation = _clamp_decimal((volume_expansion - Decimal("0.85")) / Decimal("0.65"))
     breakout_confirmation = (
@@ -2030,7 +2082,7 @@ def _setup_confirmation_scores(features: dict[str, Any]) -> dict[str, Decimal]:
         breakout_retest_quality = breakout_confirmation * (
             Decimal("0.65") + Decimal("0.35") * breakout_extension_score
         )
-    mean_reversion_distance = _clamp_decimal((vwap_distance - Decimal("0.25")) / Decimal("1.25"))
+    mean_reversion_distance = _clamp_decimal((vwap_reversion_dislocation - Decimal("0.25")) / Decimal("1.25"))
     mean_reversion_volume = _clamp_decimal((MEAN_REVERSION_MAX_VOLUME_EXPANSION - volume_expansion) / Decimal("0.65"))
     return {
         "trend_persistence": trend_persistence,
@@ -2129,6 +2181,9 @@ def _candidate(
         "breakout_false_breakout_guard_status": features.get("breakout_false_breakout_guard_status", "BLOCKED"),
         "breakout_retest_quality_score": features.get("breakout_retest_quality_score", "0"),
         "breakout_volatility_invalidation_status": features.get("breakout_volatility_invalidation_status", "BLOCKED"),
+        "vwap_reversion_dislocation_pct": features.get("vwap_reversion_dislocation_pct", "0"),
+        "vwap_mean_reversion_guard_status": features.get("vwap_mean_reversion_guard_status", "BLOCKED"),
+        "vwap_liquidity_sweep_filter_status": features.get("vwap_liquidity_sweep_filter_status", "BLOCKED"),
         "signal_strength": _decimal_text(signal_strength),
         "signal_grade": "A" if signal_strength >= Decimal("0.7") else "B" if signal_strength >= Decimal("0.55") else "C",
         "expected_edge_bps": _decimal_text(expected_edge_bps),
@@ -2177,7 +2232,7 @@ def _build_candidates(
     momentum = _decimal(features.get("momentum_pct"))
     volume_expansion = _decimal(features.get("volume_expansion_ratio"))
     range_breakout = _decimal(features.get("range_breakout_pct"))
-    vwap_distance = abs(_decimal(features.get("vwap_distance_pct")))
+    vwap_reversion_dislocation = max(Decimal("0"), -_decimal(features.get("vwap_distance_pct")))
     setup_scores = _setup_confirmation_scores(features)
     trend_persistence = setup_scores["trend_persistence"]
     volume_confirmation = setup_scores["volume_confirmation"]
@@ -2251,8 +2306,10 @@ def _build_candidates(
     )
     mean_reversion_guard_passed = (
         regime == "RANGE"
-        and vwap_distance >= MEAN_REVERSION_MIN_VWAP_DISTANCE_PCT
+        and vwap_reversion_dislocation >= MEAN_REVERSION_MIN_VWAP_DISTANCE_PCT
         and volume_expansion <= MEAN_REVERSION_MAX_VOLUME_EXPANSION
+        and features.get("vwap_mean_reversion_guard_status") == "PASS"
+        and features.get("vwap_liquidity_sweep_filter_status") == "PASS"
     )
     if not mean_reversion_guard_passed:
         mean_reversion_edge -= FAILED_MEAN_REVERSION_EDGE_PENALTY_BPS
@@ -2379,7 +2436,8 @@ def _symbol_selection_policy(*, runtime_input_role: str, symbol_count: int) -> d
             "candidate_selection_score DESC, net_ev_after_cost_bps DESC, selection_priority ASC; "
             "pullback requires UPTREND alignment score>=0.70 and vwap_distance>=-0.25pct, "
             "setup confirmation thresholds volume>=1.05 or momentum>=1.50 for pullback, "
-            "volume>=1.20 and range_breakout>=0.03 for breakout, RANGE and VWAP distance>=0.35 for mean reversion; "
+            "volume>=1.20 and range_breakout>=0.03 for breakout, RANGE and below-VWAP dislocation>=0.35pct "
+            "with volume<=1.35 and liquidity sweep clear for mean reversion; "
             "trend exhaustion guard volatility>=3.00pct and momentum>=3.00pct and volume>=1.50 applies -42bps edge; "
             "recent negative PAPER closed loss applies 3-cycle symbol cooldown and ranking penalty; "
             "preliminary robustness/OOS failure applies evidence-backed candidate/symbol cooldown before more PAPER entry review; "
@@ -2442,6 +2500,9 @@ def _build_symbol_evidence_scorecard(
         "trend_pullback_alignment_reason": features.get("trend_pullback_alignment_reason"),
         "trend_exhaustion_status": features.get("trend_exhaustion_status"),
         "trend_exhaustion_score": features.get("trend_exhaustion_score"),
+        "vwap_reversion_dislocation_pct": features.get("vwap_reversion_dislocation_pct"),
+        "vwap_mean_reversion_guard_status": features.get("vwap_mean_reversion_guard_status"),
+        "vwap_liquidity_sweep_filter_status": features.get("vwap_liquidity_sweep_filter_status"),
         "spread_bps": features.get("spread_bps"),
         "symbol_selection": symbol_selection,
         "symbol_selection_score": symbol_selection.get("symbol_selection_score"),
@@ -2687,6 +2748,15 @@ def _validate_candidate_costs(
                 return UpbitPaperRuntimeCycleValidationResult("FAIL", f"candidate {breakout_field} missing", "SCHEMA_IDENTITY_MISMATCH")
             if isinstance(features, dict) and str(candidate.get(breakout_field)) != str(features.get(breakout_field)):
                 return UpbitPaperRuntimeCycleValidationResult("FAIL", f"candidate {breakout_field} mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        for vwap_field in (
+            "vwap_reversion_dislocation_pct",
+            "vwap_mean_reversion_guard_status",
+            "vwap_liquidity_sweep_filter_status",
+        ):
+            if vwap_field not in candidate:
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", f"candidate {vwap_field} missing", "SCHEMA_IDENTITY_MISMATCH")
+            if isinstance(features, dict) and str(candidate.get(vwap_field)) != str(features.get(vwap_field)):
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", f"candidate {vwap_field} mismatch", "SCHEMA_IDENTITY_MISMATCH")
     else:
         strategy_regime_allowed = (
             candidate.get("strategy_regime_allowed")
@@ -3240,10 +3310,20 @@ def build_upbit_paper_runtime_cycle_report(
                 "retest_quality>=0.55, and not(volatility>=5.50 with volume_confirmation<0.75); "
                 "retest_quality=range_breakout_confirmation*(0.65+0.35*extension_score)"
             ),
+            "vwap_reversion_dislocation_pct": "0",
+            "vwap_mean_reversion_guard_status": "BLOCKED",
+            "vwap_liquidity_sweep_filter_status": "BLOCKED",
+            "vwap_reversion_guard_formula": (
+                "Long-only VWAP_REVERSION PASS when RANGE, last is below VWAP by >=0.35pct, "
+                "volume_expansion<=1.35, and liquidity_sweep_filter PASS; "
+                "liquidity sweep blocks when volume_expansion>=1.35, volatility>=1.20pct, "
+                "and close remains <=-0.15pct below VWAP"
+            ),
             "regime_detail_formula": (
                 "Upbit KRW spot is long-only: DATA_BAD, PANIC, DOWNTREND/RISK_OFF, and UNCERTAIN block new entries; "
-                "QUIET_RANGE blocks trend/breakout and permits only limited VWAP range candidates when abs(vwap_distance)>=0.55pct "
-                "and symbol_score>=0.60; VOLATILITY_EXPANSION enables breakout candidates only, and only when volatility>=2.50pct, "
+                "QUIET_RANGE blocks trend/breakout and permits only limited VWAP range candidates when price is below VWAP, "
+                "abs(vwap_distance)>=0.55pct, symbol_score>=0.60, and liquidity sweep is clear; "
+                "VOLATILITY_EXPANSION enables breakout candidates only, and only when volatility>=2.50pct, "
                 "volume_expansion>=1.20, and range_breakout>=0.03pct"
             ),
         }
