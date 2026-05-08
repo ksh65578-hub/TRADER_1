@@ -879,6 +879,18 @@ def _build_alternative_public_replay_evaluation(
             gate_status = "BLOCKED"
             gate_blocker_code = "SCHEMA_IDENTITY_MISMATCH"
             gate_message = "candidate overfit diagnostic failed contract validation"
+        elif diagnostic.get("robustness_eligible") is not True:
+            diagnostic_blockers = [
+                str(blocker.get("code"))
+                for blocker in diagnostic.get("blockers") or []
+                if isinstance(blocker, dict) and blocker.get("code")
+            ]
+            gate_status = "BLOCKED"
+            gate_blocker_code = diagnostic_blockers[0] if diagnostic_blockers else "ROBUSTNESS_MATURITY_BLOCKED"
+            gate_message = (
+                "candidate public replay collection passed, but OOS, walk-forward, bootstrap, "
+                "and closed-trade profitability gates are not robust enough for alternative validation"
+            )
         diagnostic_blocker_codes = [
             str(blocker.get("code"))
             for blocker in diagnostic.get("blockers") or []

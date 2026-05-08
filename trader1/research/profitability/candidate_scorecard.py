@@ -1205,6 +1205,35 @@ def _public_replay_source_evidence_ids(report: dict[str, Any]) -> list[str]:
     return source_ids
 
 
+def _best_alternative_public_replay_profitability_blocker(replay_report: dict[str, Any]) -> dict[str, str] | None:
+    if int(replay_report.get("replay_closed_trade_sample_count") or 0) <= 0:
+        return blocker(
+            "SAMPLE_INSUFFICIENT",
+            "Best alternative public replay collected windows but has no candidate-owned closed trade evidence.",
+        )
+    if replay_report.get("replay_strategy_exit_policy_status") != "PASS":
+        return blocker(
+            "EXECUTION_FEEDBACK_MISSING",
+            "Best alternative public replay closed trades are not fully bound to the strategy exit router.",
+        )
+    if replay_report.get("replay_profit_factor_status") != "PASS":
+        return blocker(
+            "MEASUREMENT_MISSING",
+            "Best alternative public replay profit factor has not passed the required threshold.",
+        )
+    if replay_report.get("replay_realized_vs_expected_edge_status") != "PASS":
+        return blocker(
+            "EXECUTION_FEEDBACK_DIVERGENT",
+            "Best alternative public replay realized edge does not meet expected edge after costs.",
+        )
+    if replay_report.get("replay_execution_cost_status") != "PASS":
+        return blocker(
+            "EXECUTION_FEEDBACK_DIVERGENT",
+            "Best alternative public replay fee/slippage/impact costs exceed the execution cost budget.",
+        )
+    return None
+
+
 def _best_alternative_replay_binding(
     *,
     best: dict[str, Any] | None,
@@ -1274,6 +1303,9 @@ def _best_alternative_replay_binding(
         return binding, blocker("SCHEMA_IDENTITY_MISMATCH", "Alternative replay report hash mismatch.")
     if int(replay_report.get("sample_count") or 0) < int(replay_report.get("min_required_sample_count") or 1):
         return binding, blocker("SAMPLE_INSUFFICIENT", "Alternative replay sample count is below the required minimum.")
+    profitability_blocker = _best_alternative_public_replay_profitability_blocker(replay_report)
+    if profitability_blocker is not None:
+        return binding, profitability_blocker
     binding["best_alternative_public_replay_status"] = "PASS"
     binding["best_alternative_public_replay_primary_blocker_code"] = None
     return binding, None
