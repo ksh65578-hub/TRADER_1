@@ -19176,10 +19176,13 @@ def _profit_convergence_cycle_errors(report: dict[str, Any]) -> list[str]:
             errors.append("LOCAL_IMPROVEMENT_REVIEW requires all dependencies PASS, fresh input, and positive net EV after cost")
         if blockers:
             errors.append("LOCAL_IMPROVEMENT_REVIEW must not carry blockers")
-    if (local_review or improvement_claim or ranking_allowed) and _candidate_scoped_performance_source_binding_count(source_evidence_ids) <= 0:
-        errors.append(
-            "profit convergence improvement or paper ranking requires candidate-scoped closed trade, execution quality, and performance summary source ids"
-        )
+    if local_review or improvement_claim or ranking_allowed:
+        if not has_required_robustness_source_ids(source_evidence_ids):
+            errors.append("profit convergence improvement or paper ranking requires OOS, walk-forward, and bootstrap source evidence ids")
+        if _candidate_scoped_performance_source_binding_count(source_evidence_ids) <= 0:
+            errors.append(
+                "profit convergence improvement or paper ranking requires candidate-scoped closed trade, execution quality, and performance summary source ids"
+            )
     if ranking_allowed and report.get("cycle_status") not in {"LOCAL_IMPROVEMENT_REVIEW"}:
         errors.append("paper candidate ranking requires LOCAL_IMPROVEMENT_REVIEW cycle status")
     return errors
@@ -19238,6 +19241,22 @@ def profit_convergence_cycle_validator() -> ValidatorResult:
                 paths,
                 "CONVERGENCE_CLAIM_UNVERIFIED",
             )
+    missing_robustness_sources = load_json(pass_path)
+    missing_robustness_sources["source_evidence_ids"] = [
+        source_id
+        for source_id in missing_robustness_sources.get("source_evidence_ids", [])
+        if not any(str(source_id).startswith(prefix) for prefix in ROBUSTNESS_SOURCE_PREFIXES)
+    ]
+    if not any(
+        "requires OOS, walk-forward, and bootstrap source evidence ids" in error
+        for error in _profit_convergence_cycle_errors(missing_robustness_sources)
+    ):
+        return fail_result(
+            "profit_convergence_cycle_validator",
+            "profit convergence improvement without robustness source ids was not rejected",
+            paths,
+            "CONVERGENCE_CLAIM_UNVERIFIED",
+        )
 
     dependency = exploration_exploitation_policy_validator().as_dict()
     if dependency["status"] != "PASS":
@@ -19250,7 +19269,7 @@ def profit_convergence_cycle_validator() -> ValidatorResult:
 
     return pass_result(
         "profit_convergence_cycle_validator",
-        "profit convergence cycle is dependency-gated, net-EV-after-cost based, drift-blocked, PAPER/SHADOW-only, and cannot create live, writer, order, or scale-up permission",
+        "profit convergence cycle is dependency-gated, robustness-source-bound, net-EV-after-cost based, drift-blocked, PAPER/SHADOW-only, and cannot create live, writer, order, or scale-up permission",
         paths,
     )
 
@@ -24228,10 +24247,13 @@ def _convergence_assessment_errors(report: dict[str, Any]) -> list[str]:
         status in {"LOCALLY_IMPROVING", "ROBUSTLY_IMPROVING"}
         or claim in {"LOCALLY_IMPROVING", "ROBUSTLY_IMPROVING"}
         or score_band in {"LOCAL_IMPROVING", "ROBUST_IMPROVING"}
-    ) and _candidate_scoped_performance_source_binding_count(source_evidence_ids) <= 0:
-        errors.append(
-            "improving convergence assessment requires candidate-scoped closed trade, execution quality, and performance summary source ids"
-        )
+    ):
+        if not has_required_robustness_source_ids(source_evidence_ids):
+            errors.append("improving convergence assessment requires OOS, walk-forward, and bootstrap source evidence ids")
+        if _candidate_scoped_performance_source_binding_count(source_evidence_ids) <= 0:
+            errors.append(
+                "improving convergence assessment requires candidate-scoped closed trade, execution quality, and performance summary source ids"
+            )
     return errors
 
 
@@ -24293,6 +24315,22 @@ def convergence_assessment_validator() -> ValidatorResult:
                 paths,
                 "CONVERGENCE_STATE_UNTESTED",
             )
+    missing_robustness_sources = load_json(pass_path)
+    missing_robustness_sources["source_evidence_ids"] = [
+        source_id
+        for source_id in missing_robustness_sources.get("source_evidence_ids", [])
+        if not any(str(source_id).startswith(prefix) for prefix in ROBUSTNESS_SOURCE_PREFIXES)
+    ]
+    if not any(
+        "requires OOS, walk-forward, and bootstrap source evidence ids" in error
+        for error in _convergence_assessment_errors(missing_robustness_sources)
+    ):
+        return fail_result(
+            "convergence_assessment_validator",
+            "improving convergence assessment without robustness source ids was not rejected",
+            paths,
+            "CONVERGENCE_STATE_UNTESTED",
+        )
 
     no_live_result = optimizer_no_live_mutation_validator().as_dict()
     if no_live_result["status"] != "PASS":

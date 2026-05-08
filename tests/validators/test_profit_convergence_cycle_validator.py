@@ -21,6 +21,9 @@ class ProfitConvergenceCycleValidatorTest(unittest.TestCase):
         errors = _profit_convergence_cycle_errors(report)
 
         self.assertEqual(errors, [])
+        source_ids = report["source_evidence_ids"]
+        for prefix in ("oos:", "walk_forward:", "bootstrap:"):
+            self.assertTrue(any(source_id.startswith(prefix) for source_id in source_ids), prefix)
 
     def test_untested_dependency_cannot_claim_improvement_or_rank(self):
         report = load_json(FIXTURE_DIR / "profit_convergence_cycle_dependency_untested_fail.json")
@@ -59,6 +62,22 @@ class ProfitConvergenceCycleValidatorTest(unittest.TestCase):
 
         self.assertIn(
             "profit convergence improvement or paper ranking requires candidate-scoped closed trade, execution quality, and performance summary source ids",
+            errors,
+        )
+
+    def test_improvement_and_paper_ranking_require_robustness_sources(self):
+        report = load_json(FIXTURE_DIR / "profit_convergence_cycle_pass.json")
+        tampered = copy.deepcopy(report)
+        tampered["source_evidence_ids"] = [
+            source_id
+            for source_id in tampered["source_evidence_ids"]
+            if not source_id.startswith(("oos:", "walk_forward:", "bootstrap:"))
+        ]
+
+        errors = _profit_convergence_cycle_errors(tampered)
+
+        self.assertIn(
+            "profit convergence improvement or paper ranking requires OOS, walk-forward, and bootstrap source evidence ids",
             errors,
         )
 
