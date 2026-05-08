@@ -8,6 +8,7 @@ from trader1.research.profitability.overfit_diagnostic import overfit_diagnostic
 from trader1.research.replay.replay_runner import (
     build_replay_consistency_report,
     build_public_replay_robustness_report,
+    public_replay_robustness_values_from_report,
     validate_public_replay_robustness_report,
     replay_consistency_hash,
     validate_replay_consistency_report,
@@ -117,6 +118,50 @@ class ReplayDeterminismTest(unittest.TestCase):
         self.assertFalse(report["private_endpoint_called"])
         self.assertFalse(report["order_endpoint_called"])
         self.assertFalse(report["order_adapter_called"])
+
+    def test_public_replay_no_trade_rows_are_flat_cash_returns(self):
+        runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="public-replay-scorecard-flat-no-trade-base",
+            symbol="KRW-AXL",
+            market_data=_public_replay_fixture(symbol="KRW-AXL", count=12),
+        )
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+        report = build_public_replay_robustness_report(
+            candidate_scorecard=scorecard,
+            market_data=_public_replay_fixture(symbol="KRW-AXL", count=70),
+            min_required_sample_count=50,
+            max_replay_windows=80,
+        )
+        result = validate_public_replay_robustness_report(report, candidate_scorecard=scorecard)
+        no_trade_rows = [row for row in report["sample_rows"] if row["decision"] == "NO_TRADE"]
+
+        self.assertEqual(result.status, "PASS")
+        self.assertGreater(len(no_trade_rows), 0)
+        for row in no_trade_rows:
+            self.assertFalse(row["executed_trade"])
+            self.assertEqual(row["replay_return_basis"], "FLAT_NO_TRADE_CASH_RETURN")
+            self.assertEqual(row["net_ev_after_cost_bps"], 0.0)
+            self.assertEqual(row["gross_expected_edge_bps"], 0.0)
+            self.assertEqual(row["total_execution_cost_bps"], 0.0)
+            self.assertIn("opportunity_net_ev_after_cost_bps", row)
+            self.assertIn("opportunity_gross_expected_edge_bps", row)
+            self.assertIn("opportunity_total_execution_cost_bps", row)
+
+        values, samples, source_ids = public_replay_robustness_values_from_report(
+            report,
+            candidate_scorecard=scorecard,
+        )
+        self.assertEqual(len(values), report["sample_count"])
+        self.assertEqual(len(samples), report["sample_count"])
+        self.assertIn(
+            f"public_replay_robustness:{report['replay_id']}:{report['report_hash']}",
+            source_ids,
+        )
+        for row, value in zip(report["sample_rows"], values, strict=True):
+            if row["decision"] == "NO_TRADE":
+                self.assertEqual(value, 0.0)
+            else:
+                self.assertEqual(value, row["net_ev_after_cost_bps"])
 
     def test_public_replay_robustness_report_matches_contract_schema(self):
         runtime = build_upbit_paper_runtime_cycle_report(

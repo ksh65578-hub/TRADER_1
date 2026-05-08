@@ -15,7 +15,8 @@ from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_js
 
 REPLAY_CONSISTENCY_SCHEMA_ID = "trader1.replay_consistency_report.v1"
 PUBLIC_REPLAY_ROBUSTNESS_SCHEMA_ID = "trader1.public_replay_robustness_report.v1"
-PUBLIC_REPLAY_VALUE_SOURCE = "PUBLIC_REST_REPLAY_EXPECTED_NET_EV_AFTER_COST_BPS"
+PUBLIC_REPLAY_VALUE_SOURCE = "PUBLIC_REST_REPLAY_DECISION_ADJUSTED_NET_EV_AFTER_COST_BPS"
+PUBLIC_REPLAY_LEGACY_VALUE_SOURCE = "PUBLIC_REST_REPLAY_EXPECTED_NET_EV_AFTER_COST_BPS"
 PUBLIC_REPLAY_MIN_WINDOW_SIZE = 5
 PUBLIC_REPLAY_DEFAULT_WINDOW_SIZE = 6
 PUBLIC_REPLAY_DEFAULT_MAX_WINDOWS = 420
@@ -73,6 +74,54 @@ def _candidate_by_id(runtime_cycle: dict[str, Any], candidate_id: str) -> dict[s
         if isinstance(candidate, dict) and candidate.get("candidate_id") == candidate_id:
             return candidate
     return None
+
+
+def _public_replay_sample_row(
+    *,
+    replay_id: str,
+    replay_index: int,
+    window_candles: list[dict[str, Any]],
+    runtime: dict[str, Any],
+    candidate: dict[str, Any],
+    strategy_id: Any,
+) -> dict[str, Any]:
+    opportunity_net_ev = _number(candidate.get("net_ev_after_cost_bps"))
+    opportunity_gross_edge = _number(candidate.get("gross_expected_edge_bps"))
+    opportunity_cost = _number(candidate.get("total_execution_cost_bps"))
+    executed_trade = candidate.get("decision") == "PAPER_ENTRY_REVIEW"
+    if executed_trade:
+        net_ev_after_cost = opportunity_net_ev
+        gross_expected_edge = opportunity_gross_edge
+        total_execution_cost = opportunity_cost
+        replay_return_basis = "EXECUTED_ENTRY_REVIEW_NET_EV_AFTER_COST"
+    else:
+        net_ev_after_cost = 0.0
+        gross_expected_edge = 0.0
+        total_execution_cost = 0.0
+        replay_return_basis = "FLAT_NO_TRADE_CASH_RETURN"
+    return {
+        "sample_id": f"{replay_id}:sample:{replay_index:04d}",
+        "sample_index": replay_index,
+        "event_time_utc": window_candles[-1].get("timestamp"),
+        "runtime_cycle_id": runtime["cycle_id"],
+        "runtime_cycle_hash": runtime["cycle_hash"],
+        "symbol": candidate.get("symbol"),
+        "strategy_family": candidate.get("strategy_family"),
+        "strategy_id": strategy_id,
+        "candidate_id": candidate.get("candidate_id"),
+        "decision": candidate.get("decision"),
+        "executed_trade": executed_trade,
+        "replay_return_basis": replay_return_basis,
+        "regime": candidate.get("regime") or runtime.get("regime"),
+        "strategy_policy_reason": candidate.get("strategy_policy_reason"),
+        "no_trade_reason": candidate.get("no_trade_reason"),
+        "net_ev_after_cost_bps": net_ev_after_cost,
+        "gross_expected_edge_bps": gross_expected_edge,
+        "total_execution_cost_bps": total_execution_cost,
+        "opportunity_net_ev_after_cost_bps": opportunity_net_ev,
+        "opportunity_gross_expected_edge_bps": opportunity_gross_edge,
+        "opportunity_total_execution_cost_bps": opportunity_cost,
+    }
 
 
 def _safe_artifact_stem(value: Any) -> str:
@@ -135,24 +184,14 @@ def build_public_replay_robustness_report(
                 blockers.append(_blocker("LIVE_FINAL_GUARD_FAILED", "public replay candidate attempted live or scale-up permission"))
                 continue
             sample_rows.append(
-                {
-                    "sample_id": f"{replay_id}:sample:{replay_index:04d}",
-                    "sample_index": replay_index,
-                    "event_time_utc": window_candles[-1].get("timestamp"),
-                    "runtime_cycle_id": runtime["cycle_id"],
-                    "runtime_cycle_hash": runtime["cycle_hash"],
-                    "symbol": candidate.get("symbol"),
-                    "strategy_family": candidate.get("strategy_family"),
-                    "strategy_id": candidate_scorecard.get("strategy_id"),
-                    "candidate_id": candidate.get("candidate_id"),
-                    "decision": candidate.get("decision"),
-                    "regime": candidate.get("regime") or runtime.get("regime"),
-                    "strategy_policy_reason": candidate.get("strategy_policy_reason"),
-                    "no_trade_reason": candidate.get("no_trade_reason"),
-                    "net_ev_after_cost_bps": _number(candidate.get("net_ev_after_cost_bps")),
-                    "gross_expected_edge_bps": _number(candidate.get("gross_expected_edge_bps")),
-                    "total_execution_cost_bps": _number(candidate.get("total_execution_cost_bps")),
-                }
+                _public_replay_sample_row(
+                    replay_id=replay_id,
+                    replay_index=replay_index,
+                    window_candles=window_candles,
+                    runtime=runtime,
+                    candidate=candidate,
+                    strategy_id=candidate_scorecard.get("strategy_id"),
+                )
             )
 
     sample_count = len(sample_rows)
@@ -267,11 +306,38 @@ def validate_public_replay_robustness_report(
     )
     if any(report.get(field) for field in forbidden):
         return ReplayConsistencyValidationResult("BLOCKED", "public replay attempted private, order, live, or scale-up behavior", "LIVE_FINAL_GUARD_FAILED")
-    if report.get("value_source") != PUBLIC_REPLAY_VALUE_SOURCE:
+    if report.get("value_source") not in {PUBLIC_REPLAY_VALUE_SOURCE, PUBLIC_REPLAY_LEGACY_VALUE_SOURCE}:
         return ReplayConsistencyValidationResult("FAIL", "public replay value source mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    strict_decision_adjusted_rows = report.get("value_source") == PUBLIC_REPLAY_VALUE_SOURCE
     sample_rows = report.get("sample_rows")
     if not isinstance(sample_rows, list) or int(report.get("sample_count") or 0) != len(sample_rows):
         return ReplayConsistencyValidationResult("FAIL", "public replay sample count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    for row in sample_rows:
+        if not isinstance(row, dict):
+            return ReplayConsistencyValidationResult("FAIL", "public replay sample row must be an object", "SCHEMA_IDENTITY_MISMATCH")
+        decision = row.get("decision")
+        if decision == "NO_TRADE":
+            row_uses_decision_adjusted_fields = (
+                strict_decision_adjusted_rows
+                or "executed_trade" in row
+                or "replay_return_basis" in row
+                or "opportunity_net_ev_after_cost_bps" in row
+            )
+            if not row_uses_decision_adjusted_fields:
+                continue
+            if row.get("executed_trade") is not False:
+                return ReplayConsistencyValidationResult("FAIL", "NO_TRADE replay row cannot be executed", "SCHEMA_IDENTITY_MISMATCH")
+            if _number(row.get("net_ev_after_cost_bps")) != 0.0:
+                return ReplayConsistencyValidationResult("FAIL", "NO_TRADE replay row must use flat-cash zero return", "SCHEMA_IDENTITY_MISMATCH")
+            if _number(row.get("total_execution_cost_bps")) != 0.0:
+                return ReplayConsistencyValidationResult("FAIL", "NO_TRADE replay row cannot carry execution cost", "SCHEMA_IDENTITY_MISMATCH")
+        elif decision == "PAPER_ENTRY_REVIEW":
+            if strict_decision_adjusted_rows and row.get("executed_trade") is not True:
+                return ReplayConsistencyValidationResult("FAIL", "entry replay row must be marked executed", "SCHEMA_IDENTITY_MISMATCH")
+            if row.get("executed_trade") is False:
+                return ReplayConsistencyValidationResult("FAIL", "entry replay row must be marked executed", "SCHEMA_IDENTITY_MISMATCH")
+        else:
+            return ReplayConsistencyValidationResult("FAIL", "public replay decision is invalid", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("replay_status") == "PASS" and report.get("blockers"):
         return ReplayConsistencyValidationResult("BLOCKED", "public replay PASS cannot carry blockers", report["blockers"][0].get("code", "UNKNOWN_BLOCKED"))
     if candidate_scorecard is not None:
@@ -294,7 +360,10 @@ def public_replay_robustness_values_from_report(
     for row in report.get("sample_rows") or []:
         if not isinstance(row, dict) or row.get("candidate_id") != report.get("candidate_id"):
             continue
-        values.append(_number(row.get("net_ev_after_cost_bps")))
+        if row.get("decision") == "NO_TRADE":
+            values.append(0.0)
+        else:
+            values.append(_number(row.get("net_ev_after_cost_bps")))
         samples.append(
             {
                 "loop_id": report["replay_id"],
