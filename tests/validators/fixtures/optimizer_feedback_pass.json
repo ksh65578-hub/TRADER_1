@@ -49,16 +49,17 @@
   "dashboard_display_truth_only": true,
   "promotion_eligible": false,
   "source_evidence_ids": [
-    "paper_execution_feedback_fixture_001",
-    "shadow_execution_feedback_fixture_001"
+    "closed_trades:candidate_trend_pullback_krw_btc_001:optimizer_feedback_performance_history_001:7777777777777777777777777777777777777777777777777777777777777777",
+    "execution_quality:candidate_trend_pullback_krw_btc_001:optimizer_feedback_performance_history_001:7777777777777777777777777777777777777777777777777777777777777777",
+    "performance_summary:candidate_trend_pullback_krw_btc_001:optimizer_feedback_performance_history_001:7777777777777777777777777777777777777777777777777777777777777777"
   ],
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
   "blockers": [],
-  "feedback_hash": "63FAFB8494210E9661DFC08E6BCF788FC7D9E5084058DCD690826F7AF2C34C03",
-  "notes": "Positive fixture proves expected-vs-realized cost feedback can allow paper ranking only when cost drift is within limits.",
+  "feedback_hash": "FA05E37003D46E844AA636D18759A8139130874E8F6126B3C45ECEDBB70FDE56",
+  "notes": "Positive fixture proves source-bound expected-vs-realized cost feedback can allow paper ranking only when cost drift is within limits.",
   "risk_review_status": "PASS",
   "risk_review_action": "ALLOW_PAPER_RANKING_REVIEW",
   "exposure_review_status": "PASS",

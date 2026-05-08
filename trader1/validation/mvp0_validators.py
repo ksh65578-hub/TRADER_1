@@ -21361,6 +21361,7 @@ def _optimizer_feedback_errors(report: dict[str, Any]) -> list[str]:
         errors.append("optimizer feedback hash mismatch")
 
     blockers = report.get("blockers", [])
+    source_evidence_ids = [str(item) for item in report.get("source_evidence_ids", []) if isinstance(item, str)]
     blocker_codes = {blocker.get("code") for blocker in blockers if isinstance(blocker, dict)}
     feedback_eligible = report.get("feedback_eligible") is True
     net_ev_deviation = abs(
@@ -21402,6 +21403,13 @@ def _optimizer_feedback_errors(report: dict[str, Any]) -> list[str]:
             errors.append("latency_deviation_ms above max_allowed_latency_deviation_ms while feedback_eligible=true")
         if float(report["realized_net_ev_after_cost_bps"]) <= 0:
             errors.append("realized_net_ev_after_cost_bps must be positive before feedback eligibility")
+        if not has_required_performance_source_ids(
+            source_evidence_ids,
+            candidate_id=str(report.get("candidate_id", "")),
+        ):
+            errors.append(
+                "feedback_eligible requires candidate-scoped closed trade, execution quality, and performance summary source ids"
+            )
     else:
         if report.get("feedback_status") == "VALIDATED_FOR_PAPER_RANKING":
             errors.append("feedback_status cannot be VALIDATED_FOR_PAPER_RANKING when feedback_eligible=false")
