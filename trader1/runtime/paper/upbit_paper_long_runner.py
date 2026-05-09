@@ -158,6 +158,15 @@ NON_LIVE_PROFITABILITY_REFRESH_CRITICAL_BLOCKERS = {
     "API_UNVERIFIED",
     "OPTIMIZER_DIRECT_LIVE_FORBIDDEN",
 }
+NON_LIVE_PROFITABILITY_REFRESH_COLLECTION_BLOCKERS = {
+    "ACTUAL_PAPER_RUNTIME_SAMPLE_MISSING",
+    "NON_LIVE_PROFITABILITY_EVIDENCE_INCOMPLETE",
+    "PAPER_SAMPLE_DEFICIT",
+    "PAPER_SHADOW_EVIDENCE_MISSING",
+    "PAPER_SHADOW_RUNTIME_ARTIFACT_MISSING",
+    "PRELIMINARY_SAMPLE_INSUFFICIENT",
+    "SAMPLE_INSUFFICIENT",
+}
 DASHBOARD_FILE_MISSING_BLOCKER_CODE = "DASHBOARD_FILE_MISSING"
 DASHBOARD_OPEN_FAILED_BLOCKER_CODE = "DASHBOARD_OPEN_FAILED"
 DASHBOARD_PREOPEN_REFRESH_FAILED_BLOCKER_CODE = "DASHBOARD_PREOPEN_REFRESH_FAILED"
@@ -2911,7 +2920,7 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
         evidence_status = _result_status(evidence_result)
         evidence_blocker = _result_blocker_code(evidence_result)
     else:
-        evidence_status = "NOT_LOADED"
+        evidence_status = "BLOCKED"
         evidence_blocker = "PAPER_SHADOW_EVIDENCE_MISSING"
 
     blocker = next(
@@ -2935,8 +2944,8 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
         refresh_status = NON_LIVE_PROFITABILITY_REFRESH_PASS
     elif (
         history_status == "PASS"
-        and scorecard_status == "PASS"
-        and overfit_contract_status == "PASS"
+        and scorecard_status in {"PASS", "NOT_LOADED"}
+        and overfit_contract_status in {"PASS", "NOT_LOADED"}
         and evidence_status == "BLOCKED"
     ):
         refresh_status = NON_LIVE_PROFITABILITY_REFRESH_COLLECTING
@@ -4106,6 +4115,19 @@ def _portfolio_snapshot_live_flags_clear(snapshot: dict[str, Any]) -> bool:
     return all(snapshot.get(field) is not True for field in LIVE_FALSE_FLAGS)
 
 
+def _non_live_profitability_refresh_should_stop_runner(refresh: dict[str, Any]) -> bool:
+    if refresh.get("status") != NON_LIVE_PROFITABILITY_REFRESH_BLOCKED:
+        return False
+    if any(refresh.get(field) is True for field in LIVE_FALSE_FLAGS):
+        return True
+    blocker_code = str(refresh.get("blocker_code") or "")
+    if blocker_code in NON_LIVE_PROFITABILITY_REFRESH_CRITICAL_BLOCKERS:
+        return True
+    if blocker_code in NON_LIVE_PROFITABILITY_REFRESH_COLLECTION_BLOCKERS:
+        return False
+    return True
+
+
 def _portfolio_fields(root: Path, session_id: str, runtime_cycle: dict[str, Any] | None) -> dict[str, Any]:
     snapshot: dict[str, Any] = {}
     source = "NOT_LOADED"
@@ -4586,6 +4608,11 @@ def validate_upbit_paper_long_runner_status_report(report: dict[str, Any]) -> di
         elif report.get("shadow_completed_cycle_count", 0) <= 0 or report.get("shadow_observation_count", 0) <= 0:
             return {"status": "BLOCKED", "blocker_code": PAPER_SHADOW_RUNTIME_REFRESH_FAILED_BLOCKER_CODE}
         refresh_status = report.get("profitability_evidence_refresh_status")
+        profitability_collecting_nonblocking = (
+            refresh_status == NON_LIVE_PROFITABILITY_REFRESH_COLLECTING
+            and report.get("profitability_evidence_primary_blocker_code")
+            in NON_LIVE_PROFITABILITY_REFRESH_COLLECTION_BLOCKERS
+        )
         if refresh_status not in {
             NON_LIVE_PROFITABILITY_REFRESH_PASS,
             NON_LIVE_PROFITABILITY_REFRESH_COLLECTING,
@@ -4611,9 +4638,15 @@ def validate_upbit_paper_long_runner_status_report(report: dict[str, Any]) -> di
                 or "RUNTIME_SAMPLE_HISTORY_INVALID",
             }
         elif report.get("candidate_scorecard_status") != "PASS":
-            return {"status": "BLOCKED", "blocker_code": "SCORECARD_SCHEMA_INVALID"}
-        elif report.get("overfit_diagnostic_contract_status") != "PASS":
-            return {"status": "BLOCKED", "blocker_code": "SCHEMA_IDENTITY_MISMATCH"}
+            if profitability_collecting_nonblocking and report.get("candidate_scorecard_status") == "NOT_LOADED":
+                pass
+            else:
+                return {"status": "BLOCKED", "blocker_code": "SCORECARD_SCHEMA_INVALID"}
+        if report.get("overfit_diagnostic_contract_status") != "PASS":
+            if profitability_collecting_nonblocking and report.get("overfit_diagnostic_contract_status") == "NOT_LOADED":
+                pass
+            else:
+                return {"status": "BLOCKED", "blocker_code": "SCHEMA_IDENTITY_MISMATCH"}
         elif report.get("paper_shadow_evidence_validation_status") not in {"PASS", "BLOCKED"}:
             return {
                 "status": "BLOCKED",
@@ -5382,7 +5415,7 @@ def run_upbit_paper_long_running_runner(
                     "can_live_trade": False,
                     "scale_up_allowed": False,
                 }
-            if profitability_refresh.get("status") == NON_LIVE_PROFITABILITY_REFRESH_BLOCKED:
+            if _non_live_profitability_refresh_should_stop_runner(profitability_refresh):
                 failed += 1
                 blocked = build_runner_status_report(
                     root=root,
@@ -5419,6 +5452,20 @@ def run_upbit_paper_long_running_runner(
                 )
                 dashboard_status_channel_final_status = "BLOCKED"
                 return blocked
+            if profitability_refresh.get("status") == NON_LIVE_PROFITABILITY_REFRESH_BLOCKED:
+                _append_log(
+                    root,
+                    session_id,
+                    {
+                        "event": "non_live_profitability_evidence_collecting_nonblocking",
+                        "loop_id": cycle_loop_id,
+                        "completed_cycle_count": completed,
+                        "refresh_status": profitability_refresh.get("status"),
+                        "blocker_code": profitability_refresh.get("blocker_code"),
+                        "message": profitability_refresh.get("message"),
+                        "at": utc_now(),
+                    },
+                )
             _append_log(
                 root,
                 session_id,

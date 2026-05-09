@@ -1546,6 +1546,56 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertEqual(report["primary_blocker_code"], "SCHEMA_IDENTITY_MISMATCH")
             self.assertFalse(report["live_order_allowed"])
 
+    def test_runner_keeps_collecting_when_profitability_refresh_needs_more_paper_samples(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with patch.object(
+                long_runner,
+                "refresh_non_live_profitability_evidence_from_runtime",
+                return_value={
+                    "status": "BLOCKED",
+                    "blocker_code": "ACTUAL_PAPER_RUNTIME_SAMPLE_MISSING",
+                    "message": "Selected PAPER runtime cycle sample cannot be loaded.",
+                    "live_order_ready": False,
+                    "live_order_allowed": False,
+                    "can_live_trade": False,
+                    "scale_up_allowed": False,
+                    "order_adapter_called": False,
+                    "private_endpoint_called": False,
+                    "credential_load_attempted": False,
+                    "live_key_loaded": False,
+                },
+            ):
+                report = run_upbit_paper_long_running_runner(
+                    root=root,
+                    session_id="test_profitability_refresh_collecting",
+                    runner_id="test-profitability-refresh-collecting",
+                    cycle_interval_seconds=0,
+                    max_cycles=1,
+                    attempt_public_symbol_discovery=False,
+                    attempt_network_market_data=False,
+                    refresh_dashboard=False,
+                )
+
+            event_log = runner_log_path(root, "test_profitability_refresh_collecting").read_text(encoding="utf-8")
+
+            self.assertEqual(report["runner_status"], RUNNER_STATUS_STOPPED)
+            self.assertEqual(report["stop_reason"], "MAX_CYCLES_REACHED")
+            self.assertEqual(report["completed_cycle_count"], 1)
+            self.assertEqual(report["failed_cycle_count"], 0)
+            self.assertNotEqual(report["primary_blocker_code"], "ACTUAL_PAPER_RUNTIME_SAMPLE_MISSING")
+            self.assertIn("non_live_profitability_evidence_collecting_nonblocking", event_log)
+            self.assertFalse(report["live_order_ready"])
+            self.assertFalse(report["live_order_allowed"])
+            self.assertFalse(report["can_live_trade"])
+            self.assertFalse(report["scale_up_allowed"])
+            self.assertFalse(report["order_adapter_called"])
+            self.assertFalse(report["private_endpoint_called"])
+            self.assertFalse(report["credential_load_attempted"])
+            self.assertFalse(report["live_key_loaded"])
+
     def test_duplicate_runner_start_is_fail_closed_without_overwriting_canonical_status(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
