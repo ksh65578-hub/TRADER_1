@@ -401,6 +401,7 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
             generation_report = _load_written(root, result, "candidate_generation_report_path")
             discovery_runtime = _load_written(root, result, "candidate_discovery_runtime_cycle_path")
             alternative_replay = _load_written(root, result, "alternative_public_replay_report_path")
+            alternative_review_scorecard = _load_written(root, result, "alternative_review_scorecard_path")
 
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["candidate_discovery_status"], "PASS")
@@ -446,13 +447,20 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(result["alternative_public_replay_symbol"], "KRW-ETH")
         self.assertGreaterEqual(result["alternative_public_replay_sample_count"], 1)
         self.assertEqual(alternative_replay["candidate_id"], generation_report["best_alternative_candidate_id"])
-        self.assertEqual(result["alternative_review_scorecard_status"], "NOT_REQUIRED")
-        self.assertIsNone(result["alternative_review_scorecard_path"])
+        self.assertEqual(result["alternative_review_scorecard_status"], "BLOCKED")
+        self.assertEqual(result["alternative_review_scorecard_blocker_code"], "SAMPLE_INSUFFICIENT")
+        self.assertIsNotNone(result["alternative_review_scorecard_path"])
+        self.assertFalse(result["alternative_review_scorecard_ranking_eligible"])
+        self.assertFalse(alternative_review_scorecard["ranking_eligible"])
+        self.assertEqual(alternative_review_scorecard["scorecard_scope"], "PAPER_EVIDENCE_COLLECTION_ONLY")
         self.assertEqual(
             generation_report["best_alternative_public_replay_closed_trade_sample_count"],
             alternative_replay["replay_closed_trade_sample_count"],
         )
-        self.assertEqual(result["alternative_review_replay_closed_trade_sample_count"], 0)
+        self.assertEqual(
+            result["alternative_review_replay_closed_trade_sample_count"],
+            alternative_replay["replay_closed_trade_sample_count"],
+        )
         self.assertFalse(alternative_replay["live_order_allowed"])
         self.assertEqual(result["candidate_generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_BLOCKED")
         self.assertIn(result["candidate_generation_primary_blocker_code"], {"OOS_MISSING", "SAMPLE_INSUFFICIENT"})

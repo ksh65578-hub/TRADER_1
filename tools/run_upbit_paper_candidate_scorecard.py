@@ -1185,11 +1185,28 @@ def _build_and_write_alternative_review_scorecard(
     replay_report = alternative_replay_context.get("report")
     source_runtime = alternative_replay_context.get("source_runtime_cycle_report")
     base_scorecard = alternative_replay_context.get("scorecard")
-    if alternative_replay_context.get("status") != "PASS" or not isinstance(replay_report, dict):
+    if not isinstance(replay_report, dict):
         return {
             "status": "NOT_REQUIRED",
             "blocker_code": None,
-            "message": "alternative review scorecard is only written after alternative public replay passes",
+            "message": "alternative review scorecard requires an alternative public replay report",
+            "path": None,
+            "overfit_diagnostic_path": None,
+            "candidate_id": alternative_replay_context.get("candidate_id"),
+            "ranking_eligible": False,
+            "blocker_codes": [],
+            "replay_closed_trade_sample_count": 0,
+            "replay_strategy_exit_policy_sample_count": 0,
+            "replay_profit_factor": 0.0,
+            "replay_performance_scope": "NOT_RUN",
+        }
+    replay_sample_count = int(replay_report.get("sample_count") or 0)
+    replay_closed_trade_count = int(replay_report.get("replay_closed_trade_sample_count") or 0)
+    if alternative_replay_context.get("status") != "PASS" and replay_sample_count <= 0 and replay_closed_trade_count <= 0:
+        return {
+            "status": "NOT_REQUIRED",
+            "blocker_code": None,
+            "message": "alternative review scorecard is not written until public replay emits sample rows",
             "path": None,
             "overfit_diagnostic_path": None,
             "candidate_id": alternative_replay_context.get("candidate_id"),
@@ -1294,6 +1311,25 @@ def _build_and_write_alternative_review_scorecard(
             or "PUBLIC_REPLAY_ONLY_NOT_PAPER_RANKING",
         }
     )
+    replay_context_status = str(alternative_replay_context.get("status") or "BLOCKED")
+    replay_context_blocker_code = str(
+        alternative_replay_context.get("blocker_code")
+        or replay_report.get("primary_blocker_code")
+        or "PUBLIC_REPLAY_ROBUSTNESS_FAILED"
+    )
+    if replay_context_status != "PASS":
+        blockers = [item for item in review_scorecard.get("blockers", []) if isinstance(item, dict)]
+        if replay_context_blocker_code not in {str(item.get("code") or "") for item in blockers}:
+            blockers.append(
+                {
+                    "code": replay_context_blocker_code,
+                    "severity": "HIGH",
+                    "message": "alternative public replay remains blocked; scorecard is evidence-only and ranking remains disabled",
+                }
+            )
+        review_scorecard["blockers"] = blockers
+        review_scorecard["ranking_eligible"] = False
+        review_scorecard["scorecard_scope"] = "PAPER_EVIDENCE_COLLECTION_ONLY"
     scorecard_errors = _candidate_scorecard_net_ev_errors(review_scorecard)
     if scorecard_errors:
         return {
@@ -1312,10 +1348,16 @@ def _build_and_write_alternative_review_scorecard(
         }
     snapshot_path = write_upbit_paper_candidate_scorecard_snapshot(root=root, scorecard=review_scorecard)
     diagnostic_snapshot_path = write_overfit_diagnostic_report_snapshot(root=root, report=diagnostic)
+    review_status = "PASS" if replay_context_status == "PASS" else "BLOCKED"
+    review_blocker_code = None if review_status == "PASS" else replay_context_blocker_code
     return {
-        "status": "PASS",
-        "blocker_code": None,
-        "message": "alternative review scorecard and overfit diagnostic snapshots written from passed public replay and runtime-bound performance inputs",
+        "status": review_status,
+        "blocker_code": review_blocker_code,
+        "message": (
+            "alternative review scorecard and overfit diagnostic snapshots written from passed public replay and runtime-bound performance inputs"
+            if review_status == "PASS"
+            else "alternative review scorecard snapshot written as blocked, evidence-only public replay input"
+        ),
         "path": _relative_path(snapshot_path, root),
         "overfit_diagnostic_path": _relative_path(diagnostic_snapshot_path, root),
         "candidate_id": review_scorecard["candidate_id"],
