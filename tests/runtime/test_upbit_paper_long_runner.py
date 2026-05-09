@@ -1636,6 +1636,117 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             ):
                 self.assertFalse(confirmed_stop_report[field], field)
 
+    def test_stop_file_after_cycle_confirms_root_stop_before_dashboard_refresh(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "stop_after_cycle_session"
+            stop_path = runner_stop_file_path(root, session_id)
+            root_stop_report_path = _root_stop_request_report_path(root, session_id)
+            root_stop_report_path.parent.mkdir(parents=True, exist_ok=True)
+            root_stop_report_path.write_text(
+                json.dumps(
+                    {
+                        "schema_id": "trader1.root_stop_request_report.v1",
+                        "generated_at_utc": utc_now(),
+                        "project_id": "TRADER_1",
+                        "stop_launcher_name": "STOP_UPBIT_PAPER",
+                        "target_launcher_name": "UPBIT_PAPER",
+                        "exchange": "UPBIT",
+                        "market_type": "KRW_SPOT",
+                        "mode": "PAPER",
+                        "session_id": session_id,
+                        "stop_request_status": "STOP_REQUESTED",
+                        "stop_request_method": "UPBIT_PAPER_STOP_FILE",
+                        "stop_confirmed": False,
+                        "stop_result_summary": "UPBIT PAPER stop was requested.",
+                        "runner_status_path": str(runner_status_path(root, session_id)),
+                        "runner_status_after": RUNNER_STATUS_STOPPING,
+                        "runner_running_after": False,
+                        "dashboard_refresh_requested": True,
+                        "dashboard_should_show_stopped": False,
+                        "dashboard_refresh_status": "PASS",
+                        "dashboard_refresh_deferred": False,
+                        "live_order_ready": False,
+                        "live_order_allowed": False,
+                        "can_live_trade": False,
+                        "scale_up_allowed": False,
+                        "order_adapter_called": False,
+                        "private_endpoint_called": False,
+                        "credential_load_attempted": False,
+                        "live_key_loaded": False,
+                        "order_endpoint_called": False,
+                    },
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+
+            original_write_runner_status = long_runner._write_runner_status
+            refresh_seen_statuses: list[str] = []
+            stop_file_written = False
+
+            def write_status_and_signal_stop(path: Path, report: dict) -> None:
+                nonlocal stop_file_written
+                original_write_runner_status(path, report)
+                if (
+                    not stop_file_written
+                    and report.get("runner_status") == RUNNER_STATUS_RUNNING
+                    and report.get("completed_cycle_count") == 1
+                ):
+                    stop_path.parent.mkdir(parents=True, exist_ok=True)
+                    stop_path.write_text(
+                        f"stop requested at {utc_now()} by test pid {os.getpid()}\n",
+                        encoding="utf-8",
+                    )
+                    stop_file_written = True
+
+            def fake_dashboard_refresh(refresh_root: Path, *, session_id: str = "mvp1_upbit_paper_launcher") -> None:
+                self.assertEqual(Path(refresh_root), root)
+                self.assertEqual(session_id, "stop_after_cycle_session")
+                refresh_seen_statuses.append(_load_json(root_stop_report_path)["stop_request_status"])
+
+            with patch.object(long_runner, "_write_runner_status", side_effect=write_status_and_signal_stop), patch.object(
+                long_runner,
+                "_maybe_refresh_dashboard",
+                side_effect=fake_dashboard_refresh,
+            ):
+                report = run_upbit_paper_long_running_runner(
+                    root=root,
+                    session_id=session_id,
+                    runner_id="stop-after-cycle-runner",
+                    cycle_interval_seconds=0,
+                    max_cycles=None,
+                    attempt_public_symbol_discovery=False,
+                    attempt_network_market_data=False,
+                    refresh_dashboard=True,
+                )
+
+            confirmed_stop_report = _load_json(root_stop_report_path)
+            self.assertTrue(stop_file_written)
+            self.assertEqual(report["runner_status"], RUNNER_STATUS_STOPPED)
+            self.assertEqual(report["stop_reason"], "STOP_FILE")
+            self.assertEqual(report["completed_cycle_count"], 1)
+            self.assertEqual(confirmed_stop_report["stop_request_status"], "STOP_CONFIRMED")
+            self.assertTrue(confirmed_stop_report["stop_confirmed"])
+            self.assertTrue(confirmed_stop_report["dashboard_should_show_stopped"])
+            self.assertEqual(confirmed_stop_report["runner_status_after"], RUNNER_STATUS_STOPPED)
+            self.assertFalse(confirmed_stop_report["runner_running_after"])
+            self.assertIn("STOP_CONFIRMED", refresh_seen_statuses)
+            for field in (
+                "live_order_ready",
+                "live_order_allowed",
+                "can_live_trade",
+                "scale_up_allowed",
+                "order_adapter_called",
+                "private_endpoint_called",
+                "credential_load_attempted",
+                "live_key_loaded",
+                "order_endpoint_called",
+            ):
+                self.assertFalse(confirmed_stop_report[field], field)
+
     def test_operator_stop_request_writes_paper_only_stop_signal_for_active_runner(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
 
