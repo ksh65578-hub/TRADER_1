@@ -2215,7 +2215,7 @@ class SafeLauncherTest(unittest.TestCase):
             return {
                 "stop_request_status": "STOP_REQUESTED",
                 "stop_confirmed": False,
-                "dashboard_refresh_status": "DEFERRED",
+                "dashboard_refresh_status": "PASS",
                 "target_launcher_name": "BINANCE_PAPER",
                 "runner_status_path": "runner_status.json",
                 "stop_file_path": "STOP.signal",
@@ -2249,8 +2249,8 @@ class SafeLauncherTest(unittest.TestCase):
         self.assertEqual(result, 0)
         self.assertEqual(calls[0]["stop_launcher_name"], "STOP_BINANCE_PAPER")
         self.assertEqual(calls[0]["wait_timeout_seconds"], 0.0)
-        self.assertFalse(calls[0]["refresh_dashboard"])
-        self.assertEqual(background_calls[0]["stop_launcher_name"], "STOP_BINANCE_PAPER")
+        self.assertTrue(calls[0]["refresh_dashboard"])
+        self.assertEqual(background_calls, [])
         self.assertIn("TRADER_1 STOP_BINANCE_PAPER requesting_stop=true", output)
         self.assertLess(
             output.index("requesting_stop=true"),
@@ -2258,9 +2258,9 @@ class SafeLauncherTest(unittest.TestCase):
         )
         self.assertIn("operator_console_auto_closes=true", output)
         self.assertIn("waiting_for_stop_confirmation=false wait_timeout_seconds=0.0", output)
-        self.assertIn("dashboard_refresh_mode=background", output)
-        self.assertIn("dashboard_refresh_status=DEFERRED", output)
-        self.assertIn("background_dashboard_refresh_started=true", output)
+        self.assertIn("dashboard_refresh_mode=sync", output)
+        self.assertIn("dashboard_refresh_status=PASS", output)
+        self.assertNotIn("background_dashboard_refresh_started=true", output)
         self.assertIn("live_order_ready=false live_order_allowed=false can_live_trade=false scale_up_allowed=false", output)
 
     def test_root_stop_launcher_can_be_forced_to_synchronous_dashboard_refresh(self):
