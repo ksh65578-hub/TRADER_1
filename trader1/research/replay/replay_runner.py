@@ -290,12 +290,23 @@ def _public_replay_closed_trade_summary(sample_rows: list[dict[str, Any]]) -> di
     }
 
 
+def min_required_closed_trade_sample_count_for_public_replay(min_required_sample_count: int) -> int:
+    """Derive closed-trade maturity separately from replay window count."""
+    window_minimum = max(1, int(min_required_sample_count))
+    if window_minimum < 30:
+        return window_minimum
+    one_tenth_of_windows = (window_minimum + 9) // 10
+    return max(30, min(120, one_tenth_of_windows))
+
+
 def _public_replay_closed_trade_maturity_summary(
     *,
     closed_trade_count: int,
     min_required_closed_trade_sample_count: int,
 ) -> dict[str, Any]:
-    safe_minimum = max(1, int(min_required_closed_trade_sample_count))
+    safe_minimum = min_required_closed_trade_sample_count_for_public_replay(
+        int(min_required_closed_trade_sample_count)
+    )
     deficit = max(0, safe_minimum - int(closed_trade_count))
     if deficit <= 0:
         status = "PASS"
@@ -588,8 +599,12 @@ def build_public_replay_fetch_failure_report(
         "sample_rows": [],
         "replay_closed_trade_sample_count": 0,
         "replay_closed_trade_status": "UNTESTED",
-        "min_required_closed_trade_sample_count": int(min_required_sample_count),
-        "replay_closed_trade_deficit": int(min_required_sample_count),
+        "min_required_closed_trade_sample_count": min_required_closed_trade_sample_count_for_public_replay(
+            int(min_required_sample_count)
+        ),
+        "replay_closed_trade_deficit": min_required_closed_trade_sample_count_for_public_replay(
+            int(min_required_sample_count)
+        ),
         "replay_closed_trade_maturity_status": "UNTESTED",
         "replay_closed_trade_maturity_blocker_code": "REPLAY_CLOSED_TRADES_MISSING",
         "replay_status": "BLOCKED",
