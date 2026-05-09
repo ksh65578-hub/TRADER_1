@@ -440,7 +440,8 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(best_item["candidate_source_role"], "BOUNDED_PUBLIC_DISCOVERY_RUNTIME")
         self.assertEqual(best_item["source_runtime_cycle_id"], discovery_runtime["cycle_id"])
         self.assertEqual(result["alternative_public_replay_status"], "BLOCKED")
-        self.assertEqual(result["alternative_public_replay_blocker_code"], "SAMPLE_INSUFFICIENT")
+        self.assertEqual(result["alternative_public_replay_blocker_code"], "REPLAY_CLOSED_TRADES_MISSING")
+        self.assertEqual(result["alternative_public_replay_closed_trade_maturity_status"], "UNTESTED")
         self.assertEqual(result["alternative_public_replay_contract_status"], "PASS")
         self.assertIsNone(result["alternative_public_replay_contract_blocker_code"])
         self.assertEqual(result["alternative_public_replay_candidate_id"], generation_report["best_alternative_candidate_id"])
@@ -448,7 +449,7 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertGreaterEqual(result["alternative_public_replay_sample_count"], 1)
         self.assertEqual(alternative_replay["candidate_id"], generation_report["best_alternative_candidate_id"])
         self.assertEqual(result["alternative_review_scorecard_status"], "BLOCKED")
-        self.assertEqual(result["alternative_review_scorecard_blocker_code"], "SAMPLE_INSUFFICIENT")
+        self.assertEqual(result["alternative_review_scorecard_blocker_code"], "REPLAY_CLOSED_TRADES_MISSING")
         self.assertIsNotNone(result["alternative_review_scorecard_path"])
         self.assertFalse(result["alternative_review_scorecard_ranking_eligible"])
         self.assertFalse(alternative_review_scorecard["ranking_eligible"])
@@ -591,7 +592,7 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
 
         self.assertEqual(generation_report["generation_status"], "ALTERNATIVE_REVIEW_READY")
         self.assertEqual(context["status"], "BLOCKED")
-        self.assertEqual(context["blocker_code"], "SAMPLE_INSUFFICIENT")
+        self.assertEqual(context["blocker_code"], "REPLAY_CLOSED_TRADES_MISSING")
         self.assertEqual(context["contract_status"], "PASS")
         self.assertEqual(context["candidate_id"], generation_report["best_alternative_candidate_id"])
         self.assertEqual(context["symbol"], "KRW-ETH")
@@ -678,6 +679,12 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
                 "replay_status": "PASS",
                 "primary_blocker_code": None,
                 "blockers": [],
+                "replay_closed_trade_sample_count": 1,
+                "replay_closed_trade_status": "PASS",
+                "min_required_closed_trade_sample_count": 1,
+                "replay_closed_trade_deficit": 0,
+                "replay_closed_trade_maturity_status": "PASS",
+                "replay_closed_trade_maturity_blocker_code": None,
                 "live_order_ready": False,
                 "live_order_allowed": False,
                 "can_live_trade": False,
@@ -884,12 +891,20 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(context["candidate_id"], "KRW-BETA-pullback-trend-long")
         self.assertEqual(context["candidate_review_selection_reason"], "BEST_CLOSED_TRADE_REPLAY_BLOCKED")
         self.assertEqual(context["replay_closed_trade_sample_count"], 2)
+        self.assertEqual(context["min_required_closed_trade_sample_count"], 20)
+        self.assertEqual(context["replay_closed_trade_deficit"], 18)
+        self.assertEqual(context["replay_closed_trade_maturity_status"], "BLOCKED")
         self.assertEqual(context["replay_strategy_exit_policy_sample_count"], 2)
         review_rows = {
             row["candidate_id"]: row
             for row in context["candidate_review_evaluations"]
         }
         self.assertEqual(review_rows["KRW-BETA-pullback-trend-long"]["replay_closed_trade_sample_count"], 2)
+        self.assertEqual(review_rows["KRW-BETA-pullback-trend-long"]["replay_closed_trade_deficit"], 18)
+        self.assertEqual(
+            review_rows["KRW-BETA-pullback-trend-long"]["replay_closed_trade_maturity_status"],
+            "BLOCKED",
+        )
         self.assertEqual(review_rows["KRW-ALPHA-pullback-trend-long"]["replay_closed_trade_sample_count"], 0)
         self.assertFalse(context["live_order_allowed"])
 
@@ -1167,7 +1182,7 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(generation_report["generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_BLOCKED")
         self.assertEqual(generation_report["best_alternative_symbol"], "KRW-ALT")
         self.assertEqual(result["alternative_public_replay_status"], "BLOCKED")
-        self.assertEqual(result["alternative_public_replay_blocker_code"], "SAMPLE_INSUFFICIENT")
+        self.assertEqual(result["alternative_public_replay_blocker_code"], "REPLAY_CLOSED_TRADES_MISSING")
         self.assertEqual(result["alternative_public_replay_symbol"], "KRW-ALT")
         self.assertFalse(generation_report["live_order_allowed"])
         self.assertFalse(result["credential_load_attempted"])

@@ -25,6 +25,12 @@
     "min_required_sample_count",
     "max_replay_windows",
     "sample_rows",
+    "replay_closed_trade_sample_count",
+    "replay_closed_trade_status",
+    "min_required_closed_trade_sample_count",
+    "replay_closed_trade_deficit",
+    "replay_closed_trade_maturity_status",
+    "replay_closed_trade_maturity_blocker_code",
     "replay_status",
     "primary_blocker_code",
     "blockers",
@@ -81,6 +87,17 @@
     },
     "replay_closed_trade_sample_count": {"type": "integer", "minimum": 0},
     "replay_closed_trade_status": {"enum": ["PASS", "FAIL", "UNTESTED", "BLOCKED"]},
+    "min_required_closed_trade_sample_count": {"type": "integer", "minimum": 1},
+    "replay_closed_trade_deficit": {"type": "integer", "minimum": 0},
+    "replay_closed_trade_maturity_status": {"enum": ["PASS", "UNTESTED", "BLOCKED"]},
+    "replay_closed_trade_maturity_blocker_code": {
+      "type": ["string", "null"],
+      "enum": [
+        "REPLAY_CLOSED_TRADES_BELOW_MIN",
+        "REPLAY_CLOSED_TRADES_MISSING",
+        null
+      ]
+    },
     "replay_strategy_exit_policy_sample_count": {"type": "integer", "minimum": 0},
     "replay_strategy_exit_policy_match_count": {"type": "integer", "minimum": 0},
     "replay_strategy_exit_policy_mismatch_count": {"type": "integer", "minimum": 0},

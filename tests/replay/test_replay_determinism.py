@@ -113,6 +113,12 @@ class ReplayDeterminismTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS")
         self.assertEqual(report["replay_status"], "PASS")
         self.assertGreaterEqual(report["sample_count"], 50)
+        self.assertEqual(report["min_required_closed_trade_sample_count"], 50)
+        self.assertEqual(
+            report["replay_closed_trade_deficit"],
+            max(50 - report["replay_closed_trade_sample_count"], 0),
+        )
+        self.assertIn(report["replay_closed_trade_maturity_status"], {"PASS", "BLOCKED", "UNTESTED"})
         self.assertFalse(report["live_order_ready"])
         self.assertFalse(report["live_order_allowed"])
         self.assertFalse(report["can_live_trade"])
@@ -226,6 +232,10 @@ class ReplayDeterminismTest(unittest.TestCase):
         result = validate_public_replay_robustness_report(report, candidate_scorecard=scorecard)
         self.assertEqual(result.status, "PASS")
         self.assertEqual(report["replay_closed_trade_sample_count"], 1)
+        self.assertEqual(report["min_required_closed_trade_sample_count"], 2)
+        self.assertEqual(report["replay_closed_trade_deficit"], 1)
+        self.assertEqual(report["replay_closed_trade_maturity_status"], "BLOCKED")
+        self.assertEqual(report["replay_closed_trade_maturity_blocker_code"], "REPLAY_CLOSED_TRADES_BELOW_MIN")
         self.assertEqual(report["replay_strategy_exit_policy_sample_count"], 1)
         self.assertEqual(report["replay_strategy_exit_policy_match_count"], 1)
         self.assertEqual(report["replay_strategy_exit_policy_mismatch_count"], 0)

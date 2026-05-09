@@ -290,6 +290,30 @@ def _public_replay_closed_trade_summary(sample_rows: list[dict[str, Any]]) -> di
     }
 
 
+def _public_replay_closed_trade_maturity_summary(
+    *,
+    closed_trade_count: int,
+    min_required_closed_trade_sample_count: int,
+) -> dict[str, Any]:
+    safe_minimum = max(1, int(min_required_closed_trade_sample_count))
+    deficit = max(0, safe_minimum - int(closed_trade_count))
+    if deficit <= 0:
+        status = "PASS"
+        blocker_code = None
+    elif closed_trade_count > 0:
+        status = "BLOCKED"
+        blocker_code = "REPLAY_CLOSED_TRADES_BELOW_MIN"
+    else:
+        status = "UNTESTED"
+        blocker_code = "REPLAY_CLOSED_TRADES_MISSING"
+    return {
+        "min_required_closed_trade_sample_count": safe_minimum,
+        "replay_closed_trade_deficit": deficit,
+        "replay_closed_trade_maturity_status": status,
+        "replay_closed_trade_maturity_blocker_code": blocker_code,
+    }
+
+
 def _public_replay_sample_row(
     *,
     replay_id: str,
@@ -456,6 +480,10 @@ def build_public_replay_robustness_report(
         )
     status = "PASS" if not blockers else "BLOCKED"
     replay_closed_trade_summary = _public_replay_closed_trade_summary(sample_rows)
+    closed_trade_maturity_summary = _public_replay_closed_trade_maturity_summary(
+        closed_trade_count=int(replay_closed_trade_summary["replay_closed_trade_sample_count"]),
+        min_required_closed_trade_sample_count=int(min_required_sample_count),
+    )
     report = {
         "schema_id": PUBLIC_REPLAY_ROBUSTNESS_SCHEMA_ID,
         "generated_at_utc": utc_now(),
@@ -479,6 +507,7 @@ def build_public_replay_robustness_report(
         "max_replay_windows": safe_max_windows,
         "sample_rows": sample_rows,
         **replay_closed_trade_summary,
+        **closed_trade_maturity_summary,
         "replay_status": status,
         "primary_blocker_code": blockers[0]["code"] if blockers else None,
         "blockers": blockers,
@@ -557,6 +586,12 @@ def build_public_replay_fetch_failure_report(
         "min_required_sample_count": int(min_required_sample_count),
         "max_replay_windows": safe_max_windows,
         "sample_rows": [],
+        "replay_closed_trade_sample_count": 0,
+        "replay_closed_trade_status": "UNTESTED",
+        "min_required_closed_trade_sample_count": int(min_required_sample_count),
+        "replay_closed_trade_deficit": int(min_required_sample_count),
+        "replay_closed_trade_maturity_status": "UNTESTED",
+        "replay_closed_trade_maturity_blocker_code": "REPLAY_CLOSED_TRADES_MISSING",
         "replay_status": "BLOCKED",
         "primary_blocker_code": "DATA_QUALITY_INSUFFICIENT",
         "blockers": [
@@ -607,6 +642,12 @@ def validate_public_replay_robustness_report(
         "min_required_sample_count",
         "max_replay_windows",
         "sample_rows",
+        "replay_closed_trade_sample_count",
+        "replay_closed_trade_status",
+        "min_required_closed_trade_sample_count",
+        "replay_closed_trade_deficit",
+        "replay_closed_trade_maturity_status",
+        "replay_closed_trade_maturity_blocker_code",
         "replay_status",
         "primary_blocker_code",
         "blockers",

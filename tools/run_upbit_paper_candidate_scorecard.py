@@ -462,6 +462,10 @@ def _alternative_replay_context(
     primary_blocker_code: str | None = None,
     replay_closed_trade_sample_count: int = 0,
     replay_closed_trade_status: str | None = None,
+    min_required_closed_trade_sample_count: int = 0,
+    replay_closed_trade_deficit: int = 0,
+    replay_closed_trade_maturity_status: str | None = None,
+    replay_closed_trade_maturity_blocker_code: str | None = None,
     replay_strategy_exit_policy_sample_count: int = 0,
     replay_strategy_exit_policy_status: str | None = None,
     replay_strategy_exit_policy_mismatch_count: int = 0,
@@ -493,6 +497,10 @@ def _alternative_replay_context(
         "primary_blocker_code": primary_blocker_code,
         "replay_closed_trade_sample_count": replay_closed_trade_sample_count,
         "replay_closed_trade_status": replay_closed_trade_status or "UNTESTED",
+        "min_required_closed_trade_sample_count": min_required_closed_trade_sample_count,
+        "replay_closed_trade_deficit": replay_closed_trade_deficit,
+        "replay_closed_trade_maturity_status": replay_closed_trade_maturity_status or "UNTESTED",
+        "replay_closed_trade_maturity_blocker_code": replay_closed_trade_maturity_blocker_code,
         "replay_strategy_exit_policy_sample_count": replay_strategy_exit_policy_sample_count,
         "replay_strategy_exit_policy_status": replay_strategy_exit_policy_status or "UNTESTED",
         "replay_strategy_exit_policy_mismatch_count": replay_strategy_exit_policy_mismatch_count,
@@ -730,6 +738,34 @@ def _evaluation_or_report_metric(evaluation: dict[str, Any], replay_report: dict
     return value if value is not None else replay_report.get(key)
 
 
+def _replay_closed_trade_maturity(report: dict[str, Any]) -> dict[str, Any]:
+    closed_count = _safe_int(report.get("replay_closed_trade_sample_count"))
+    min_required = _safe_int(
+        report.get("min_required_closed_trade_sample_count")
+        or report.get("min_required_sample_count")
+    )
+    if min_required <= 0:
+        min_required = 1
+    deficit = max(0, min_required - closed_count)
+    status = str(report.get("replay_closed_trade_maturity_status") or "")
+    if status not in {"PASS", "BLOCKED", "UNTESTED"}:
+        if deficit <= 0:
+            status = "PASS"
+        elif closed_count > 0:
+            status = "BLOCKED"
+        else:
+            status = "UNTESTED"
+    blocker_code = report.get("replay_closed_trade_maturity_blocker_code")
+    if status != "PASS" and not blocker_code:
+        blocker_code = "REPLAY_CLOSED_TRADES_BELOW_MIN" if closed_count > 0 else "REPLAY_CLOSED_TRADES_MISSING"
+    return {
+        "min_required_closed_trade_sample_count": min_required,
+        "replay_closed_trade_deficit": deficit,
+        "replay_closed_trade_maturity_status": status,
+        "replay_closed_trade_maturity_blocker_code": blocker_code,
+    }
+
+
 def _alternative_replay_selection_priority(evaluation: dict[str, Any]) -> tuple[Any, ...]:
     diagnostic = evaluation.get("diagnostic") if isinstance(evaluation.get("diagnostic"), dict) else {}
     replay_report = evaluation.get("report") if isinstance(evaluation.get("report"), dict) else {}
@@ -748,6 +784,16 @@ def _alternative_replay_selection_priority(evaluation: dict[str, Any]) -> tuple[
     )
     closed_trade_status = str(
         evaluation.get("replay_closed_trade_status") or replay_report.get("replay_closed_trade_status") or ""
+    )
+    closed_trade_maturity = _replay_closed_trade_maturity(replay_report)
+    closed_trade_maturity_status = str(
+        evaluation.get("replay_closed_trade_maturity_status")
+        or closed_trade_maturity["replay_closed_trade_maturity_status"]
+    )
+    closed_trade_deficit = _safe_int(
+        evaluation.get("replay_closed_trade_deficit")
+        if evaluation.get("replay_closed_trade_deficit") is not None
+        else closed_trade_maturity["replay_closed_trade_deficit"]
     )
     strategy_exit_policy_status = str(
         evaluation.get("replay_strategy_exit_policy_status")
@@ -771,6 +817,8 @@ def _alternative_replay_selection_priority(evaluation: dict[str, Any]) -> tuple[
         1 if replay_status == "PASS" else 0,
         1 if contract_status == "PASS" else 0,
         1 if closed_trade_count > 0 else 0,
+        1 if closed_trade_maturity_status == "PASS" else 0,
+        -closed_trade_deficit,
         1 if closed_trade_status == "PASS" else 0,
         closed_trade_count,
         1 if strategy_exit_policy_status == "PASS" else 0,
@@ -815,6 +863,14 @@ def _public_candidate_review_evaluations(evaluations: list[dict[str, Any]]) -> l
                 "sample_count": int(item.get("sample_count") or 0),
                 "replay_closed_trade_sample_count": int(item.get("replay_closed_trade_sample_count") or 0),
                 "replay_closed_trade_status": item.get("replay_closed_trade_status"),
+                "min_required_closed_trade_sample_count": int(
+                    item.get("min_required_closed_trade_sample_count") or 0
+                ),
+                "replay_closed_trade_deficit": int(item.get("replay_closed_trade_deficit") or 0),
+                "replay_closed_trade_maturity_status": item.get("replay_closed_trade_maturity_status"),
+                "replay_closed_trade_maturity_blocker_code": item.get(
+                    "replay_closed_trade_maturity_blocker_code"
+                ),
                 "replay_strategy_exit_policy_sample_count": int(
                     item.get("replay_strategy_exit_policy_sample_count") or 0
                 ),
@@ -949,6 +1005,23 @@ def _build_alternative_public_replay_evaluation(
             "candidate public replay report is contract-valid but replay robustness "
             f"gate is {replay_status}: {gate_blocker_code}"
         )
+    closed_trade_maturity = _replay_closed_trade_maturity(replay_report)
+    if (
+        replay_validation.status == "PASS"
+        and replay_status == "PASS"
+        and closed_trade_maturity["replay_closed_trade_maturity_status"] != "PASS"
+    ):
+        gate_status = "BLOCKED"
+        gate_blocker_code = str(
+            closed_trade_maturity["replay_closed_trade_maturity_blocker_code"]
+            or "REPLAY_CLOSED_TRADES_BELOW_MIN"
+        )
+        gate_message = (
+            "candidate public replay window collection passed, but realized closed-trade samples "
+            f"{int(replay_report.get('replay_closed_trade_sample_count') or 0)}/"
+            f"{closed_trade_maturity['min_required_closed_trade_sample_count']} are insufficient "
+            "for OOS, walk-forward, bootstrap, and profit-factor evidence"
+        )
 
     diagnostic: dict[str, Any] | None = None
     diagnostic_blocker_codes: list[str] = []
@@ -1007,6 +1080,7 @@ def _build_alternative_public_replay_evaluation(
         "primary_blocker_code": replay_report.get("primary_blocker_code"),
         "replay_closed_trade_sample_count": int(replay_report.get("replay_closed_trade_sample_count") or 0),
         "replay_closed_trade_status": replay_report.get("replay_closed_trade_status") or "UNTESTED",
+        **closed_trade_maturity,
         "replay_strategy_exit_policy_sample_count": int(
             replay_report.get("replay_strategy_exit_policy_sample_count") or 0
         ),
@@ -1091,6 +1165,9 @@ def _build_and_write_alternative_public_replay(
         first = max(evaluations, key=_alternative_replay_selection_priority)
         first_closed_trades = int(first.get("replay_closed_trade_sample_count") or 0)
         first_policy_samples = int(first.get("replay_strategy_exit_policy_sample_count") or 0)
+        first_closed_trade_maturity = _replay_closed_trade_maturity(
+            first.get("report") if isinstance(first.get("report"), dict) else first
+        )
         selection_reason = (
             "BEST_CLOSED_TRADE_REPLAY_BLOCKED"
             if first_closed_trades > 0 or first_policy_samples > 0
@@ -1110,6 +1187,23 @@ def _build_and_write_alternative_public_replay(
             primary_blocker_code=first.get("primary_blocker_code"),
             replay_closed_trade_sample_count=first_closed_trades,
             replay_closed_trade_status=str(first.get("replay_closed_trade_status") or "UNTESTED"),
+            min_required_closed_trade_sample_count=int(
+                first.get("min_required_closed_trade_sample_count")
+                or first_closed_trade_maturity["min_required_closed_trade_sample_count"]
+            ),
+            replay_closed_trade_deficit=int(
+                first.get("replay_closed_trade_deficit")
+                if first.get("replay_closed_trade_deficit") is not None
+                else first_closed_trade_maturity["replay_closed_trade_deficit"]
+            ),
+            replay_closed_trade_maturity_status=str(
+                first.get("replay_closed_trade_maturity_status")
+                or first_closed_trade_maturity["replay_closed_trade_maturity_status"]
+            ),
+            replay_closed_trade_maturity_blocker_code=(
+                first.get("replay_closed_trade_maturity_blocker_code")
+                or first_closed_trade_maturity["replay_closed_trade_maturity_blocker_code"]
+            ),
             replay_strategy_exit_policy_sample_count=first_policy_samples,
             replay_strategy_exit_policy_status=str(first.get("replay_strategy_exit_policy_status") or "UNTESTED"),
             replay_strategy_exit_policy_mismatch_count=int(
@@ -1135,6 +1229,9 @@ def _build_and_write_alternative_public_replay(
         )
 
     selected = max(replay_passed, key=_alternative_replay_selection_priority)
+    selected_closed_trade_maturity = _replay_closed_trade_maturity(
+        selected.get("report") if isinstance(selected.get("report"), dict) else selected
+    )
     robust_count = sum(1 for item in replay_passed if item.get("robustness_eligible") is True)
     selection_reason = "ROBUSTNESS_ELIGIBLE_SELECTED" if selected.get("robustness_eligible") is True else "BEST_AVAILABLE_REPLAY_SELECTED"
     return _alternative_replay_context(
@@ -1151,6 +1248,23 @@ def _build_and_write_alternative_public_replay(
         primary_blocker_code=selected.get("primary_blocker_code"),
         replay_closed_trade_sample_count=int(selected.get("replay_closed_trade_sample_count") or 0),
         replay_closed_trade_status=str(selected.get("replay_closed_trade_status") or "UNTESTED"),
+        min_required_closed_trade_sample_count=int(
+            selected.get("min_required_closed_trade_sample_count")
+            or selected_closed_trade_maturity["min_required_closed_trade_sample_count"]
+        ),
+        replay_closed_trade_deficit=int(
+            selected.get("replay_closed_trade_deficit")
+            if selected.get("replay_closed_trade_deficit") is not None
+            else selected_closed_trade_maturity["replay_closed_trade_deficit"]
+        ),
+        replay_closed_trade_maturity_status=str(
+            selected.get("replay_closed_trade_maturity_status")
+            or selected_closed_trade_maturity["replay_closed_trade_maturity_status"]
+        ),
+        replay_closed_trade_maturity_blocker_code=(
+            selected.get("replay_closed_trade_maturity_blocker_code")
+            or selected_closed_trade_maturity["replay_closed_trade_maturity_blocker_code"]
+        ),
         replay_strategy_exit_policy_sample_count=int(selected.get("replay_strategy_exit_policy_sample_count") or 0),
         replay_strategy_exit_policy_status=str(selected.get("replay_strategy_exit_policy_status") or "UNTESTED"),
         replay_strategy_exit_policy_mismatch_count=int(
@@ -1196,6 +1310,9 @@ def _build_and_write_alternative_review_scorecard(
             "ranking_eligible": False,
             "blocker_codes": [],
             "replay_closed_trade_sample_count": 0,
+            "min_required_closed_trade_sample_count": 0,
+            "replay_closed_trade_deficit": 0,
+            "replay_closed_trade_maturity_status": "UNTESTED",
             "replay_strategy_exit_policy_sample_count": 0,
             "replay_profit_factor": 0.0,
             "replay_performance_scope": "NOT_RUN",
@@ -1213,6 +1330,9 @@ def _build_and_write_alternative_review_scorecard(
             "ranking_eligible": False,
             "blocker_codes": [],
             "replay_closed_trade_sample_count": 0,
+            "min_required_closed_trade_sample_count": 0,
+            "replay_closed_trade_deficit": 0,
+            "replay_closed_trade_maturity_status": "UNTESTED",
             "replay_strategy_exit_policy_sample_count": 0,
             "replay_profit_factor": 0.0,
             "replay_performance_scope": "NOT_RUN",
@@ -1228,6 +1348,9 @@ def _build_and_write_alternative_review_scorecard(
             "ranking_eligible": False,
             "blocker_codes": ["SNAPSHOT_SCOPE_MISMATCH"],
             "replay_closed_trade_sample_count": 0,
+            "min_required_closed_trade_sample_count": 0,
+            "replay_closed_trade_deficit": 0,
+            "replay_closed_trade_maturity_status": "UNTESTED",
             "replay_strategy_exit_policy_sample_count": 0,
             "replay_profit_factor": 0.0,
             "replay_performance_scope": "NOT_RUN",
@@ -1260,11 +1383,15 @@ def _build_and_write_alternative_review_scorecard(
             "ranking_eligible": False,
             "blocker_codes": ["SCHEMA_IDENTITY_MISMATCH"],
             "replay_closed_trade_sample_count": 0,
+            "min_required_closed_trade_sample_count": 0,
+            "replay_closed_trade_deficit": 0,
+            "replay_closed_trade_maturity_status": "UNTESTED",
             "replay_strategy_exit_policy_sample_count": 0,
             "replay_profit_factor": 0.0,
             "replay_performance_scope": "NOT_RUN",
         }
     robustness_statuses, robustness_source_ids = robustness_inputs_from_overfit_diagnostic(diagnostic)
+    closed_trade_maturity = _replay_closed_trade_maturity(replay_report)
     review_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
         source_runtime,
         candidate_id=str(base_scorecard["candidate_id"]),
@@ -1278,6 +1405,12 @@ def _build_and_write_alternative_review_scorecard(
         {
             "replay_closed_trade_sample_count": int(replay_report.get("replay_closed_trade_sample_count") or 0),
             "replay_closed_trade_status": replay_report.get("replay_closed_trade_status") or "UNTESTED",
+            "min_required_closed_trade_sample_count": closed_trade_maturity["min_required_closed_trade_sample_count"],
+            "replay_closed_trade_deficit": closed_trade_maturity["replay_closed_trade_deficit"],
+            "replay_closed_trade_maturity_status": closed_trade_maturity["replay_closed_trade_maturity_status"],
+            "replay_closed_trade_maturity_blocker_code": closed_trade_maturity[
+                "replay_closed_trade_maturity_blocker_code"
+            ],
             "replay_strategy_exit_policy_sample_count": int(
                 replay_report.get("replay_strategy_exit_policy_sample_count") or 0
             ),
@@ -1342,6 +1475,9 @@ def _build_and_write_alternative_review_scorecard(
             "ranking_eligible": False,
             "blocker_codes": ["SCORECARD_SCHEMA_INVALID"],
             "replay_closed_trade_sample_count": 0,
+            "min_required_closed_trade_sample_count": 0,
+            "replay_closed_trade_deficit": 0,
+            "replay_closed_trade_maturity_status": "UNTESTED",
             "replay_strategy_exit_policy_sample_count": 0,
             "replay_profit_factor": 0.0,
             "replay_performance_scope": "NOT_RUN",
@@ -1364,6 +1500,11 @@ def _build_and_write_alternative_review_scorecard(
         "ranking_eligible": bool(review_scorecard["ranking_eligible"]),
         "blocker_codes": [blocker["code"] for blocker in review_scorecard["blockers"]],
         "replay_closed_trade_sample_count": int(review_scorecard["replay_closed_trade_sample_count"]),
+        "min_required_closed_trade_sample_count": int(
+            review_scorecard["min_required_closed_trade_sample_count"]
+        ),
+        "replay_closed_trade_deficit": int(review_scorecard["replay_closed_trade_deficit"]),
+        "replay_closed_trade_maturity_status": str(review_scorecard["replay_closed_trade_maturity_status"]),
         "replay_strategy_exit_policy_sample_count": int(review_scorecard["replay_strategy_exit_policy_sample_count"]),
         "replay_profit_factor": _safe_float(review_scorecard["replay_profit_factor"]),
         "replay_performance_scope": str(review_scorecard["replay_performance_scope"]),
@@ -1705,6 +1846,18 @@ def build_current_upbit_paper_candidate_scorecard(
             "replay_closed_trade_sample_count"
         ],
         "alternative_public_replay_closed_trade_status": alternative_replay_context["replay_closed_trade_status"],
+        "alternative_public_replay_min_closed_trade_sample_count": alternative_replay_context[
+            "min_required_closed_trade_sample_count"
+        ],
+        "alternative_public_replay_closed_trade_deficit": alternative_replay_context[
+            "replay_closed_trade_deficit"
+        ],
+        "alternative_public_replay_closed_trade_maturity_status": alternative_replay_context[
+            "replay_closed_trade_maturity_status"
+        ],
+        "alternative_public_replay_closed_trade_maturity_blocker_code": alternative_replay_context[
+            "replay_closed_trade_maturity_blocker_code"
+        ],
         "alternative_public_replay_strategy_exit_policy_sample_count": alternative_replay_context[
             "replay_strategy_exit_policy_sample_count"
         ],
@@ -1750,6 +1903,15 @@ def build_current_upbit_paper_candidate_scorecard(
         "alternative_review_scorecard_blocker_codes": alternative_review_scorecard_context["blocker_codes"],
         "alternative_review_replay_closed_trade_sample_count": alternative_review_scorecard_context[
             "replay_closed_trade_sample_count"
+        ],
+        "alternative_review_replay_min_closed_trade_sample_count": alternative_review_scorecard_context[
+            "min_required_closed_trade_sample_count"
+        ],
+        "alternative_review_replay_closed_trade_deficit": alternative_review_scorecard_context[
+            "replay_closed_trade_deficit"
+        ],
+        "alternative_review_replay_closed_trade_maturity_status": alternative_review_scorecard_context[
+            "replay_closed_trade_maturity_status"
         ],
         "alternative_review_replay_strategy_exit_policy_sample_count": alternative_review_scorecard_context[
             "replay_strategy_exit_policy_sample_count"
