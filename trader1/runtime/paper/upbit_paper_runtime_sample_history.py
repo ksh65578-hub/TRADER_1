@@ -276,10 +276,12 @@ def _candidate_scope_sample_summaries(
     return sorted(
         summaries,
         key=lambda item: (
+            item.get("sample_count", 0),
             item.get("entry_reason_count", 0) > 0,
             item.get("latest_candidate_decision") == "PAPER_ENTRY_REVIEW",
+            item.get("entry_reason_count", 0),
+            -item.get("no_trade_reason_count", 0),
             str(item.get("latest_sample_at_utc") or ""),
-            item.get("sample_count", 0),
             str(item.get("candidate_id") or ""),
             str(item.get("strategy_id") or ""),
             str(item.get("parameter_hash") or ""),
