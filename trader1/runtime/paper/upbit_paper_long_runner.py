@@ -973,6 +973,24 @@ def _paper_scope_progress_fields(
     }
 
 
+def _strategy_mutation_public_review_fields(context: dict[str, Any] | None = None) -> dict[str, Any]:
+    context = context if isinstance(context, dict) else {}
+    return {
+        "strategy_mutation_compiler_status": str(context.get("status") or "NOT_RUN"),
+        "strategy_mutation_compiler_blocker_code": context.get("blocker_code"),
+        "strategy_mutation_compiler_path": context.get("path"),
+        "strategy_mutation_compiler_candidate_id": context.get("candidate_id"),
+        "strategy_mutation_compiler_source": context.get("source"),
+        "strategy_mutation_reason_code": context.get("mutation_reason_code"),
+        "strategy_mutation_id": context.get("mutation_id"),
+        "strategy_mutated_paper_candidate_spec_id": context.get("mutated_paper_candidate_spec_id"),
+        "strategy_mutation_spec_hash": context.get("mutation_spec_hash"),
+        "strategy_mutated_parameter_hash": context.get("mutated_parameter_hash"),
+        "strategy_mutation_exploration_budget_id": context.get("exploration_budget_id"),
+        "strategy_mutation_ranking_eligible": False,
+    }
+
+
 def _candidate_generation_public_review_blocked_fields(
     *,
     discovery_status: str = "NOT_REQUESTED",
@@ -1023,6 +1041,7 @@ def _candidate_generation_public_review_blocked_fields(
         "alternative_public_replay_maturity_expansion_max_windows": _int_value(
             replay.get("maturity_expansion_max_windows"), 0
         ),
+        **_strategy_mutation_public_review_fields(),
     }
 
 
@@ -1032,6 +1051,7 @@ def _candidate_generation_public_review_fields(
     alternative_replay_context: dict[str, Any],
     candidate_discovery_runtime_path: Path | None,
     root: Path,
+    strategy_mutation_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         **_candidate_generation_public_review_blocked_fields(
@@ -1074,6 +1094,7 @@ def _candidate_generation_public_review_fields(
         "alternative_public_replay_realized_vs_expected_edge_status": alternative_replay_context.get(
             "replay_realized_vs_expected_edge_status"
         ),
+        **_strategy_mutation_public_review_fields(strategy_mutation_context),
     }
 
 
@@ -1176,12 +1197,95 @@ def _candidate_generation_report_preferred_replay_candidate(
     return updated
 
 
+def _build_strategy_mutation_context_for_public_review(
+    *,
+    root: Path,
+    session_id: str,
+    scorecard: dict[str, Any],
+    diagnostic: dict[str, Any] | None,
+    history: dict[str, Any],
+    alternative_replay_context: dict[str, Any],
+) -> dict[str, Any]:
+    if not isinstance(diagnostic, dict):
+        return {
+            "status": "NOT_RUN",
+            "blocker_code": None,
+            "path": None,
+            "candidate_id": scorecard.get("candidate_id"),
+            "source": "DIAGNOSTIC_NOT_AVAILABLE",
+            "ranking_eligible": False,
+        }
+    try:
+        from trader1.research.profitability.convergence_memory import (
+            optimizer_memory_state_from_scorecard,
+            strategy_performance_memory_from_scorecard,
+        )
+        from tools.run_upbit_paper_candidate_scorecard import (
+            _build_and_write_alternative_review_scorecard,
+            _build_and_write_strategy_mutation_report,
+        )
+
+        alternative_review = _build_and_write_alternative_review_scorecard(
+            root=root,
+            history=history,
+            alternative_replay_context=alternative_replay_context,
+        )
+        convergence_memory = {
+            "strategy_performance_memory": strategy_performance_memory_from_scorecard(scorecard),
+            "optimizer_memory_state": optimizer_memory_state_from_scorecard(scorecard),
+        }
+        return _build_and_write_strategy_mutation_report(
+            root=root,
+            session_id=session_id,
+            candidate_scorecard=scorecard,
+            overfit_diagnostic=diagnostic,
+            convergence_memory=convergence_memory,
+            replay_robustness_report=None,
+            alternative_replay_context=alternative_replay_context,
+            alternative_review_scorecard_context=alternative_review,
+        )
+    except Exception as exc:  # pragma: no cover - defensive runtime artifact path.
+        message = str(exc)
+        lowered = message.lower()
+        blocker_code = (
+            "LIVE_FINAL_GUARD_FAILED"
+            if any(
+                token in lowered
+                for token in (
+                    "live_order",
+                    "order_endpoint",
+                    "order_adapter",
+                    "credential",
+                    "private_endpoint",
+                    "live key",
+                )
+            )
+            else "STRATEGY_MUTATION_COMPILER_UNAVAILABLE"
+        )
+        return {
+            "status": "BLOCKED",
+            "blocker_code": blocker_code,
+            "path": None,
+            "candidate_id": scorecard.get("candidate_id"),
+            "source": "PUBLIC_REVIEW_MUTATION_RUNTIME",
+            "mutation_reason_code": None,
+            "mutation_id": None,
+            "mutated_paper_candidate_spec_id": None,
+            "mutation_spec_hash": None,
+            "mutated_parameter_hash": None,
+            "exploration_budget_id": None,
+            "ranking_eligible": False,
+            "message": message,
+        }
+
+
 def _review_public_alternatives_for_candidate_generation(
     *,
     root: Path,
     session_id: str,
     runtime: dict[str, Any],
     scorecard: dict[str, Any],
+    diagnostic: dict[str, Any] | None = None,
     history: dict[str, Any],
     candidate_generation_report: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any] | None]:
@@ -1365,6 +1469,15 @@ def _review_public_alternatives_for_candidate_generation(
             alternative_replay_context["blocker_code"] = generation_blocker or "CANDIDATE_GENERATION_CONTRACT_FAILED"
             alternative_replay_context["message"] = generation_message
 
+    strategy_mutation_context = _build_strategy_mutation_context_for_public_review(
+        root=root,
+        session_id=session_id,
+        scorecard=scorecard,
+        diagnostic=diagnostic,
+        history=history,
+        alternative_replay_context=alternative_replay_context,
+    )
+
     discovery_path = (
         paper_candidate_generation_discovery_runtime_path(root, session_id)
         if candidate_discovery_runtime is not None
@@ -1375,6 +1488,7 @@ def _review_public_alternatives_for_candidate_generation(
         alternative_replay_context=alternative_replay_context,
         candidate_discovery_runtime_path=discovery_path,
         root=root,
+        strategy_mutation_context=strategy_mutation_context,
     )
     return candidate_generation_report, fields, candidate_discovery_runtime
 
@@ -2002,6 +2116,7 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
             session_id=session_id,
             runtime=runtime,
             scorecard=scorecard,
+            diagnostic=diagnostic,
             history=history,
             candidate_generation_report=candidate_generation_report,
         )
@@ -4058,6 +4173,16 @@ def run_upbit_paper_long_running_runner(
                     "candidate_scorecard_ranking_eligible": profitability_refresh.get(
                         "candidate_scorecard_ranking_eligible"
                     ),
+                    "strategy_mutation_compiler_status": profitability_refresh.get(
+                        "strategy_mutation_compiler_status"
+                    ),
+                    "strategy_mutation_compiler_blocker_code": profitability_refresh.get(
+                        "strategy_mutation_compiler_blocker_code"
+                    ),
+                    "strategy_mutation_compiler_candidate_id": profitability_refresh.get(
+                        "strategy_mutation_compiler_candidate_id"
+                    ),
+                    "strategy_mutation_id": profitability_refresh.get("strategy_mutation_id"),
                     "paper_shadow_evidence_validation_status": profitability_refresh.get(
                         "paper_shadow_evidence_validation_status"
                     ),

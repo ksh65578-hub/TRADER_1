@@ -2027,6 +2027,59 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
             self.assertFalse(report[field])
             self.assertFalse(spec[field])
 
+    def test_strategy_mutation_bridge_uses_blocked_replay_mature_alternative_fail_closed(self):
+        scorecard = _mutation_ready_scorecard()
+        diagnostic = _mutation_overfit_for(scorecard)
+        replay = _mutation_mature_replay_for(scorecard)
+        blocked_diagnostic = copy.deepcopy(diagnostic)
+        blocked_diagnostic.update(
+            {
+                "oos_status": "BLOCKED",
+                "walk_forward_status": "BLOCKED",
+                "bootstrap_status": "BLOCKED",
+                "overfit_status": "HIGH",
+                "robustness_eligible": False,
+                "blockers": [{"code": "OOS_MISSING", "severity": "HIGH", "message": "OOS evidence is missing"}],
+            }
+        )
+        blocked_diagnostic["diagnostic_hash"] = overfit_diagnostic_report_hash(blocked_diagnostic)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            context = _build_and_write_strategy_mutation_report(
+                root=root,
+                session_id=scorecard["session_id"],
+                candidate_scorecard=scorecard,
+                overfit_diagnostic=diagnostic,
+                convergence_memory={},
+                replay_robustness_report=None,
+                alternative_replay_context={
+                    "status": "BLOCKED",
+                    "blocker_code": "MEASUREMENT_MISSING",
+                    "contract_status": "PASS",
+                    "report": replay,
+                },
+                alternative_review_scorecard_context={
+                    "status": "BLOCKED",
+                    "blocker_code": "OOS_MISSING",
+                    "scorecard": scorecard,
+                    "overfit_diagnostic": blocked_diagnostic,
+                },
+            )
+            report = json.loads((root / context["path"]).read_text(encoding="utf-8"))
+
+        status, message, blocker_code = validate_strategy_mutation_compiler_report(report)
+        self.assertEqual((status, blocker_code), ("PASS", None), message)
+        self.assertEqual(context["status"], "BLOCKED")
+        self.assertEqual(context["source"], "BLOCKED_ALTERNATIVE_REPLAY_DIAGNOSTIC")
+        self.assertEqual(context["candidate_id"], scorecard["candidate_id"])
+        self.assertEqual(report["primary_blocker_code"], "OOS_MISSING")
+        self.assertIsNone(report["mutated_paper_candidate_spec"])
+        self.assertFalse(report["ranking_eligible"])
+        self.assertFalse(context["ranking_eligible"])
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            self.assertFalse(report[field])
+
     def test_strategy_mutation_bridge_writes_blocked_report_when_replay_evidence_missing(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="current-scorecard-mutation-bridge-blocked")
         scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)

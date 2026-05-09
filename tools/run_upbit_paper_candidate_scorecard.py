@@ -1626,6 +1626,44 @@ def _mutation_realized_vs_expected(replay_report: dict[str, Any] | None, scoreca
     }
 
 
+def _alternative_replay_context_supports_mutation_input(
+    *,
+    alternative_replay_context: dict[str, Any],
+    alternative_review_scorecard_context: dict[str, Any],
+) -> bool:
+    replay = alternative_replay_context.get("report")
+    scorecard = alternative_review_scorecard_context.get("scorecard")
+    diagnostic = alternative_review_scorecard_context.get("overfit_diagnostic")
+    if not all(isinstance(item, dict) for item in (replay, scorecard, diagnostic)):
+        return False
+    if alternative_replay_context.get("contract_status") != "PASS" or replay.get("replay_status") != "PASS":
+        return False
+    maturity = _replay_closed_trade_maturity(replay)
+    if maturity["replay_closed_trade_maturity_status"] != "PASS":
+        return False
+    if replay.get("replay_strategy_exit_policy_status") != "PASS":
+        return False
+    if replay.get("replay_execution_cost_status") != "PASS":
+        return False
+    for artifact in (replay, scorecard, diagnostic):
+        if any(
+            artifact.get(flag) is True
+            for flag in (
+                "credential_load_attempted",
+                "private_endpoint_called",
+                "order_endpoint_called",
+                "order_adapter_called",
+                "live_key_loaded",
+                "live_order_ready",
+                "live_order_allowed",
+                "can_live_trade",
+                "scale_up_allowed",
+            )
+        ):
+            return False
+    return True
+
+
 def _build_and_write_strategy_mutation_report(
     *,
     root: Path,
@@ -1648,16 +1686,29 @@ def _build_and_write_strategy_mutation_report(
     alternative_diagnostic = alternative_review_scorecard_context.get("overfit_diagnostic")
     alternative_replay = alternative_replay_context.get("report")
     if (
-        alternative_replay_context.get("status") == "PASS"
-        and alternative_review_scorecard_context.get("status") == "PASS"
-        and isinstance(alternative_scorecard, dict)
+        isinstance(alternative_scorecard, dict)
         and isinstance(alternative_diagnostic, dict)
         and isinstance(alternative_replay, dict)
+        and (
+            (
+                alternative_replay_context.get("status") == "PASS"
+                and alternative_review_scorecard_context.get("status") == "PASS"
+            )
+            or _alternative_replay_context_supports_mutation_input(
+                alternative_replay_context=alternative_replay_context,
+                alternative_review_scorecard_context=alternative_review_scorecard_context,
+            )
+        )
     ):
         mutation_scorecard = alternative_scorecard
         mutation_diagnostic = alternative_diagnostic
         mutation_replay = alternative_replay
-        mutation_source = "ROBUST_ALTERNATIVE_REPLAY"
+        mutation_source = (
+            "ROBUST_ALTERNATIVE_REPLAY"
+            if alternative_replay_context.get("status") == "PASS"
+            and alternative_review_scorecard_context.get("status") == "PASS"
+            else "BLOCKED_ALTERNATIVE_REPLAY_DIAGNOSTIC"
+        )
         replay_source_id = _replay_source_artifact_id(alternative_replay)
         extra_source_ids = [replay_source_id] if replay_source_id else []
         strategy_memory = strategy_performance_memory_from_scorecard(
