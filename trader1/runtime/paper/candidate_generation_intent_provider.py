@@ -18,6 +18,7 @@ from trader1.research.profitability.strategy_mutation_compiler import (
 from trader1.research.replay.replay_runner import (
     load_public_replay_robustness_report,
     public_replay_robustness_report_hash,
+    public_replay_source_evidence_id,
     validate_public_replay_robustness_report,
 )
 from trader1.runtime.paper.upbit_paper_runtime import (
@@ -139,7 +140,7 @@ def _runtime_source_evidence_id(cycle_id: str, cycle_hash: str) -> str:
 
 
 def _replay_source_evidence_id(replay_id: str, replay_hash: str) -> str:
-    return f"public_replay_robustness:{replay_id}:{replay_hash}"
+    return public_replay_source_evidence_id(replay_id, replay_hash)
 
 
 def _candidate_item(report: dict[str, Any], candidate_id: str) -> dict[str, Any] | None:

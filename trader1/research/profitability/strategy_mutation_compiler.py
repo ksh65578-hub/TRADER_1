@@ -16,6 +16,7 @@ from trader1.research.profitability.candidate_scorecard import (
 from trader1.research.profitability.overfit_diagnostic import overfit_diagnostic_report_hash
 from trader1.research.replay.replay_runner import (
     public_replay_robustness_report_hash,
+    public_replay_source_evidence_id,
     validate_public_replay_robustness_report,
 )
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
@@ -126,7 +127,7 @@ def _source_evidence_ids(
             f"overfit_diagnostic:{overfit_diagnostic.get('diagnostic_id')}:{overfit_hash}",
             f"strategy_performance_memory:{convergence_memory.get('strategy_performance_memory_id')}:{strategy_memory_hash}",
             f"optimizer_memory_state:{optimizer_memory.get('optimizer_memory_state_id')}:{optimizer_hash}",
-            f"public_replay_robustness:{replay_evidence.get('replay_id')}:{replay_hash}",
+            public_replay_source_evidence_id(replay_evidence.get("replay_id"), replay_hash),
         }
     )
 

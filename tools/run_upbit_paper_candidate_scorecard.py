@@ -50,6 +50,7 @@ from trader1.research.replay.replay_runner import (
     build_public_replay_fetch_failure_report,
     build_public_replay_robustness_report,
     load_public_replay_robustness_report,
+    public_replay_source_evidence_id,
     required_replay_closed_trade_threshold,
     validate_public_replay_robustness_report,
     write_public_replay_robustness_report,
@@ -1583,7 +1584,7 @@ def _replay_source_artifact_id(replay_report: dict[str, Any] | None) -> str | No
     replay_hash = str(replay_report.get("report_hash") or "")
     if not replay_id or len(replay_hash) != 64:
         return None
-    return f"public_replay_robustness:{replay_id}:{replay_hash.upper()}"
+    return public_replay_source_evidence_id(replay_id, replay_hash)
 
 
 def _mutation_replay_delta(replay_report: dict[str, Any] | None, scorecard: dict[str, Any]) -> dict[str, Any]:
