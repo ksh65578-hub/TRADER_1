@@ -36,6 +36,7 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
     validate_upbit_paper_runtime_recovery_guard_report,
 )
 from trader1.runtime.paper.upbit_paper_long_runner import (
+    request_upbit_paper_runner_stop,
     upbit_paper_long_runner_status_hash,
     validate_upbit_paper_long_runner_retention_manifest,
     validate_upbit_paper_long_runner_status_report,
@@ -155,6 +156,7 @@ from tools.run_upbit_paper_runtime_evidence_collection_profile import (
 
 ROOT = Path(__file__).resolve().parents[3]
 ROOT_LAUNCHER_REPORT_SCHEMA_ID = "trader1.root_launcher_report.v1"
+ROOT_STOP_REQUEST_SCHEMA_ID = "trader1.root_stop_request_report.v1"
 ORDER_AFFECTING_FINAL_ACTIONS = {
     "ENTER_LONG",
     "ENTER_SHORT",
@@ -197,6 +199,13 @@ ROOT_LAUNCHER_SPECS = {
     "UPBIT_LIVE": LauncherSpec("UPBIT_LIVE", "UPBIT", "KRW_SPOT", "LIVE", "NOT_APPLICABLE", "mvp1_upbit_live_launcher"),
     "BINANCE_PAPER": LauncherSpec("BINANCE_PAPER", "BINANCE", "SPOT", "PAPER", "LAUNCHER_INTERNAL_UI", "mvp1_binance_paper_launcher"),
     "BINANCE_LIVE": LauncherSpec("BINANCE_LIVE", "BINANCE", "SPOT", "LIVE", "LAUNCHER_INTERNAL_UI", "mvp1_binance_live_launcher"),
+}
+ROOT_STOP_LAUNCHER_TARGETS = {
+    "STOP_UPBIT_PAPER": ("UPBIT_PAPER",),
+    "STOP_UPBIT_LIVE": ("UPBIT_LIVE",),
+    "STOP_BINANCE_PAPER": ("BINANCE_PAPER",),
+    "STOP_BINANCE_LIVE": ("BINANCE_LIVE",),
+    "STOP_TRADER_1": tuple(ROOT_LAUNCHER_SPECS),
 }
 
 
@@ -371,6 +380,10 @@ def source_identity_files() -> list[Path]:
         "BINANCE_PAPER.py",
         "BINANCE_LIVE.py",
         "STOP_UPBIT_PAPER.py",
+        "STOP_UPBIT_LIVE.py",
+        "STOP_BINANCE_PAPER.py",
+        "STOP_BINANCE_LIVE.py",
+        "STOP_TRADER_1.py",
     ):
         path = ROOT / filename
         if path.exists():
@@ -575,6 +588,7 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         "startup_probe": base / "startup_probe.json",
         "heartbeat": base / "heartbeat.json",
         "summary": base / "summary.json",
+        "root_stop_request_report": base / "launcher" / "root_stop_request_report.json",
         "upbit_paper_runtime_cycle_report": base / "upbit_paper_runtime_cycle_report.json",
         "upbit_paper_persistent_loop_report": base
         / "paper_runtime"
@@ -756,6 +770,37 @@ def _dashboard_artifact_is_fresh(payload: dict[str, Any], max_age_seconds: int =
         parsed = parsed.replace(tzinfo=timezone.utc)
     age_seconds = (datetime.now(timezone.utc) - parsed.astimezone(timezone.utc)).total_seconds()
     return 0 <= age_seconds <= max_age_seconds
+
+
+def load_scoped_root_stop_request_report(report: dict[str, Any], root: Path = ROOT) -> dict[str, Any] | None:
+    path = launcher_dashboard_paths(report, root)["root_stop_request_report"]
+    payload = _load_dashboard_json_artifact(path)
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("schema_id") != ROOT_STOP_REQUEST_SCHEMA_ID:
+        return None
+    if (
+        payload.get("target_launcher_name") != report.get("launcher_name")
+        or payload.get("exchange") != report.get("exchange")
+        or payload.get("market_type") != report.get("market_type")
+        or payload.get("mode") != report.get("mode")
+        or payload.get("session_id") != report.get("session_id")
+    ):
+        return None
+    for field in (
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "order_adapter_called",
+        "private_endpoint_called",
+        "credential_load_attempted",
+        "live_key_loaded",
+        "order_endpoint_called",
+    ):
+        if payload.get(field) is not False:
+            return None
+    return payload
 
 
 def load_scoped_upbit_paper_runtime_cycle_report(report: dict[str, Any], root: Path = ROOT) -> dict[str, Any] | None:
@@ -2458,6 +2503,7 @@ def build_launcher_dashboard_artifacts(
         "summary": _runtime_display_path(paths["summary"], root),
         "heartbeat": _runtime_display_path(paths["heartbeat"], root),
         "startup_probe": _runtime_display_path(paths["startup_probe"], root),
+        "root_stop_request_report": _runtime_display_path(paths["root_stop_request_report"], root),
         "reconciliation_report": _runtime_display_path(paths["reconciliation_report"], root),
         "restart_recovery_report": _runtime_display_path(paths["restart_recovery_report"], root),
         "paper_ledger_rollup_report": _runtime_display_path(paths["paper_ledger_rollup_report"], root),
@@ -2563,6 +2609,7 @@ def build_launcher_dashboard_artifacts(
         "shadow_persistent_runtime": _runtime_display_path(paths["shadow_persistent_runtime_report"], root),
         "shadow_runtime_orchestration": _runtime_display_path(paths["shadow_runtime_orchestration_report"], root),
     }
+    root_stop_request_report = load_scoped_root_stop_request_report(report, root)
     paper_operation_gate_report = load_scoped_paper_operation_gate_report(report, root)
     paper_exposure_quality_report = load_scoped_paper_exposure_quality_report(report, root)
     candidate_scorecard = load_scoped_candidate_scorecard(report, root)
@@ -2796,6 +2843,7 @@ def build_launcher_dashboard_artifacts(
         heartbeat=heartbeat,
         startup_probe=startup_probe,
         paper_operation_gate_report=paper_operation_gate_report,
+        root_stop_request_report=root_stop_request_report,
         paper_exposure_quality_report=paper_exposure_quality_report,
         profitability_maturity_rollup_report=profitability_maturity_rollup_report,
         candidate_scorecard=candidate_scorecard,
@@ -2846,6 +2894,7 @@ def build_launcher_dashboard_artifacts(
     return {
         "startup_probe": startup_probe,
         "heartbeat": heartbeat,
+        "root_stop_request_report": root_stop_request_report,
         "paper_portfolio_snapshot": paper_portfolio,
         "audited_current_evidence_snapshot": audited_current_evidence_snapshot,
         "audited_paper_portfolio_snapshot": audited_paper_portfolio_snapshot,
@@ -3126,6 +3175,221 @@ def refresh_launcher_monitor_artifacts(
         refresh_paper_shadow_runtime=refresh_paper_shadow_runtime,
     )
     return load_json(paths["heartbeat"])
+
+
+def root_stop_request_report_hash(report: dict[str, Any]) -> str:
+    payload = dict(report)
+    payload.pop("stop_request_hash", None)
+    return sha256_json(payload)
+
+
+def build_root_stop_request_report(
+    *,
+    stop_launcher_name: str,
+    target_report: dict[str, Any],
+    stop_request_status: str,
+    stop_confirmed: bool,
+    stop_request_method: str,
+    stop_result_summary: str,
+    runner_status_path: str | None = None,
+    runner_status_before: str | None = None,
+    runner_status_after: str | None = None,
+    runner_running_before: bool | None = None,
+    runner_running_after: bool | None = None,
+    runner_pid_before: int | None = None,
+    stop_file_path: str | None = None,
+    primary_blocker_code: str | None = None,
+    primary_blocker_message: str | None = None,
+) -> dict[str, Any]:
+    generated_at = utc_now()
+    report = {
+        "schema_id": ROOT_STOP_REQUEST_SCHEMA_ID,
+        "generated_at_utc": generated_at,
+        "project_id": "TRADER_1",
+        "stop_launcher_name": stop_launcher_name,
+        "target_launcher_name": target_report["launcher_name"],
+        "exchange": target_report["exchange"],
+        "market_type": target_report["market_type"],
+        "mode": target_report["mode"],
+        "session_id": target_report["session_id"],
+        "stop_request_status": stop_request_status,
+        "stop_request_method": stop_request_method,
+        "stop_confirmed": bool(stop_confirmed),
+        "stop_result_summary": stop_result_summary,
+        "runner_status_path": runner_status_path,
+        "runner_status_before": runner_status_before,
+        "runner_status_after": runner_status_after,
+        "runner_running_before": runner_running_before,
+        "runner_running_after": runner_running_after,
+        "runner_pid_before": runner_pid_before,
+        "stop_file_path": stop_file_path,
+        "primary_blocker_code": primary_blocker_code,
+        "primary_blocker_message": primary_blocker_message,
+        "dashboard_refresh_requested": True,
+        "dashboard_should_show_stopped": bool(stop_confirmed),
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "order_adapter_called": False,
+        "private_endpoint_called": False,
+        "credential_load_attempted": False,
+        "live_key_loaded": False,
+        "order_endpoint_called": False,
+    }
+    report["stop_request_hash"] = root_stop_request_report_hash(report)
+    return report
+
+
+def write_root_stop_request_report(report: dict[str, Any], *, root: Path = ROOT) -> Path:
+    target_report = build_launcher_report(str(report["target_launcher_name"]))
+    path = launcher_dashboard_paths(target_report, root)["root_stop_request_report"]
+    write_json(path, report)
+    return path
+
+
+def _request_single_root_launcher_stop(
+    stop_launcher_name: str,
+    target_launcher_name: str,
+    *,
+    root: Path,
+    wait_timeout_seconds: float,
+    poll_interval_seconds: float,
+) -> dict[str, Any]:
+    target_report = build_launcher_report(target_launcher_name)
+    if target_launcher_name == "UPBIT_PAPER":
+        upbit_stop = request_upbit_paper_runner_stop(
+            root=root,
+            reason=stop_launcher_name,
+            wait_timeout_seconds=wait_timeout_seconds,
+            poll_interval_seconds=poll_interval_seconds,
+        )
+        stop_report = build_root_stop_request_report(
+            stop_launcher_name=stop_launcher_name,
+            target_report=target_report,
+            stop_request_status=str(upbit_stop.get("stop_request_status") or "BLOCKED"),
+            stop_confirmed=upbit_stop.get("stop_confirmed") is True,
+            stop_request_method="UPBIT_PAPER_STOP_FILE",
+            stop_result_summary=(
+                "UPBIT PAPER runner stopped by operator stop launcher."
+                if upbit_stop.get("stop_confirmed") is True
+                else str(upbit_stop.get("primary_blocker_message") or "UPBIT PAPER stop was requested.")
+            ),
+            runner_status_path=upbit_stop.get("runner_status_path"),
+            runner_status_before=upbit_stop.get("runner_status_before"),
+            runner_status_after=upbit_stop.get("runner_status_after"),
+            runner_running_before=upbit_stop.get("runner_running_before"),
+            runner_running_after=upbit_stop.get("runner_running_after"),
+            runner_pid_before=upbit_stop.get("runner_pid_before"),
+            stop_file_path=upbit_stop.get("stop_file_path"),
+            primary_blocker_code=upbit_stop.get("primary_blocker_code"),
+            primary_blocker_message=upbit_stop.get("primary_blocker_message"),
+        )
+    else:
+        stop_report = build_root_stop_request_report(
+            stop_launcher_name=stop_launcher_name,
+            target_report=target_report,
+            stop_request_status="NO_RUNNING_RUNNER",
+            stop_confirmed=True,
+            stop_request_method="SAFE_ROOT_LAUNCHER_NO_BACKGROUND_RUNNER",
+            stop_result_summary=(
+                "No background runner exists for this launcher; scope is stopped and live paths remain blocked."
+            ),
+            primary_blocker_code="NO_RUNNING_RUNNER",
+            primary_blocker_message="No active background runner was detected for this fail-closed launcher.",
+        )
+    write_root_stop_request_report(stop_report, root=root)
+    try:
+        write_launcher_dashboard(target_report, root)
+        stop_report["dashboard_refresh_status"] = "PASS"
+        stop_report["stop_request_hash"] = root_stop_request_report_hash(stop_report)
+        write_root_stop_request_report(stop_report, root=root)
+    except Exception as exc:
+        stop_report["dashboard_refresh_status"] = "BLOCKED"
+        stop_report["primary_blocker_code"] = stop_report.get("primary_blocker_code") or "DASHBOARD_REFRESH_FAILED"
+        stop_report["primary_blocker_message"] = str(exc)
+        stop_report["stop_request_hash"] = root_stop_request_report_hash(stop_report)
+        write_root_stop_request_report(stop_report, root=root)
+    return stop_report
+
+
+def request_root_stop_launcher(
+    stop_launcher_name: str,
+    *,
+    root: Path = ROOT,
+    wait_timeout_seconds: float = 90.0,
+    poll_interval_seconds: float = 1.0,
+) -> dict[str, Any]:
+    if stop_launcher_name not in ROOT_STOP_LAUNCHER_TARGETS:
+        raise ValueError(f"unknown stop launcher: {stop_launcher_name}")
+    target_names = ROOT_STOP_LAUNCHER_TARGETS[stop_launcher_name]
+    target_reports = [
+        _request_single_root_launcher_stop(
+            stop_launcher_name,
+            target_name,
+            root=root,
+            wait_timeout_seconds=wait_timeout_seconds,
+            poll_interval_seconds=poll_interval_seconds,
+        )
+        for target_name in target_names
+    ]
+    if len(target_reports) == 1:
+        return target_reports[0]
+    all_confirmed = all(report.get("stop_confirmed") is True for report in target_reports)
+    any_requested = any(report.get("stop_request_status") == "STOP_CONFIRMED" for report in target_reports)
+    aggregate = {
+        "schema_id": "trader1.root_stop_aggregate_report.v1",
+        "generated_at_utc": utc_now(),
+        "project_id": "TRADER_1",
+        "stop_launcher_name": stop_launcher_name,
+        "target_launcher_names": list(target_names),
+        "target_stop_reports": target_reports,
+        "stop_request_status": "STOP_CONFIRMED" if all_confirmed and any_requested else "NO_RUNNING_RUNNER" if all_confirmed else "BLOCKED",
+        "stop_confirmed": all_confirmed,
+        "dashboard_refresh_status": "PASS"
+        if all(report.get("dashboard_refresh_status") == "PASS" for report in target_reports)
+        else "BLOCKED",
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "order_adapter_called": False,
+        "private_endpoint_called": False,
+        "credential_load_attempted": False,
+        "live_key_loaded": False,
+        "order_endpoint_called": False,
+    }
+    aggregate["stop_request_hash"] = sha256_json(aggregate)
+    return aggregate
+
+
+def root_stop_launcher_main(stop_launcher_name: str, *, root: Path = ROOT) -> int:
+    wait_timeout = _optional_nonnegative_float_env("TRADER1_ROOT_STOP_WAIT_SECONDS")
+    poll_interval = _optional_nonnegative_float_env("TRADER1_ROOT_STOP_POLL_SECONDS")
+    report = request_root_stop_launcher(
+        stop_launcher_name,
+        root=root,
+        wait_timeout_seconds=90.0 if wait_timeout is None else wait_timeout,
+        poll_interval_seconds=1.0 if poll_interval is None else poll_interval,
+    )
+    print(f"TRADER_1 {stop_launcher_name} status={report.get('stop_request_status')}", flush=True)
+    print(f"stop_confirmed={str(report.get('stop_confirmed') is True).lower()}", flush=True)
+    print(f"dashboard_refresh_status={report.get('dashboard_refresh_status')}", flush=True)
+    if "target_stop_reports" in report:
+        for target_report in report.get("target_stop_reports", []):
+            if isinstance(target_report, dict):
+                print(
+                    f"target={target_report.get('target_launcher_name')} "
+                    f"status={target_report.get('stop_request_status')} "
+                    f"dashboard_refresh_status={target_report.get('dashboard_refresh_status')}",
+                    flush=True,
+                )
+    else:
+        print(f"target={report.get('target_launcher_name')}", flush=True)
+        print(f"runner_status_path={report.get('runner_status_path')}", flush=True)
+        print(f"stop_file_path={report.get('stop_file_path')}", flush=True)
+    print("live_order_ready=false live_order_allowed=false can_live_trade=false scale_up_allowed=false", flush=True)
+    return 0 if report.get("stop_confirmed") is True and report.get("dashboard_refresh_status") == "PASS" else 1
 
 
 def should_pause_for_operator(pause: bool | None = None) -> bool:

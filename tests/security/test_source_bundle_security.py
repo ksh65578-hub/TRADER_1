@@ -56,7 +56,17 @@ class SourceBundleSecurityTest(unittest.TestCase):
         manifest = build_source_bundle_manifest()
         included_paths = {item["path"] for item in manifest["included_files"]}
         self.assertIn("tools/run_hygiene_safe_pytest.py", included_paths)
-        for launcher in ("UPBIT_PAPER.py", "UPBIT_LIVE.py", "BINANCE_PAPER.py", "BINANCE_LIVE.py", "STOP_UPBIT_PAPER.py"):
+        for launcher in (
+            "UPBIT_PAPER.py",
+            "UPBIT_LIVE.py",
+            "BINANCE_PAPER.py",
+            "BINANCE_LIVE.py",
+            "STOP_UPBIT_PAPER.py",
+            "STOP_UPBIT_LIVE.py",
+            "STOP_BINANCE_PAPER.py",
+            "STOP_BINANCE_LIVE.py",
+            "STOP_TRADER_1.py",
+        ):
             self.assertIn(launcher, included_paths)
 
     def test_shipped_package_forbidden_detection_catches_bytecode_cache(self):

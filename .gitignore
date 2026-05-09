@@ -12,6 +12,7 @@ system/runtime/**/paper_runtime/runner/runner_status.json
 system/runtime/**/paper_runtime/runner/runner_retention_manifest.json
 system/runtime/**/paper_runtime/runner/runner_start_reconciliation.json
 system/runtime/**/paper_runtime/runner/STOP_UPBIT_PAPER.signal
+system/runtime/**/launcher/root_stop_request_report.json
 system/runtime/**/paper_runtime/current_evidence/archive/
 system/runtime/**/paper_runtime/cycles/upbit-paper-runner-*
 system/runtime/**/paper_runtime/upbit-paper-runner-*.persistent_loop_report.json

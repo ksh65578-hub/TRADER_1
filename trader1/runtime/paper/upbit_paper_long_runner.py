@@ -785,6 +785,33 @@ def request_upbit_paper_runner_stop(
                     "primary_blocker_message": "No active UPBIT PAPER runner was detected.",
                 }
             )
+            completed_cycles = (
+                status_before.get("completed_cycle_count")
+                if isinstance(status_before, dict) and isinstance(status_before.get("completed_cycle_count"), int)
+                else 0
+            )
+            failed_cycles = (
+                status_before.get("failed_cycle_count")
+                if isinstance(status_before, dict) and isinstance(status_before.get("failed_cycle_count"), int)
+                else 0
+            )
+            stopped_status = build_runner_status_report(
+                root=root,
+                runner_id="operator-stop-no-running-runner",
+                session_id=session_id,
+                runner_status=RUNNER_STATUS_STOPPED,
+                started_at_utc=generated_at,
+                completed_cycle_count=max(0, completed_cycles),
+                failed_cycle_count=max(0, failed_cycles),
+                cycle_interval_seconds=0,
+                primary_blocker_code="NO_RUNNING_RUNNER",
+                primary_blocker_message="No active UPBIT PAPER runner was detected.",
+                stop_reason="NO_RUNNING_RUNNER",
+                next_cycle_eta=None,
+            )
+            _write_runner_status(status_path, stopped_status)
+            report["runner_status_after"] = stopped_status.get("runner_status")
+            report["runner_running_after"] = stopped_status.get("running")
     else:
         stop_signal = {
             "schema_id": "trader1.upbit_paper_runner_stop_signal.v1",

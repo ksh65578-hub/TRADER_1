@@ -29,6 +29,7 @@ from trader1.runtime.boot.safe_launcher import (
     load_json,
     refresh_launcher_monitor_artifacts,
     refresh_scoped_upbit_public_rest_continuity_history_if_safe,
+    request_root_stop_launcher,
     root_operator_launcher_main,
     runtime_write_lock,
     should_pause_for_operator,
@@ -2144,6 +2145,35 @@ class SafeLauncherTest(unittest.TestCase):
         self.assertFalse(calls[0][1]["refresh_upbit_public_rest_continuity"])
         self.assertFalse(calls[0][1]["refresh_paper_shadow_runtime"])
 
+    def test_root_stop_launcher_writes_dashboard_visible_stop_report_for_safe_launcher(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            stop_report = request_root_stop_launcher("STOP_BINANCE_PAPER", root=root, wait_timeout_seconds=0)
+            target_report = build_launcher_report("BINANCE_PAPER")
+            paths = launcher_dashboard_paths(target_report, root)
+            persisted = load_json(paths["root_stop_request_report"])
+            dashboard_shell = load_json(paths["dashboard_shell"])
+            dashboard_html = paths["dashboard_html"].read_text(encoding="utf-8")
+
+        self.assertEqual(stop_report["stop_request_status"], "NO_RUNNING_RUNNER")
+        self.assertTrue(stop_report["stop_confirmed"])
+        self.assertEqual(persisted["target_launcher_name"], "BINANCE_PAPER")
+        self.assertEqual(dashboard_shell["operator_stop_status"]["status"], "STOPPED")
+        self.assertIn("Stop status", dashboard_html)
+        self.assertIn("STOP_BINANCE_PAPER", dashboard_html)
+        for field in (
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "scale_up_allowed",
+            "order_adapter_called",
+            "private_endpoint_called",
+            "credential_load_attempted",
+            "live_key_loaded",
+            "order_endpoint_called",
+        ):
+            self.assertFalse(stop_report[field], field)
+
     def test_source_identity_includes_root_launchers_and_contracts(self):
         relative_paths = {path.relative_to(Path(__file__).resolve().parents[2]).as_posix() for path in source_identity_files()}
         for required in (
@@ -2152,6 +2182,10 @@ class SafeLauncherTest(unittest.TestCase):
             "BINANCE_PAPER.py",
             "BINANCE_LIVE.py",
             "STOP_UPBIT_PAPER.py",
+            "STOP_UPBIT_LIVE.py",
+            "STOP_BINANCE_PAPER.py",
+            "STOP_BINANCE_LIVE.py",
+            "STOP_TRADER_1.py",
             "TRADER_1.md",
             "AGENTS.md",
             "pyproject.toml",
