@@ -3583,6 +3583,11 @@ def build_runner_status_report(
         next_cycle_eta = generated_at
     loop_hash = loop_report.get("loop_report_hash") if isinstance(loop_report, dict) else None
     cycle_hash = runtime_cycle.get("runtime_cycle_hash") if isinstance(runtime_cycle, dict) else None
+    effective_dashboard_open_result = dashboard_open_result or _dashboard_open_result_from_background_launch(
+        root,
+        session_id,
+        runner_id,
+    )
     report = {
         "schema_id": UPBIT_PAPER_LONG_RUNNER_STATUS_SCHEMA_ID,
         "generated_at_utc": generated_at,
@@ -3618,7 +3623,7 @@ def build_runner_status_report(
         "lock_path": str(runner_lock_path(root, session_id)),
         "log_path": str(runner_log_path(root, session_id)),
         "dashboard_path": str(runner_runtime_base(root, session_id) / "dashboard" / "index.html"),
-        **_dashboard_open_status_fields(dashboard_open_result, root=root, session_id=session_id),
+        **_dashboard_open_status_fields(effective_dashboard_open_result, root=root, session_id=session_id),
         "last_loop_report_path": str(
             runner_runtime_base(root, session_id) / "paper_runtime" / "upbit_paper_persistent_loop_report.json"
         ),
@@ -4025,6 +4030,34 @@ def _dashboard_open_status_fields(
     }
 
 
+def _dashboard_open_result_from_background_launch(
+    root: Path,
+    session_id: str,
+    runner_id: str,
+) -> DashboardOpenResult | None:
+    report = _read_json(runner_background_launch_report_path(root, session_id))
+    if not isinstance(report, dict):
+        return None
+    if (report.get("exchange"), report.get("market_type"), report.get("mode")) != ("UPBIT", "KRW_SPOT", "PAPER"):
+        return None
+    if report.get("background_launch_status") != "STARTED":
+        return None
+    runner_pid = report.get("runner_pid")
+    if isinstance(runner_pid, int) and not str(runner_id).endswith(f"-{runner_pid}"):
+        return None
+    if report.get("dashboard_open_attempted") is not True:
+        return None
+    return DashboardOpenResult(
+        attempted=True,
+        opened=report.get("dashboard_opened") is True,
+        method=str(report.get("dashboard_open_method") or "NOT_ATTEMPTED"),
+        target=str(report.get("dashboard_open_target") or runner_dashboard_path(root, session_id).resolve()),
+        path=str(runner_dashboard_path(root, session_id)),
+        blocker_code=report.get("dashboard_open_blocker_code"),
+        blocker_message=report.get("dashboard_open_blocker_message"),
+    )
+
+
 def open_runner_dashboard_result(
     root: Path,
     session_id: str = DEFAULT_SESSION_ID,
@@ -4047,6 +4080,21 @@ def open_runner_dashboard_result(
 
     uri = resolved.as_uri()
     browser_error: str | None = None
+    startfile_error: str | None = None
+    fallback = startfile or getattr(os, "startfile", None)
+    if opener is None and os.name == "nt" and fallback is not None:
+        try:
+            fallback(str(resolved))
+            return DashboardOpenResult(
+                attempted=True,
+                opened=True,
+                method="os.startfile",
+                target=str(resolved),
+                path=str(path),
+            )
+        except Exception as exc:
+            startfile_error = f"{type(exc).__name__}: {exc}"
+
     try:
         if bool((opener or webbrowser.open)(uri)):
             return DashboardOpenResult(
@@ -4059,7 +4107,6 @@ def open_runner_dashboard_result(
     except Exception as exc:
         browser_error = f"{type(exc).__name__}: {exc}"
 
-    fallback = startfile or getattr(os, "startfile", None)
     if fallback is not None:
         try:
             fallback(str(resolved))
@@ -4078,6 +4125,8 @@ def open_runner_dashboard_result(
         fallback_error = "os.startfile unavailable"
 
     detail = "webbrowser.open returned false"
+    if startfile_error:
+        detail = f"os.startfile failed: {startfile_error}; {detail}"
     if browser_error:
         detail = f"webbrowser.open failed: {browser_error}"
     if fallback_error:
@@ -4868,13 +4917,13 @@ def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
     dashboard_open_result: DashboardOpenResult | None = None
     dashboard_opened = False
     dashboard_refresh_error: str | None = None
-    if refresh_dashboard and not background_launch:
+    if refresh_dashboard and (not background_launch or open_dashboard):
         try:
             _maybe_refresh_dashboard(root)
         except Exception as exc:
             dashboard_refresh_error = str(exc)
             print(f"TRADER_1 UPBIT_PAPER dashboard_refresh_failed={exc}", flush=True)
-    if open_dashboard and not background_launch:
+    if open_dashboard:
         if dashboard_refresh_error:
             dashboard_open_result = dashboard_preopen_refresh_failed_result(
                 root,
@@ -4923,14 +4972,25 @@ def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
                 dashboard_refresh_error = str(exc)
                 print(f"TRADER_1 UPBIT_PAPER dashboard_refresh_failed={exc}", flush=True)
         if open_dashboard:
-            if dashboard_refresh_error:
+            if dashboard_open_result is None and dashboard_refresh_error:
                 dashboard_open_result = dashboard_preopen_refresh_failed_result(
                     root,
                     DEFAULT_SESSION_ID,
                     error=dashboard_refresh_error,
                 )
-            else:
+            elif dashboard_open_result is None or (
+                dashboard_open_result.opened is False
+                and dashboard_open_result.blocker_code == DASHBOARD_PREOPEN_REFRESH_FAILED_BLOCKER_CODE
+                and dashboard_refresh_error is None
+            ):
                 dashboard_open_result = open_runner_dashboard_result(root)
+            if dashboard_open_result is not None:
+                status_after_launch = _read_json(runner_status_path(root))
+                if isinstance(status_after_launch, dict):
+                    try:
+                        _persist_dashboard_open_result(status_after_launch, dashboard_open_result, root=root)
+                    except Exception as exc:
+                        print(f"TRADER_1 UPBIT_PAPER dashboard_status_persist_failed={exc}", flush=True)
             print(f"TRADER_1 UPBIT_PAPER dashboard_opened={str(dashboard_open_result.opened).lower()}", flush=True)
             print(f"dashboard_open_method={dashboard_open_result.method}", flush=True)
             print(f"dashboard_open_target={dashboard_open_result.target}", flush=True)
@@ -4983,13 +5043,19 @@ def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
     print(f"TRADER_1 UPBIT_PAPER runner_status={report.get('runner_status')}")
     print(f"runner_status_path={report.get('runner_status_path')}")
     print(f"dashboard_path={report.get('dashboard_path')}")
-    print(f"dashboard_opened={str(dashboard_opened).lower()}")
+    print(f"dashboard_opened={str(report.get('dashboard_opened') is True).lower()}")
     if dashboard_open_result is not None:
         print(f"dashboard_open_method={dashboard_open_result.method}")
         print(f"dashboard_open_target={dashboard_open_result.target}")
         if dashboard_open_result.blocker_code:
             print(f"dashboard_open_blocker_code={dashboard_open_result.blocker_code}")
             print(f"dashboard_open_blocker_message={dashboard_open_result.blocker_message}")
+    elif report.get("dashboard_open_attempted") is True:
+        print(f"dashboard_open_method={report.get('dashboard_open_method')}")
+        print(f"dashboard_open_target={report.get('dashboard_open_target')}")
+        if report.get("dashboard_open_blocker_code"):
+            print(f"dashboard_open_blocker_code={report.get('dashboard_open_blocker_code')}")
+            print(f"dashboard_open_blocker_message={report.get('dashboard_open_blocker_message')}")
     print("live_order_ready=false live_order_allowed=false can_live_trade=false scale_up_allowed=false")
     already_running = report.get("runner_status") == RUNNER_STATUS_LOCKED and _canonical_runner_already_running(root)
     if already_running:

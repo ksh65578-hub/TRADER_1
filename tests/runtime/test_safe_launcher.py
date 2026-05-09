@@ -2174,6 +2174,40 @@ class SafeLauncherTest(unittest.TestCase):
         ):
             self.assertFalse(stop_report[field], field)
 
+    def test_root_stop_launcher_prints_immediate_operator_feedback_before_waiting(self):
+        calls: list[dict[str, object]] = []
+
+        def fake_request(stop_launcher_name, **kwargs):
+            calls.append({"stop_launcher_name": stop_launcher_name, **kwargs})
+            return {
+                "stop_request_status": "NO_RUNNING_RUNNER",
+                "stop_confirmed": True,
+                "dashboard_refresh_status": "PASS",
+                "target_launcher_name": "BINANCE_PAPER",
+                "runner_status_path": "runner_status.json",
+                "stop_file_path": "STOP.signal",
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+
+        buffer = StringIO()
+        with patch.object(safe_launcher, "request_root_stop_launcher", side_effect=fake_request), redirect_stdout(buffer):
+            result = safe_launcher.root_stop_launcher_main("STOP_BINANCE_PAPER", root=Path("C:/TRADER_1"))
+
+        output = buffer.getvalue()
+        self.assertEqual(result, 0)
+        self.assertEqual(calls[0]["stop_launcher_name"], "STOP_BINANCE_PAPER")
+        self.assertIn("TRADER_1 STOP_BINANCE_PAPER requesting_stop=true", output)
+        self.assertLess(
+            output.index("requesting_stop=true"),
+            output.index("status=NO_RUNNING_RUNNER"),
+        )
+        self.assertIn("operator_console_auto_closes=true", output)
+        self.assertIn("dashboard_will_show_stopped_after_confirmation=true", output)
+        self.assertIn("live_order_ready=false live_order_allowed=false can_live_trade=false scale_up_allowed=false", output)
+
     def test_source_identity_includes_root_launchers_and_contracts(self):
         relative_paths = {path.relative_to(Path(__file__).resolve().parents[2]).as_posix() for path in source_identity_files()}
         for required in (

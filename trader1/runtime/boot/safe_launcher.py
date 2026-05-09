@@ -3366,11 +3366,21 @@ def request_root_stop_launcher(
 def root_stop_launcher_main(stop_launcher_name: str, *, root: Path = ROOT) -> int:
     wait_timeout = _optional_nonnegative_float_env("TRADER1_ROOT_STOP_WAIT_SECONDS")
     poll_interval = _optional_nonnegative_float_env("TRADER1_ROOT_STOP_POLL_SECONDS")
+    effective_wait_timeout = 90.0 if wait_timeout is None else wait_timeout
+    effective_poll_interval = 1.0 if poll_interval is None else poll_interval
+    print(f"TRADER_1 {stop_launcher_name} requesting_stop=true", flush=True)
+    print("operator_console_auto_closes=true", flush=True)
+    print(
+        f"waiting_for_stop_confirmation=true wait_timeout_seconds={effective_wait_timeout}",
+        flush=True,
+    )
+    print("dashboard_will_show_stopped_after_confirmation=true", flush=True)
+    print("live_order_ready=false live_order_allowed=false can_live_trade=false scale_up_allowed=false", flush=True)
     report = request_root_stop_launcher(
         stop_launcher_name,
         root=root,
-        wait_timeout_seconds=90.0 if wait_timeout is None else wait_timeout,
-        poll_interval_seconds=1.0 if poll_interval is None else poll_interval,
+        wait_timeout_seconds=effective_wait_timeout,
+        poll_interval_seconds=effective_poll_interval,
     )
     print(f"TRADER_1 {stop_launcher_name} status={report.get('stop_request_status')}", flush=True)
     print(f"stop_confirmed={str(report.get('stop_confirmed') is True).lower()}", flush=True)
