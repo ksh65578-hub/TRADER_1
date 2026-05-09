@@ -14,13 +14,16 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import webbrowser
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Callable
+from urllib.parse import urlparse
 
 from trader1.research.profitability.candidate_scorecard import (
     candidate_generation_report_hash,
@@ -155,6 +158,11 @@ NON_LIVE_PROFITABILITY_REFRESH_CRITICAL_BLOCKERS = {
 DASHBOARD_FILE_MISSING_BLOCKER_CODE = "DASHBOARD_FILE_MISSING"
 DASHBOARD_OPEN_FAILED_BLOCKER_CODE = "DASHBOARD_OPEN_FAILED"
 DASHBOARD_PREOPEN_REFRESH_FAILED_BLOCKER_CODE = "DASHBOARD_PREOPEN_REFRESH_FAILED"
+DASHBOARD_STATUS_CHANNEL_HOST = "127.0.0.1"
+DASHBOARD_STATUS_CHANNEL_MODE = "LOCAL_READ_ONLY_HTTP_SSE"
+DASHBOARD_STATUS_CHANNEL_SCHEMA_ID = "trader1.dashboard_status_channel.v1"
+DASHBOARD_STATUS_CHANNEL_PAYLOAD_SCHEMA_ID = "trader1.dashboard_status_channel_payload.v1"
+DEFAULT_DASHBOARD_STATUS_CHANNEL_SHUTDOWN_GRACE_SECONDS = 3.0
 
 LIVE_FALSE_FLAGS = (
     "live_order_ready",
@@ -193,6 +201,14 @@ class DashboardOpenResult:
     blocker_message: str | None = None
 
 
+@dataclass
+class DashboardStatusChannelHandle:
+    server: ThreadingHTTPServer
+    thread: threading.Thread
+    url: str
+    report_path: Path
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -207,6 +223,10 @@ def runner_dir(root: Path, session_id: str = DEFAULT_SESSION_ID) -> Path:
 
 def runner_status_path(root: Path, session_id: str = DEFAULT_SESSION_ID) -> Path:
     return runner_dir(root, session_id) / "runner_status.json"
+
+
+def runner_dashboard_status_channel_path(root: Path, session_id: str = DEFAULT_SESSION_ID) -> Path:
+    return runner_dir(root, session_id) / "dashboard_status_channel.json"
 
 
 def runner_blocked_start_status_path(root: Path, session_id: str = DEFAULT_SESSION_ID) -> Path:
@@ -278,6 +298,76 @@ def _read_json(path: Path) -> dict[str, Any] | None:
     return loaded if isinstance(loaded, dict) else None
 
 
+def _safe_local_dashboard_url(value: Any) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    parsed = urlparse(value.strip())
+    if parsed.scheme != "http":
+        return None
+    if parsed.hostname not in {DASHBOARD_STATUS_CHANNEL_HOST, "localhost"}:
+        return None
+    if parsed.port is None or parsed.port <= 0:
+        return None
+    path = parsed.path or "/"
+    if path not in {"/", "/index.html"}:
+        return None
+    return value.strip()
+
+
+def _dashboard_status_channel_report(root: Path, session_id: str = DEFAULT_SESSION_ID) -> dict[str, Any] | None:
+    report = _read_json(runner_dashboard_status_channel_path(root, session_id))
+    if not isinstance(report, dict):
+        return None
+    if (report.get("exchange"), report.get("market_type"), report.get("mode")) != ("UPBIT", "KRW_SPOT", "PAPER"):
+        return None
+    if report.get("session_id") != session_id:
+        return None
+    return report
+
+
+def _dashboard_status_channel_fields(root: Path, session_id: str = DEFAULT_SESSION_ID) -> dict[str, Any]:
+    channel = _dashboard_status_channel_report(root, session_id)
+    if not isinstance(channel, dict):
+        return {
+            "dashboard_status_channel_enabled": False,
+            "dashboard_status_channel_status": "NOT_STARTED",
+            "dashboard_status_channel_mode": DASHBOARD_STATUS_CHANNEL_MODE,
+            "dashboard_status_channel_url": None,
+            "dashboard_status_channel_source": "runner_status.json",
+            "dashboard_status_channel_path": str(runner_dashboard_status_channel_path(root, session_id)),
+            "dashboard_status_channel_live_order_ready": False,
+            "dashboard_status_channel_live_order_allowed": False,
+            "dashboard_status_channel_can_live_trade": False,
+            "dashboard_status_channel_scale_up_allowed": False,
+        }
+    return {
+        "dashboard_status_channel_enabled": channel.get("dashboard_status_channel_status") == "RUNNING",
+        "dashboard_status_channel_status": str(channel.get("dashboard_status_channel_status") or "NOT_STARTED"),
+        "dashboard_status_channel_mode": str(channel.get("dashboard_status_channel_mode") or DASHBOARD_STATUS_CHANNEL_MODE),
+        "dashboard_status_channel_url": _safe_local_dashboard_url(channel.get("dashboard_status_channel_url")),
+        "dashboard_status_channel_source": "runner_status.json",
+        "dashboard_status_channel_path": str(runner_dashboard_status_channel_path(root, session_id)),
+        "dashboard_status_channel_live_order_ready": False,
+        "dashboard_status_channel_live_order_allowed": False,
+        "dashboard_status_channel_can_live_trade": False,
+        "dashboard_status_channel_scale_up_allowed": False,
+    }
+
+
+def _dashboard_status_channel_url_from_artifacts(root: Path, session_id: str = DEFAULT_SESSION_ID) -> str | None:
+    status = _read_json(runner_status_path(root, session_id))
+    if isinstance(status, dict):
+        url = _safe_local_dashboard_url(status.get("dashboard_status_channel_url"))
+        if url and status.get("dashboard_status_channel_enabled") is True:
+            return url
+    channel = _dashboard_status_channel_report(root, session_id)
+    if isinstance(channel, dict):
+        url = _safe_local_dashboard_url(channel.get("dashboard_status_channel_url"))
+        if url and channel.get("dashboard_status_channel_status") == "RUNNING":
+            return url
+    return None
+
+
 def _json_has_runtime_permission_drift(value: Any) -> tuple[bool, str | None]:
     if isinstance(value, dict):
         for key, child in value.items():
@@ -332,6 +422,252 @@ def _dashboard_refresh_error_is_nonblocking_writer_unavailable(
         return False
     drifted, _, _ = _runtime_current_artifacts_have_permission_drift(root, session_id)
     return not drifted
+
+
+def _dashboard_status_channel_payload(root: Path, session_id: str = DEFAULT_SESSION_ID) -> dict[str, Any]:
+    status = _read_json(runner_status_path(root, session_id))
+    status = status if isinstance(status, dict) else {}
+    drift_fields = [
+        field
+        for field in (*LIVE_FALSE_FLAGS, "order_endpoint_called", "can_submit_order")
+        if status.get(field) is True
+    ]
+    running = status.get("running") is True and status.get("runner_status") == RUNNER_STATUS_RUNNING
+    channel_status = "RUNNING" if running else str(status.get("runner_status") or "NOT_LOADED")
+    payload = {
+        "schema_id": DASHBOARD_STATUS_CHANNEL_PAYLOAD_SCHEMA_ID,
+        "generated_at_utc": utc_now(),
+        "project_id": "TRADER_1",
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "mode": "PAPER",
+        "session_id": session_id,
+        "channel_status": channel_status,
+        "channel_mode": DASHBOARD_STATUS_CHANNEL_MODE,
+        "source": "runner_status.json",
+        "source_path": str(runner_status_path(root, session_id)),
+        "runner_status": str(status.get("runner_status") or "NOT_LOADED"),
+        "running": running,
+        "completed_cycle_count": _int_value(status.get("completed_cycle_count"), 0),
+        "failed_cycle_count": _int_value(status.get("failed_cycle_count"), 0),
+        "current_symbol": status.get("current_symbol"),
+        "current_position_count": _int_value(status.get("current_position_count"), 0),
+        "last_decision": status.get("last_decision"),
+        "last_cycle_time": status.get("last_cycle_time"),
+        "next_cycle_eta": status.get("next_cycle_eta"),
+        "stop_reason": status.get("stop_reason"),
+        "primary_blocker_code": status.get("primary_blocker_code"),
+        "primary_blocker_message": status.get("primary_blocker_message"),
+        "cash": status.get("cash"),
+        "equity": status.get("equity"),
+        "realized_pnl": status.get("realized_pnl"),
+        "unrealized_pnl": status.get("unrealized_pnl"),
+        "runtime_sample_count": _int_value(status.get("runtime_sample_count"), 0),
+        "paper_scope_candidate_id": status.get("paper_scope_candidate_id"),
+        "paper_scope_sample_count": _int_value(status.get("paper_scope_sample_count"), 0),
+        "paper_scope_min_required_sample_count": _int_value(
+            status.get("paper_scope_min_required_sample_count"),
+            DEFAULT_MIN_PROFITABILITY_SCOPE_SAMPLE_COUNT,
+        ),
+        "paper_scope_sample_deficit": _int_value(status.get("paper_scope_sample_deficit"), 0),
+        "stop_launcher_path": str(root / "STOP_UPBIT_PAPER.py"),
+        "stop_file_path": str(runner_stop_file_path(root, session_id)),
+        "live_flag_drift_detected": bool(drift_fields),
+        "live_flag_drift_fields": drift_fields,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "order_adapter_called": False,
+        "private_endpoint_called": False,
+        "credential_load_attempted": False,
+        "live_key_loaded": False,
+    }
+    return payload
+
+
+def _dashboard_status_channel_report_payload(
+    *,
+    root: Path,
+    session_id: str,
+    url: str | None,
+    status: str,
+    blocker_code: str | None = None,
+    blocker_message: str | None = None,
+) -> dict[str, Any]:
+    report = {
+        "schema_id": DASHBOARD_STATUS_CHANNEL_SCHEMA_ID,
+        "generated_at_utc": utc_now(),
+        "project_id": "TRADER_1",
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "mode": "PAPER",
+        "session_id": session_id,
+        "dashboard_status_channel_status": status,
+        "dashboard_status_channel_mode": DASHBOARD_STATUS_CHANNEL_MODE,
+        "dashboard_status_channel_url": url,
+        "dashboard_status_channel_host": DASHBOARD_STATUS_CHANNEL_HOST,
+        "dashboard_status_channel_source": "runner_status.json",
+        "dashboard_status_channel_path": str(runner_dashboard_status_channel_path(root, session_id)),
+        "primary_blocker_code": blocker_code,
+        "primary_blocker_message": blocker_message,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "order_adapter_called": False,
+        "private_endpoint_called": False,
+        "credential_load_attempted": False,
+        "live_key_loaded": False,
+    }
+    report["dashboard_status_channel_hash"] = _json_hash(report)
+    return report
+
+
+def start_runner_dashboard_status_channel(
+    root: Path,
+    session_id: str = DEFAULT_SESSION_ID,
+) -> DashboardStatusChannelHandle | None:
+    root = Path(root)
+    report_path = runner_dashboard_status_channel_path(root, session_id)
+
+    def handler_factory() -> type[BaseHTTPRequestHandler]:
+        channel_root = root
+        channel_session_id = session_id
+
+        class DashboardStatusChannelHandler(BaseHTTPRequestHandler):
+            server_version = "TRADER1DashboardStatus/1.0"
+
+            def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
+                return
+
+            def _send_json(self, payload: dict[str, Any]) -> None:
+                body = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def _send_dashboard_html(self) -> None:
+                path = runner_dashboard_path(channel_root, channel_session_id)
+                if path.exists():
+                    body = path.read_bytes()
+                else:
+                    body = b"<!doctype html><title>TRADER_1</title><p>Dashboard file not generated yet.</p>"
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def _send_events(self) -> None:
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Connection", "keep-alive")
+                self.end_headers()
+                while not getattr(self.server, "dashboard_channel_stop", False):
+                    payload = _dashboard_status_channel_payload(channel_root, channel_session_id)
+                    body = "event: runner_status\n" f"data: {json.dumps(payload, ensure_ascii=False, sort_keys=True)}\n\n"
+                    try:
+                        self.wfile.write(body.encode("utf-8"))
+                        self.wfile.flush()
+                    except (BrokenPipeError, ConnectionResetError, OSError):
+                        break
+                    time.sleep(1.0)
+
+            def do_GET(self) -> None:
+                path = urlparse(self.path).path
+                if path in {"/", "/index.html"}:
+                    self._send_dashboard_html()
+                elif path == "/api/runner-status":
+                    self._send_json(_dashboard_status_channel_payload(channel_root, channel_session_id))
+                elif path == "/events":
+                    self._send_events()
+                elif path == "/health":
+                    self._send_json(
+                        {
+                            "status": "PASS",
+                            "channel_mode": DASHBOARD_STATUS_CHANNEL_MODE,
+                            "live_order_ready": False,
+                            "live_order_allowed": False,
+                            "can_live_trade": False,
+                            "scale_up_allowed": False,
+                        }
+                    )
+                else:
+                    self.send_response(404)
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+
+        return DashboardStatusChannelHandler
+
+    try:
+        server = ThreadingHTTPServer((DASHBOARD_STATUS_CHANNEL_HOST, 0), handler_factory())
+        server.daemon_threads = True
+        setattr(server, "dashboard_channel_stop", False)
+        url = f"http://{DASHBOARD_STATUS_CHANNEL_HOST}:{server.server_port}/"
+        thread = threading.Thread(target=server.serve_forever, name="trader1-dashboard-status-channel", daemon=True)
+        thread.start()
+        durable_atomic_write_json(
+            report_path,
+            _dashboard_status_channel_report_payload(
+                root=root,
+                session_id=session_id,
+                url=url,
+                status="RUNNING",
+            ),
+        )
+        return DashboardStatusChannelHandle(server=server, thread=thread, url=url, report_path=report_path)
+    except Exception as exc:
+        durable_atomic_write_json(
+            report_path,
+            _dashboard_status_channel_report_payload(
+                root=root,
+                session_id=session_id,
+                url=None,
+                status="BLOCKED",
+                blocker_code="DASHBOARD_STATUS_CHANNEL_START_FAILED",
+                blocker_message=str(exc),
+            ),
+        )
+        return None
+
+
+def stop_runner_dashboard_status_channel(
+    handle: DashboardStatusChannelHandle | None,
+    *,
+    root: Path,
+    session_id: str = DEFAULT_SESSION_ID,
+    final_status: str = "STOPPED",
+    grace_seconds: float = 0.0,
+) -> None:
+    if handle is None:
+        return
+    if grace_seconds > 0:
+        time.sleep(grace_seconds)
+    try:
+        durable_atomic_write_json(
+            handle.report_path,
+            _dashboard_status_channel_report_payload(
+                root=root,
+                session_id=session_id,
+                url=handle.url,
+                status=final_status,
+            ),
+        )
+    finally:
+        try:
+            setattr(handle.server, "dashboard_channel_stop", True)
+            handle.server.shutdown()
+        finally:
+            handle.server.server_close()
+            handle.thread.join(timeout=1.0)
 
 
 def _int_value(value: Any, default: int = 0) -> int:
@@ -3623,6 +3959,7 @@ def build_runner_status_report(
         "lock_path": str(runner_lock_path(root, session_id)),
         "log_path": str(runner_log_path(root, session_id)),
         "dashboard_path": str(runner_runtime_base(root, session_id) / "dashboard" / "index.html"),
+        **_dashboard_status_channel_fields(root, session_id),
         **_dashboard_open_status_fields(effective_dashboard_open_result, root=root, session_id=session_id),
         "last_loop_report_path": str(
             runner_runtime_base(root, session_id) / "paper_runtime" / "upbit_paper_persistent_loop_report.json"
@@ -3898,6 +4235,47 @@ def validate_upbit_paper_long_runner_status_report(report: dict[str, Any]) -> di
     for flag in LIVE_FALSE_FLAGS:
         if report.get(flag) is not False:
             return {"status": "BLOCKED", "blocker_code": "RUNNER_STATUS_LIVE_FLAG_MUTATED", "field": flag}
+    dashboard_status_channel_fields = (
+        "dashboard_status_channel_enabled",
+        "dashboard_status_channel_status",
+        "dashboard_status_channel_mode",
+        "dashboard_status_channel_url",
+        "dashboard_status_channel_source",
+        "dashboard_status_channel_path",
+        "dashboard_status_channel_live_order_ready",
+        "dashboard_status_channel_live_order_allowed",
+        "dashboard_status_channel_can_live_trade",
+        "dashboard_status_channel_scale_up_allowed",
+    )
+    if any(field in report for field in dashboard_status_channel_fields):
+        missing_channel_fields = [field for field in dashboard_status_channel_fields if field not in report]
+        if missing_channel_fields:
+            return {
+                "status": "FAIL",
+                "blocker_code": "RUNNER_STATUS_DASHBOARD_CHANNEL_FIELDS_INCOMPLETE",
+                "missing_fields": missing_channel_fields,
+            }
+        if report.get("dashboard_status_channel_mode") != DASHBOARD_STATUS_CHANNEL_MODE:
+            return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_DASHBOARD_CHANNEL_MODE_INVALID"}
+        if report.get("dashboard_status_channel_source") != "runner_status.json":
+            return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_DASHBOARD_CHANNEL_SOURCE_INVALID"}
+        for field in (
+            "dashboard_status_channel_live_order_ready",
+            "dashboard_status_channel_live_order_allowed",
+            "dashboard_status_channel_can_live_trade",
+            "dashboard_status_channel_scale_up_allowed",
+        ):
+            if report.get(field) is not False:
+                return {
+                    "status": "BLOCKED",
+                    "blocker_code": "RUNNER_STATUS_DASHBOARD_CHANNEL_LIVE_FLAG_MUTATED",
+                    "field": field,
+                }
+        if report.get("dashboard_status_channel_enabled") is True:
+            if report.get("dashboard_status_channel_status") != "RUNNING":
+                return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_DASHBOARD_CHANNEL_STATUS_INVALID"}
+            if _safe_local_dashboard_url(report.get("dashboard_status_channel_url")) is None:
+                return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_DASHBOARD_CHANNEL_URL_INVALID"}
     if report.get("runner_status") == RUNNER_STATUS_LOCKED and report.get("primary_blocker_code") != LOCK_BLOCKER_CODE:
         return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_LOCKED_WITHOUT_LOCK_BLOCKER"}
     if report.get("dashboard_open_attempted") is not True:
@@ -4065,6 +4443,20 @@ def open_runner_dashboard_result(
     opener: Callable[[str], bool] | None = None,
     startfile: Callable[[str], Any] | None = None,
 ) -> DashboardOpenResult:
+    channel_url = _dashboard_status_channel_url_from_artifacts(root, session_id)
+    if channel_url:
+        try:
+            if bool((opener or webbrowser.open)(channel_url)):
+                return DashboardOpenResult(
+                    attempted=True,
+                    opened=True,
+                    method="local_status_channel",
+                    target=channel_url,
+                    path=str(runner_dashboard_path(root, session_id)),
+                )
+        except Exception:
+            pass
+
     path = runner_dashboard_path(root, session_id)
     resolved = path.resolve()
     if not path.exists():
@@ -4187,6 +4579,8 @@ def run_upbit_paper_long_running_runner(
     stale_lock_after_seconds: int = DEFAULT_LOCK_STALE_AFTER_SECONDS,
     emit_console_status: bool = False,
     dashboard_open_result: DashboardOpenResult | None = None,
+    dashboard_status_channel_enabled: bool = False,
+    dashboard_status_channel_shutdown_grace_seconds: float = 0.0,
     retention_max_active_artifacts_per_group: int = DEFAULT_RETENTION_MAX_ACTIVE_ARTIFACTS_PER_GROUP,
     retention_max_uncompacted_archive_batches: int = DEFAULT_RETENTION_MAX_UNCOMPACTED_ARCHIVE_BATCHES,
     retention_log_max_bytes: int = DEFAULT_RUNNER_LOG_MAX_BYTES,
@@ -4205,6 +4599,8 @@ def run_upbit_paper_long_running_runner(
     completed = 0
     failed = 0
     last_loop_report: dict[str, Any] | None = None
+    dashboard_status_channel_handle: DashboardStatusChannelHandle | None = None
+    dashboard_status_channel_final_status = "STOPPED"
 
     lock = acquire_runner_lock(root, session_id, stale_after_seconds=stale_lock_after_seconds)
     if not lock.acquired:
@@ -4228,6 +4624,8 @@ def run_upbit_paper_long_running_runner(
         return report
 
     try:
+        if dashboard_status_channel_enabled:
+            dashboard_status_channel_handle = start_runner_dashboard_status_channel(root, session_id)
         _append_log(root, session_id, {"event": "runner_started", "runner_id": runner_id, "at": started_at})
         retention = apply_runner_artifact_retention(
             root=root,
@@ -4259,6 +4657,7 @@ def run_upbit_paper_long_running_runner(
             if emit_console_status:
                 _emit_console_status(blocked)
             _append_log(root, session_id, {"event": "runner_blocked", "reason": "RUNTIME_DISK_PRESSURE_BLOCKED", "at": utc_now()})
+            dashboard_status_channel_final_status = "BLOCKED"
             return blocked
         if emit_console_status:
             print("TRADER_1 UPBIT_PAPER runner started", flush=True)
@@ -4462,6 +4861,7 @@ def run_upbit_paper_long_running_runner(
                         "at": utc_now(),
                     },
                 )
+                dashboard_status_channel_final_status = "BLOCKED"
                 return blocked
 
             completed += 1
@@ -4509,6 +4909,7 @@ def run_upbit_paper_long_running_runner(
                         "at": utc_now(),
                     },
                 )
+                dashboard_status_channel_final_status = "BLOCKED"
                 return blocked
             _append_log(
                 root,
@@ -4569,6 +4970,7 @@ def run_upbit_paper_long_running_runner(
                         "at": utc_now(),
                     },
                 )
+                dashboard_status_channel_final_status = "BLOCKED"
                 return blocked
             _append_log(
                 root,
@@ -4636,6 +5038,7 @@ def run_upbit_paper_long_running_runner(
                 if emit_console_status:
                     _emit_console_status(blocked)
                 _append_log(root, session_id, {"event": "runner_blocked", "reason": "RUNTIME_DISK_PRESSURE_BLOCKED", "at": utc_now()})
+                dashboard_status_channel_final_status = "BLOCKED"
                 return blocked
             _append_log(
                 root,
@@ -4702,6 +5105,7 @@ def run_upbit_paper_long_running_runner(
                         _refresh_dashboard_after_runner_status(root, session_id, refresh_dashboard=refresh_dashboard)
                         if emit_console_status:
                             _emit_console_status(blocked)
+                        dashboard_status_channel_final_status = "BLOCKED"
                         return blocked
             if cycle_interval_seconds:
                 next_eta = datetime.now(timezone.utc).timestamp() + cycle_interval_seconds
@@ -4750,6 +5154,13 @@ def run_upbit_paper_long_running_runner(
         _append_log(root, session_id, {"event": "runner_stopped", "reason": "KEYBOARD_INTERRUPT", "at": utc_now()})
         return final
     finally:
+        stop_runner_dashboard_status_channel(
+            dashboard_status_channel_handle,
+            root=root,
+            session_id=session_id,
+            final_status=dashboard_status_channel_final_status,
+            grace_seconds=max(0.0, dashboard_status_channel_shutdown_grace_seconds),
+        )
         release_runner_lock(lock)
 
 
@@ -4868,6 +5279,11 @@ def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
     timeout = _float_env("TRADER1_UPBIT_PAPER_PUBLIC_TIMEOUT_SECONDS", 3.0)
     refresh_dashboard = _bool_env("TRADER1_UPBIT_PAPER_REFRESH_DASHBOARD", True)
     open_dashboard = _bool_env("TRADER1_UPBIT_PAPER_OPEN_DASHBOARD", True)
+    dashboard_status_channel_enabled = _bool_env("TRADER1_UPBIT_PAPER_DASHBOARD_STATUS_CHANNEL", True)
+    dashboard_status_channel_shutdown_grace_seconds = _float_env(
+        "TRADER1_UPBIT_PAPER_DASHBOARD_STATUS_CHANNEL_GRACE_SECONDS",
+        DEFAULT_DASHBOARD_STATUS_CHANNEL_SHUTDOWN_GRACE_SECONDS,
+    )
     retention_max_active = _int_env(
         "TRADER1_UPBIT_PAPER_RETENTION_MAX_ACTIVE_ARTIFACTS_PER_GROUP",
         DEFAULT_RETENTION_MAX_ACTIVE_ARTIFACTS_PER_GROUP,
@@ -5061,6 +5477,8 @@ def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
         refresh_dashboard=refresh_dashboard,
         emit_console_status=True,
         dashboard_open_result=dashboard_open_result,
+        dashboard_status_channel_enabled=dashboard_status_channel_enabled,
+        dashboard_status_channel_shutdown_grace_seconds=dashboard_status_channel_shutdown_grace_seconds,
         retention_max_active_artifacts_per_group=retention_max_active,
         retention_max_uncompacted_archive_batches=retention_max_uncompacted_archives,
         retention_log_max_bytes=retention_log_max_bytes,

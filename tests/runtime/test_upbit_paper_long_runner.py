@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import unittest
+import urllib.request
 from pathlib import Path
 from unittest.mock import patch
 
@@ -31,6 +32,7 @@ from trader1.runtime.paper.upbit_paper_long_runner import (
     run_upbit_paper_long_running_runner,
     runner_blocked_start_status_path,
     runner_dashboard_path,
+    runner_dashboard_status_channel_path,
     runner_runtime_base,
     runner_lock_path,
     runner_log_path,
@@ -40,6 +42,8 @@ from trader1.runtime.paper.upbit_paper_long_runner import (
     runner_status_path,
     runner_stop_file_path,
     runner_stop_request_report_path,
+    start_runner_dashboard_status_channel,
+    stop_runner_dashboard_status_channel,
     shadow_persistent_runtime_path,
     shadow_runtime_harness_path,
     shadow_runtime_orchestration_path,
@@ -2547,7 +2551,95 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["can_live_trade"])
 
-    def test_runner_dashboard_opener_is_read_only_file_uri(self):
+    def test_runner_dashboard_opener_uses_live_status_channel_when_available(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = runner_dashboard_path(root, "dashboard_channel_session")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("<!doctype html><title>TRADER_1</title>", encoding="utf-8")
+            status_path = runner_status_path(root, "dashboard_channel_session")
+            status_path.parent.mkdir(parents=True, exist_ok=True)
+            status_path.write_text(
+                json.dumps(
+                    {
+                        "runner_status": RUNNER_STATUS_RUNNING,
+                        "running": True,
+                        "dashboard_status_channel_enabled": True,
+                        "dashboard_status_channel_url": "http://127.0.0.1:12345/",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            opened: list[str] = []
+
+            result = open_runner_dashboard_result(
+                root,
+                "dashboard_channel_session",
+                opener=lambda uri: opened.append(uri) is None or True,
+            )
+
+            self.assertTrue(result.attempted)
+            self.assertTrue(result.opened)
+            self.assertEqual(result.method, "local_status_channel")
+            self.assertEqual(opened, ["http://127.0.0.1:12345/"])
+
+    def test_runner_dashboard_status_channel_serves_read_only_runner_status(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "dashboard_channel_http_session"
+            runner_dashboard_path(root, session_id).parent.mkdir(parents=True, exist_ok=True)
+            runner_dashboard_path(root, session_id).write_text("<!doctype html><title>TRADER_1</title>", encoding="utf-8")
+            status = build_runner_status_report(
+                root=root,
+                runner_id="runner-channel-test",
+                session_id=session_id,
+                runner_status=RUNNER_STATUS_RUNNING,
+                started_at_utc=utc_now(),
+                completed_cycle_count=2,
+                failed_cycle_count=0,
+                cycle_interval_seconds=30,
+            )
+            status["live_order_allowed"] = True
+            status_path = runner_status_path(root, session_id)
+            status_path.parent.mkdir(parents=True, exist_ok=True)
+            status_path.write_text(json.dumps(status), encoding="utf-8")
+
+            handle = start_runner_dashboard_status_channel(root, session_id)
+            self.assertIsNotNone(handle)
+            try:
+                with urllib.request.urlopen(handle.url + "api/runner-status", timeout=5) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+                stopped_status = dict(status)
+                stopped_status.update(
+                    {
+                        "runner_status": RUNNER_STATUS_STOPPED,
+                        "running": False,
+                        "live_order_allowed": False,
+                        "stop_reason": "STOP_FILE",
+                    }
+                )
+                stopped_status["status_hash"] = upbit_paper_long_runner_status_hash(stopped_status)
+                status_path.write_text(json.dumps(stopped_status), encoding="utf-8")
+                with urllib.request.urlopen(handle.url + "api/runner-status", timeout=5) as response:
+                    stopped_payload = json.loads(response.read().decode("utf-8"))
+            finally:
+                stop_runner_dashboard_status_channel(handle, root=root, session_id=session_id)
+
+            channel_report = _load_json(runner_dashboard_status_channel_path(root, session_id))
+            self.assertEqual(channel_report["dashboard_status_channel_status"], "STOPPED")
+            self.assertEqual(payload["schema_id"], "trader1.dashboard_status_channel_payload.v1")
+            self.assertEqual(payload["runner_status"], RUNNER_STATUS_RUNNING)
+            self.assertEqual(payload["completed_cycle_count"], 2)
+            self.assertTrue(payload["live_flag_drift_detected"])
+            self.assertFalse(payload["live_order_ready"])
+            self.assertFalse(payload["live_order_allowed"])
+            self.assertFalse(payload["can_live_trade"])
+            self.assertFalse(payload["scale_up_allowed"])
+            self.assertEqual(stopped_payload["runner_status"], RUNNER_STATUS_STOPPED)
+            self.assertFalse(stopped_payload["running"])
+            self.assertEqual(stopped_payload["stop_reason"], "STOP_FILE")
+
+    def test_runner_dashboard_opener_falls_back_to_read_only_file_uri_without_status_channel(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             path = runner_dashboard_path(root, "dashboard_session")

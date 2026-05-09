@@ -2242,7 +2242,8 @@
           "enum": [
             "summary.json",
             "heartbeat.json",
-            "startup_probe.json"
+            "startup_probe.json",
+            "runner_status.json"
           ]
         },
         "trend_direction": {
@@ -10376,7 +10377,7 @@
         },
         "auto_refresh_interval_seconds": {
           "type": "integer",
-          "minimum": 5,
+          "minimum": 1,
           "maximum": 300
         },
         "stale_after_seconds": {
@@ -10386,7 +10387,10 @@
           "const": true
         },
         "refresh_mode": {
-          "const": "LOCAL_FILE_RELOAD"
+          "enum": [
+            "LOCAL_STATUS_CHANNEL",
+            "LOCAL_FILE_RELOAD"
+          ]
         },
         "next_action": {
           "type": "string",
