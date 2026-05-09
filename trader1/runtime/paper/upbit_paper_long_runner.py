@@ -127,6 +127,7 @@ RUNNER_STATUS_STOPPING = "STOPPING"
 RUNNER_STATUS_STOPPED = "STOPPED"
 RUNNER_STATUS_BLOCKED = "BLOCKED"
 RUNNER_STATUS_LOCKED = "LOCKED"
+STOP_REQUEST_SUPERSEDED_BY_START = "SUPERSEDED_BY_OPERATOR_START"
 
 RUNNER_STATUS_SET = {
     RUNNER_STATUS_RUNNING,
@@ -673,6 +674,31 @@ def _write_dashboard_status_channel_stopping_report(
     )
 
 
+def _write_dashboard_status_channel_starting_report(
+    root: Path,
+    session_id: str,
+    *,
+    blocker_message: str = "Operator start superseded a pending stop request; runner status is primary again.",
+) -> tuple[str | None, str | None]:
+    channel = _dashboard_status_channel_report(root, session_id)
+    channel_url = None
+    if isinstance(channel, dict):
+        channel_url = _safe_local_dashboard_url(channel.get("dashboard_status_channel_url"))
+    status = RUNNER_STATUS_RUNNING if channel_url else "STARTING"
+    durable_atomic_write_json(
+        runner_dashboard_status_channel_path(root, session_id),
+        _dashboard_status_channel_report_payload(
+            root=root,
+            session_id=session_id,
+            url=channel_url,
+            status=status,
+            blocker_code=None if channel_url else "DASHBOARD_STATUS_CHANNEL_RESTART_PENDING",
+            blocker_message=None if channel_url else blocker_message,
+        ),
+    )
+    return status, channel_url
+
+
 def _write_runner_status_stop_requested(
     root: Path,
     session_id: str,
@@ -1170,6 +1196,110 @@ def _runner_start_reconciliation_hash(report: dict[str, Any]) -> str:
     return _json_hash(payload)
 
 
+def _supersede_operator_stop_reports_for_start(
+    root: Path,
+    session_id: str,
+    *,
+    reason: str,
+    generated_at_utc: str,
+) -> dict[str, Any]:
+    current_status = _read_json(runner_status_path(root, session_id))
+    runner_status_after = current_status.get("runner_status") if isinstance(current_status, dict) else None
+    runner_running_after = current_status.get("running") if isinstance(current_status, dict) else None
+    result: dict[str, Any] = {
+        "operator_stop_request_superseded": False,
+        "runner_stop_request_status_before": None,
+        "runner_stop_request_status_after": None,
+        "root_stop_request_status_before": None,
+        "root_stop_request_status_after": None,
+        "dashboard_status_channel_status_before": None,
+        "dashboard_status_channel_status_after": None,
+        "dashboard_status_channel_url_preserved": False,
+    }
+
+    runner_report_path = runner_stop_request_report_path(root, session_id)
+    runner_report = _read_json(runner_report_path)
+    if isinstance(runner_report, dict):
+        result["runner_stop_request_status_before"] = runner_report.get("stop_request_status")
+        if runner_report.get("stop_request_status") == "STOP_REQUESTED":
+            updated_runner_report = dict(runner_report)
+            updated_runner_report.update(
+                {
+                    "updated_at_utc": generated_at_utc,
+                    "stop_request_status": STOP_REQUEST_SUPERSEDED_BY_START,
+                    "stop_confirmed": False,
+                    "runner_status_after": runner_status_after,
+                    "runner_running_after": runner_running_after,
+                    "primary_blocker_code": None,
+                    "primary_blocker_message": (
+                        f"Pending operator stop request was superseded by {reason}; PAPER runner status is primary."
+                    ),
+                }
+            )
+            for flag in LIVE_FALSE_FLAGS:
+                updated_runner_report[flag] = False
+            updated_runner_report["order_endpoint_called"] = False
+            updated_runner_report["stop_request_hash"] = upbit_paper_operator_stop_request_hash(
+                updated_runner_report
+            )
+            durable_atomic_write_json(runner_report_path, updated_runner_report)
+            result["operator_stop_request_superseded"] = True
+            result["runner_stop_request_status_after"] = STOP_REQUEST_SUPERSEDED_BY_START
+
+    root_report_path = _root_stop_request_report_path(root, session_id)
+    root_report = _read_json(root_report_path)
+    if isinstance(root_report, dict):
+        result["root_stop_request_status_before"] = root_report.get("stop_request_status")
+        scope_matches = (
+            root_report.get("target_launcher_name") == "UPBIT_PAPER"
+            and root_report.get("exchange") == "UPBIT"
+            and root_report.get("market_type") == "KRW_SPOT"
+            and root_report.get("mode") == "PAPER"
+            and root_report.get("session_id") == session_id
+        )
+        if scope_matches and root_report.get("stop_request_status") == "STOP_REQUESTED":
+            updated_root_report = dict(root_report)
+            updated_root_report.update(
+                {
+                    "updated_at_utc": generated_at_utc,
+                    "stop_request_status": STOP_REQUEST_SUPERSEDED_BY_START,
+                    "stop_confirmed": False,
+                    "stop_result_summary": (
+                        "Previous UPBIT PAPER stop request was superseded by a later operator start."
+                    ),
+                    "runner_status_after": runner_status_after,
+                    "runner_running_after": runner_running_after,
+                    "dashboard_refresh_requested": True,
+                    "dashboard_refresh_status": "PASS",
+                    "dashboard_refresh_deferred": False,
+                    "dashboard_should_show_stopped": False,
+                    "primary_blocker_code": None,
+                    "primary_blocker_message": (
+                        f"Pending operator stop request was superseded by {reason}; PAPER runner status is primary."
+                    ),
+                }
+            )
+            for flag in LIVE_FALSE_FLAGS:
+                updated_root_report[flag] = False
+            updated_root_report["order_endpoint_called"] = False
+            updated_root_report["stop_request_hash"] = _root_stop_request_report_hash(updated_root_report)
+            durable_atomic_write_json(root_report_path, updated_root_report)
+            result["operator_stop_request_superseded"] = True
+            result["root_stop_request_status_after"] = STOP_REQUEST_SUPERSEDED_BY_START
+
+    channel = _dashboard_status_channel_report(root, session_id)
+    if isinstance(channel, dict):
+        result["dashboard_status_channel_status_before"] = channel.get("dashboard_status_channel_status")
+        if (
+            channel.get("dashboard_status_channel_status") == RUNNER_STATUS_STOPPING
+            or result["operator_stop_request_superseded"]
+        ):
+            status_after, channel_url = _write_dashboard_status_channel_starting_report(root, session_id)
+            result["dashboard_status_channel_status_after"] = status_after
+            result["dashboard_status_channel_url_preserved"] = bool(channel_url)
+    return result
+
+
 def clear_runner_stop_file_for_operator_start(
     root: Path,
     session_id: str = DEFAULT_SESSION_ID,
@@ -1195,6 +1325,14 @@ def clear_runner_stop_file_for_operator_start(
         "stop_file_cleared": False,
         "stop_file_size_bytes": 0,
         "stop_file_sha256": None,
+        "operator_stop_request_superseded": False,
+        "runner_stop_request_status_before": None,
+        "runner_stop_request_status_after": None,
+        "root_stop_request_status_before": None,
+        "root_stop_request_status_after": None,
+        "dashboard_status_channel_status_before": None,
+        "dashboard_status_channel_status_after": None,
+        "dashboard_status_channel_url_preserved": False,
         "blocker_code": None,
         "blocker_message": None,
         "live_order_ready": False,
@@ -1230,6 +1368,15 @@ def clear_runner_stop_file_for_operator_start(
                     "blocker_message": str(exc),
                 }
             )
+    if report["status"] == "PASS":
+        report.update(
+            _supersede_operator_stop_reports_for_start(
+                root,
+                session_id,
+                reason=reason,
+                generated_at_utc=generated_at,
+            )
+        )
     report["reconciliation_hash"] = _runner_start_reconciliation_hash(report)
     durable_atomic_write_json(runner_start_reconciliation_path(root, session_id), report)
     _append_log(
@@ -1241,6 +1388,7 @@ def clear_runner_stop_file_for_operator_start(
             "reason": reason,
             "stop_file_present_before": report["stop_file_present_before"],
             "stop_file_cleared": report["stop_file_cleared"],
+            "operator_stop_request_superseded": report["operator_stop_request_superseded"],
             "blocker_code": report["blocker_code"],
             "at": generated_at,
         },
