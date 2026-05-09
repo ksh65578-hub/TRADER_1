@@ -7,7 +7,17 @@ from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
 from trader1.research.profitability.candidate_scorecard import (
     candidate_generation_report_from_upbit_paper_runtime_cycle,
     candidate_scorecard_from_upbit_paper_runtime_cycle,
+    current_authority_hashes,
+    stable_hash,
     write_upbit_paper_candidate_generation_report,
+)
+from trader1.research.profitability.strategy_mutation_compiler import (
+    MUTATED_PAPER_CANDIDATE_SPEC_SCHEMA_ID,
+    MUTATION_BUDGET_STATE_SCHEMA_ID,
+    STRATEGY_MUTATION_COMPILER_SCHEMA_ID,
+    mutated_paper_candidate_spec_hash,
+    strategy_mutation_compiler_report_hash,
+    write_strategy_mutation_compiler_report,
 )
 from trader1.research.replay.replay_runner import (
     build_public_replay_robustness_report,
@@ -156,6 +166,118 @@ def _write_validated_generation_fixture(root: Path) -> dict:
     }
 
 
+def _write_validated_mutation_report(root: Path, *, candidate_id: str, symbol: str, strategy_id: str) -> dict:
+    parent_parameter_hash = stable_hash(f"{candidate_id}:PULLBACK_TREND_LONG:{symbol}")
+    mutation_id = f"mutation:{candidate_id}:provider-fixture"
+    budget_state = {
+        "schema_id": MUTATION_BUDGET_STATE_SCHEMA_ID,
+        "budget_date_utc": "2026-05-09",
+        "session_id": SESSION_ID,
+        "strategy_id": strategy_id,
+        "daily_exploration_budget": 8,
+        "daily_exploration_used": 0,
+        "strategy_family_mutation_budget": 3,
+        "strategy_family_mutation_used": 0,
+        "max_concurrent_experimental_candidates": 2,
+        "concurrent_experimental_candidate_count": 0,
+        "replay_cost_budget": 420,
+        "replay_cost_used": 0,
+        "candidate_retirement_budget": 3,
+        "candidate_retirement_used": 0,
+        "exploration_budget_id": f"mutation-budget:provider:{candidate_id}",
+        "budget_hash": "B" * 64,
+    }
+    spec = {
+        "schema_id": MUTATED_PAPER_CANDIDATE_SPEC_SCHEMA_ID,
+        "generated_at_utc": "2026-05-09T00:00:00Z",
+        "project_id": "TRADER_1",
+        "spec_id": f"mutated-paper-candidate-spec:{mutation_id}",
+        "mutation_id": mutation_id,
+        "mutation_status": "PASS",
+        "candidate_id": candidate_id,
+        "parent_candidate_id": candidate_id,
+        "symbol": symbol,
+        "strategy_id": strategy_id,
+        "strategy_build_id": "upbit_paper_runtime_cycle_v1",
+        "parent_parameter_hash": parent_parameter_hash,
+        "parameter_hash": stable_hash(f"{parent_parameter_hash}:{mutation_id}"),
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "mode": "PAPER",
+        "allowed_output_modes": ["REPLAY", "PAPER"],
+        "mutation_reason_code": "BOUNDED_EXPLORATION",
+        "bounded_parameter_delta": [
+            {
+                "parameter_id": "exploration_band",
+                "baseline_value": 1.0,
+                "mutated_value": 1.05,
+                "delta_pct": 5.0,
+                "rationale": "provider fixture bounded exploration",
+            }
+        ],
+        "edge_delta_bps": 0.0,
+        "signal_delta": 0.0,
+        "exploration_budget_id": budget_state["exploration_budget_id"],
+        "parent_candidate_lineage": {
+            "parent_candidate_id": candidate_id,
+            "parent_parameter_hash": parent_parameter_hash,
+            "source_evidence_ids": [],
+        },
+        "source_evidence_ids": [],
+        "ranking_eligible": False,
+        "replay_input_allowed": True,
+        "paper_input_allowed": True,
+        "live_config_mutation_allowed": False,
+        "writes_live_ready_snapshot": False,
+        "credential_load_attempted": False,
+        "private_endpoint_called": False,
+        "order_endpoint_called": False,
+        "order_adapter_called": False,
+        "live_key_loaded": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    spec["spec_hash"] = mutated_paper_candidate_spec_hash(spec)
+    report = {
+        "schema_id": STRATEGY_MUTATION_COMPILER_SCHEMA_ID,
+        "generated_at_utc": "2026-05-09T00:00:00Z",
+        "project_id": "TRADER_1",
+        "authority": current_authority_hashes(),
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "mode": "PAPER",
+        "session_id": SESSION_ID,
+        "candidate_id": candidate_id,
+        "strategy_id": strategy_id,
+        "strategy_build_id": "upbit_paper_runtime_cycle_v1",
+        "parent_parameter_hash": parent_parameter_hash,
+        "source_evidence_ids": [],
+        "mutation_budget_state": budget_state,
+        "compile_status": "PASS",
+        "status": "PASS",
+        "mutation_reason_code": "BOUNDED_EXPLORATION",
+        "primary_blocker_code": None,
+        "blockers": [],
+        "mutated_paper_candidate_spec": spec,
+        "next_action": "Pass this PAPER-only mutation spec into bounded replay or PAPER.",
+        "ranking_eligible": False,
+        "credential_load_attempted": False,
+        "private_endpoint_called": False,
+        "order_endpoint_called": False,
+        "order_adapter_called": False,
+        "live_key_loaded": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    report["report_hash"] = strategy_mutation_compiler_report_hash(report)
+    write_strategy_mutation_compiler_report(root=root, report=report)
+    return report
+
+
 class CandidateGenerationPaperIntentProviderTests(unittest.TestCase):
     def test_validated_generation_rehydrates_public_replay_candidate_into_paper_scope_focus(self):
         with TemporaryDirectory() as tmp:
@@ -184,6 +306,36 @@ class CandidateGenerationPaperIntentProviderTests(unittest.TestCase):
         self.assertEqual(intent.paper_scope_focus["sample_deficit"], 30)
         self.assertFalse(report["live_order_allowed"])
         self.assertFalse(intent.paper_scope_focus["live_order_allowed"])
+
+    def test_validated_mutation_report_is_attached_to_rehydrated_paper_scope_focus(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fixture = _write_validated_generation_fixture(root)
+            _write_validated_mutation_report(
+                root,
+                candidate_id=fixture["generation_report"]["best_alternative_candidate_id"],
+                symbol=fixture["generation_report"]["best_alternative_symbol"],
+                strategy_id=fixture["generation_report"]["best_alternative_strategy_id"],
+            )
+
+            intent = CandidateGenerationPaperIntentProvider().provide(
+                root=root,
+                current_paper_portfolio_snapshot={"open_position_count": 0, "positions": []},
+            )
+            report = json.loads(paper_candidate_rehydration_report_path(root).read_text(encoding="utf-8"))
+
+        self.assertIsInstance(intent, PaperTradeIntentInputs)
+        self.assertEqual(report["rehydration_status"], "PASS")
+        self.assertEqual(
+            intent.paper_scope_focus["source"],
+            "CANDIDATE_GENERATION_PUBLIC_REPLAY_REHYDRATION_WITH_MUTATION",
+        )
+        self.assertIn("mutated_paper_candidate_spec", intent.paper_scope_focus)
+        mutation_spec = intent.paper_scope_focus["mutated_paper_candidate_spec"]
+        self.assertEqual(intent.paper_scope_focus["parameter_hash"], mutation_spec["parameter_hash"])
+        self.assertEqual(intent.paper_scope_focus["mutation_id"], mutation_spec["mutation_id"])
+        self.assertFalse(intent.paper_scope_focus["live_order_allowed"])
+        self.assertFalse(mutation_spec["live_order_allowed"])
 
     def test_provider_fails_closed_until_generation_is_public_replay_validated(self):
         with TemporaryDirectory() as tmp:

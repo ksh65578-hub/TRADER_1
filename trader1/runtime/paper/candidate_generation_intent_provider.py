@@ -12,6 +12,9 @@ from trader1.research.profitability.candidate_scorecard import (
     safe_candidate_scorecard_filename,
     validate_candidate_generation_report,
 )
+from trader1.research.profitability.strategy_mutation_compiler import (
+    load_validated_mutation_spec_for_candidate,
+)
 from trader1.research.replay.replay_runner import (
     load_public_replay_robustness_report,
     public_replay_robustness_report_hash,
@@ -501,13 +504,24 @@ class CandidateGenerationPaperIntentProvider:
                     blocker_code = "PAPER_SCOPE_SAMPLE_FLOOR_MET"
                     blocker_message = "candidate already meets PAPER scope sample floor; keep long-run evidence gated separately"
                 else:
+                    mutation_spec = load_validated_mutation_spec_for_candidate(
+                        root=root,
+                        session_id=session_id,
+                        candidate_id=candidate_id,
+                    )
                     focus = {
-                        "source": "CANDIDATE_GENERATION_PUBLIC_REPLAY_REHYDRATION",
+                        "source": (
+                            "CANDIDATE_GENERATION_PUBLIC_REPLAY_REHYDRATION_WITH_MUTATION"
+                            if mutation_spec
+                            else "CANDIDATE_GENERATION_PUBLIC_REPLAY_REHYDRATION"
+                        ),
                         "candidate_id": candidate_id,
                         "symbol": str(replay_report.get("symbol") or candidate_item.get("symbol") or ""),
                         "strategy_id": str(replay_report.get("strategy_id") or candidate_item.get("strategy_id") or ""),
                         "strategy_build_id": str(replay_report.get("strategy_build_id") or ""),
-                        "parameter_hash": str(replay_report.get("parameter_hash") or "").upper(),
+                        "parameter_hash": str(
+                            (mutation_spec or {}).get("parameter_hash") or replay_report.get("parameter_hash") or ""
+                        ).upper(),
                         "sample_count": sample_count,
                         "sample_deficit": sample_deficit,
                         "scope_progress_status": scope_status,
@@ -523,6 +537,10 @@ class CandidateGenerationPaperIntentProvider:
                         "can_live_trade": False,
                         "scale_up_allowed": False,
                     }
+                    if mutation_spec:
+                        focus["mutated_paper_candidate_spec"] = mutation_spec
+                        focus["mutation_id"] = mutation_spec.get("mutation_id")
+                        focus["parent_parameter_hash"] = mutation_spec.get("parent_parameter_hash")
                     report = self._build_pass_report(
                         root=root,
                         session_id=session_id,
