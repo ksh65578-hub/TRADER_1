@@ -676,7 +676,12 @@ def _paper_scope_progress_fields(
     }
 
 
-def _paper_scope_continuity_focus_from_history(root: Path, session_id: str) -> dict[str, Any] | None:
+def _paper_scope_continuity_focus_from_history(
+    root: Path,
+    session_id: str,
+    *,
+    persist_fresh_history: bool = False,
+) -> dict[str, Any] | None:
     try:
         history = build_upbit_paper_runtime_sample_history(root=root, session_id=session_id)
         history_result = validate_upbit_paper_runtime_sample_history_sources(root=root, history=history)
@@ -685,9 +690,11 @@ def _paper_scope_continuity_focus_from_history(root: Path, session_id: str) -> d
     if _result_status(history_result) != "PASS":
         return None
     active = history.get("active_candidate_scope")
-    if not isinstance(active, dict):
+    if isinstance(active, dict) and _paper_scope_focus_has_live_private_drift(active):
         return None
-    if _paper_scope_focus_has_live_private_drift(active):
+    if persist_fresh_history:
+        write_upbit_paper_runtime_sample_history(root=root, history=history)
+    if not isinstance(active, dict):
         return None
     sample_deficit = _int_value(active.get("sample_deficit"), 0)
     if sample_deficit <= 0:
@@ -2910,7 +2917,11 @@ def run_upbit_paper_long_running_runner(
                 _emit_console_status(running)
 
             cycle_loop_id = f"{runner_id}-cycle-{completed + 1:06d}"
-            history_paper_scope_focus = _paper_scope_continuity_focus_from_history(root, session_id)
+            history_paper_scope_focus = _paper_scope_continuity_focus_from_history(
+                root,
+                session_id,
+                persist_fresh_history=True,
+            )
             provider_paper_scope_focus: dict[str, Any] | None = None
             if paper_trade_intent_inputs_provider is not None:
                 try:

@@ -220,6 +220,57 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
         self.assertGreaterEqual(report["paper_scope_sample_count"], 2)
         self.assertFalse(report["live_order_allowed"])
 
+    def test_scope_continuity_focus_persists_fresh_history_before_cycle(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+        from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
+            build_upbit_paper_runtime_sample_history,
+            validate_upbit_paper_runtime_sample_history_sources,
+            write_upbit_paper_runtime_sample_history,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "mvp1_upbit_paper_launcher"
+            first_loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="scope-precycle-history-seed-a",
+                requested_cycle_count=1,
+            )
+            self.assertEqual(first_loop["loop_status"], "PASS")
+            stale_history = build_upbit_paper_runtime_sample_history(root=root, session_id=session_id)
+            self.assertEqual(
+                validate_upbit_paper_runtime_sample_history_sources(root=root, history=stale_history).status,
+                "PASS",
+            )
+            focus = stale_history["active_candidate_scope"]
+            self.assertIsInstance(focus, dict)
+            stale_path = write_upbit_paper_runtime_sample_history(root=root, history=stale_history)
+
+            second_loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="scope-precycle-history-seed-b",
+                requested_cycle_count=1,
+                paper_scope_focus=focus,
+            )
+            self.assertEqual(second_loop["loop_status"], "PASS")
+            self.assertEqual(json.loads(stale_path.read_text(encoding="utf-8"))["active_candidate_scope_sample_count"], 1)
+
+            selected = long_runner._paper_scope_continuity_focus_from_history(
+                root,
+                session_id,
+                persist_fresh_history=True,
+            )
+            materialized = json.loads(paper_runtime_sample_history_path(root, session_id).read_text(encoding="utf-8"))
+
+        self.assertIsInstance(selected, dict)
+        self.assertEqual(selected["candidate_id"], focus["candidate_id"])
+        self.assertEqual(selected["sample_count"], 2)
+        self.assertEqual(materialized["active_candidate_scope"]["candidate_id"], focus["candidate_id"])
+        self.assertEqual(materialized["active_candidate_scope_sample_count"], 2)
+        self.assertEqual(materialized["active_candidate_scope_sample_deficit"], 28)
+        self.assertFalse(selected["live_order_allowed"])
+        self.assertFalse(materialized["live_order_allowed"])
+
     def test_profitability_sample_selection_prefers_entry_review_over_later_no_trade(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
 
