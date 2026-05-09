@@ -786,6 +786,86 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
         self.assertFalse(updated_report["can_live_trade"])
         self.assertFalse(updated_report["scale_up_allowed"])
 
+        mutation_context = {
+            "status": "BLOCKED",
+            "blocker_code": "OOS_MISSING",
+            "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/mutation/"
+            "strategy_mutation_compiler_report.json",
+            "candidate_id": generation_report["best_alternative_candidate_id"],
+            "source": "BLOCKED_ALTERNATIVE_REPLAY_DIAGNOSTIC",
+            "mutation_reason_code": "ROBUSTNESS_GUARD",
+            "mutation_id": None,
+            "mutated_paper_candidate_spec_id": None,
+            "mutation_spec_hash": None,
+            "mutated_parameter_hash": None,
+            "exploration_budget_id": "mutation-budget:test",
+            "ranking_eligible": False,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+        def replay_context_with_report(**kwargs):
+            self.assertEqual(kwargs["candidate_generation_report"]["generation_status"], "ALTERNATIVE_REVIEW_READY")
+            return {
+                "status": "BLOCKED",
+                "blocker_code": "MEASUREMENT_MISSING",
+                "message": "mature replay is available but robustness is still blocked",
+                "candidate_id": generation_report["best_alternative_candidate_id"],
+                "symbol": generation_report["best_alternative_symbol"],
+                "replay_status": "PASS",
+                "sample_count": 90,
+                "replay_closed_trade_sample_count": 30,
+                "replay_closed_trade_deficit": 0,
+                "replay_closed_trade_maturity_status": "PASS",
+                "replay_closed_trade_maturity_blocker_code": None,
+                "contract_status": "PASS",
+                "report": {"candidate_id": generation_report["best_alternative_candidate_id"]},
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with patch(
+                "tools.run_upbit_paper_candidate_scorecard._build_bounded_public_discovery_runtime_cycle",
+                side_effect=AssertionError("discovery should not run for an existing review-ready alternative"),
+            ), patch(
+                "tools.run_upbit_paper_candidate_scorecard._build_and_write_alternative_public_replay",
+                side_effect=replay_context_with_report,
+            ), patch(
+                "tools.run_upbit_paper_candidate_scorecard._build_and_write_alternative_review_scorecard",
+                return_value={"status": "BLOCKED", "blocker_code": "OOS_MISSING"},
+            ), patch(
+                "tools.run_upbit_paper_candidate_scorecard._build_and_write_strategy_mutation_report",
+                return_value=mutation_context,
+            ) as mutation_writer:
+                _, mutation_fields, _ = long_runner._review_public_alternatives_for_candidate_generation(
+                    root=root,
+                    session_id=session_id,
+                    runtime=runtime,
+                    scorecard=scorecard,
+                    diagnostic={"diagnostic_id": "runtime-public-review-diagnostic"},
+                    history={"history_id": "existing-review-ready-history", "history_hash": "H" * 64, "samples": []},
+                    candidate_generation_report=generation_report,
+                )
+
+        self.assertEqual(mutation_fields["strategy_mutation_compiler_status"], "BLOCKED")
+        self.assertEqual(mutation_fields["strategy_mutation_compiler_blocker_code"], "OOS_MISSING")
+        self.assertEqual(
+            mutation_fields["strategy_mutation_compiler_candidate_id"],
+            generation_report["best_alternative_candidate_id"],
+        )
+        self.assertEqual(
+            mutation_fields["strategy_mutation_compiler_source"],
+            "BLOCKED_ALTERNATIVE_REPLAY_DIAGNOSTIC",
+        )
+        self.assertFalse(mutation_fields["strategy_mutation_ranking_eligible"])
+        self.assertEqual(mutation_writer.call_count, 1)
+
         calls = []
 
         def pass_replay_report(candidate_id: str, symbol: str, strategy_id: str, strategy_family: str) -> dict:
