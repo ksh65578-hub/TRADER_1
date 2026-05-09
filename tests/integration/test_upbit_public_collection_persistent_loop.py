@@ -14,7 +14,9 @@ from trader1.adapters.upbit.market_data import (
     rank_upbit_krw_symbols_by_public_ticker,
     validate_upbit_public_candle_data,
 )
+from trader1.core.ledger.paper_ledger import build_upbit_paper_fill_chain
 from trader1.core.sizing.position_sizing import sizing_decision_hash
+from trader1.runtime.ledger.paper_ledger_rollup import paper_ledger_head_report_hash
 from trader1.runtime.paper import upbit_paper_persistent_loop as persistent_loop_module
 from trader1.runtime.paper.upbit_paper_persistent_loop import (
     build_upbit_paper_runtime_recovery_guard_report,
@@ -73,6 +75,79 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             }
             for index in range(5, -1, -1)
         ]
+
+    def _public_rest_payload_for_symbol(self, symbol: str, base_price: int) -> list[dict[str, object]]:
+        return [
+            {
+                "market": symbol,
+                "candle_date_time_utc": f"2026-04-30T10:{index:02d}:00",
+                "opening_price": base_price + index,
+                "high_price": base_price + index + 3,
+                "low_price": base_price + index - 3,
+                "trade_price": base_price + index + 1,
+                "candle_acc_trade_volume": 100 + index,
+            }
+            for index in range(5, -1, -1)
+        ]
+
+    def _write_paper_ledger_fill(
+        self,
+        root: Path,
+        *,
+        cycle_id: str,
+        symbol: str,
+        price: str,
+        quantity: str,
+        fee_amount: str,
+    ) -> None:
+        ledger_dir = (
+            root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "ledger"
+            / "cycles"
+        )
+        ledger_dir.mkdir(parents=True, exist_ok=True)
+        events = build_upbit_paper_fill_chain(
+            session_id="mvp1_upbit_paper_launcher",
+            symbol=symbol,
+            intent_id=f"{cycle_id}-intent",
+            client_order_id=f"{cycle_id}-client",
+            side="BUY",
+            quantity=quantity,
+            price=price,
+            fee_amount=fee_amount,
+        )
+        ledger_path = ledger_dir / f"{cycle_id}.paper_ledger_events.jsonl"
+        ledger_path.write_text("\n".join(json.dumps(event, sort_keys=True) for event in events) + "\n", encoding="utf-8")
+        head = {
+            "schema_id": "trader1.paper_ledger_head.v1",
+            "generated_at_utc": "2026-05-09T00:00:00Z",
+            "project_id": "TRADER_1",
+            "exchange": "UPBIT",
+            "market_type": "KRW_SPOT",
+            "mode": "PAPER",
+            "session_id": "mvp1_upbit_paper_launcher",
+            "cycle_id": cycle_id,
+            "ledger_event_count": len(events),
+            "ledger_events_path": ledger_path.relative_to(root).as_posix(),
+            "ledger_head_hash": events[-1]["event_hash"],
+            "display_only": True,
+            "dashboard_truth_only": True,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+        head["head_report_hash"] = paper_ledger_head_report_hash(head)
+        (ledger_dir.parent / "latest_paper_ledger_head.json").write_text(
+            json.dumps(head, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
 
     def test_public_collection_canonicalizes_fixture_without_private_or_live_behavior(self):
         report = build_upbit_public_market_data_collection_report(
@@ -1051,6 +1126,64 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             self.assertEqual(latest["sizing_decision"]["inputs"]["paper_cash_guard_source"], "PAPER_LEDGER_ROLLUP")
             self.assertNotEqual(latest["sizing_decision"]["inputs"]["paper_cash_available"], "-1")
             self.assertFalse(second["live_order_allowed"])
+
+    def test_bounded_paper_loop_continues_collection_when_portfolio_truth_unverified(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "mvp1_upbit_paper_launcher"
+            ada_data = build_upbit_public_candle_data_from_rest_payload(
+                payload=self._public_rest_payload_for_symbol("KRW-ADA", 405),
+                symbol="KRW-ADA",
+                session_id=session_id,
+            )
+            preflight_cycle = build_upbit_paper_runtime_cycle_report(
+                cycle_id="bounded-paper-loop-unverified-portfolio-preflight-cycle",
+                session_id=session_id,
+                symbol="KRW-ADA",
+                market_data=ada_data,
+                paper_portfolio_truth_unverified=True,
+                paper_portfolio_truth_blocker_code="MEASUREMENT_MISSING",
+                paper_portfolio_truth_message="preflight no-trade sample",
+            )
+            self.assertEqual(validate_upbit_paper_runtime_cycle_report(preflight_cycle).status, "PASS")
+            latest_path = root / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+            latest_path.parent.mkdir(parents=True, exist_ok=True)
+            latest_path.write_text(json.dumps(preflight_cycle, indent=2, sort_keys=True), encoding="utf-8")
+            self._write_paper_ledger_fill(
+                root,
+                cycle_id="bounded-paper-loop-stale-ada-ledger-cycle",
+                symbol="KRW-ADA",
+                price="1000870",
+                quantity="0.007",
+                fee_amount="3",
+            )
+
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-unverified-portfolio-continues",
+                symbol="KRW-ADA",
+                symbol_universe=["KRW-ADA"],
+                requested_cycle_count=2,
+                market_data_universe_sequence=[[ada_data], [ada_data]],
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+            latest = json.loads(latest_path.read_text(encoding="utf-8"))
+
+            self.assertEqual(result.status, "PASS", result.message)
+            self.assertEqual(loop["loop_status"], "PASS")
+            self.assertEqual(loop["completed_cycle_count"], 2)
+            self.assertEqual(loop["cycle_results"][0]["paper_portfolio_truth_status"], "UNVERIFIED_COLLECTION_ONLY")
+            self.assertEqual(loop["cycle_results"][0]["paper_portfolio_truth_blocker_code"], "PUBLIC_MARK_PRICE_BASIS_MISMATCH")
+            self.assertEqual(loop["cycle_results"][0]["runtime_status"], "PASS")
+            self.assertEqual(loop["cycle_results"][0]["final_decision"], "NO_TRADE")
+            self.assertEqual(latest["paper_portfolio_truth_status"], "UNVERIFIED_COLLECTION_ONLY")
+            self.assertEqual(latest["final_decision"], "NO_TRADE")
+            self.assertIn("PAPER_PORTFOLIO_TRUTH_UNVERIFIED", latest["no_trade_reasons"])
+            self.assertIsNone(latest["paper_fill"])
+            self.assertEqual(latest["paper_ledger_events"], [])
+            self.assertFalse(loop["live_order_allowed"])
+            self.assertFalse(loop["can_live_trade"])
+            self.assertFalse(loop["scale_up_allowed"])
 
     def test_bounded_paper_loop_allows_paper_only_resume_from_legacy_quant_policy_cycle(self):
         with TemporaryDirectory() as tmp:
