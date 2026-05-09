@@ -2703,6 +2703,51 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Stop request was sent", html)
         self.assertFalse(dashboard["live_order_allowed"])
 
+    def test_dashboard_runner_stopping_overrides_pending_stop_request_header(self):
+        session_id = "test_read_only_dashboard_runner_ops_stopping"
+        stop_report = {
+            "schema_id": "trader1.root_stop_request_report.v1",
+            "generated_at_utc": utc_now(),
+            "project_id": "TRADER_1",
+            "stop_launcher_name": "STOP_UPBIT_PAPER",
+            "target_launcher_name": "UPBIT_PAPER",
+            "exchange": "UPBIT",
+            "market_type": "KRW_SPOT",
+            "mode": "PAPER",
+            "session_id": session_id,
+            "stop_request_status": "STOP_REQUESTED",
+            "stop_request_method": "UPBIT_PAPER_STOP_FILE",
+            "stop_confirmed": False,
+            "stop_result_summary": "UPBIT PAPER stop was requested.",
+            "runner_status_after": "STOPPING",
+            "runner_running_after": False,
+            "dashboard_refresh_requested": True,
+            "dashboard_should_show_stopped": False,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+            "order_adapter_called": False,
+            "private_endpoint_called": False,
+            "credential_load_attempted": False,
+            "live_key_loaded": False,
+            "order_endpoint_called": False,
+        }
+
+        dashboard = build_dashboard_with_runner_operations(
+            stopping=True,
+            root_stop_request_report=stop_report,
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        html = render_dashboard_html(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(dashboard["primary_status_text"], "PAPER STOPPING - READ ONLY, LIVE ORDERS BLOCKED")
+        self.assertEqual(dashboard["operator_stop_status"]["status"], "STOP_REQUESTED")
+        self.assertIn("Wait for STOPPED", dashboard["next_action"])
+        self.assertIn("PAPER STOPPING - READ ONLY, LIVE ORDERS BLOCKED", html)
+        self.assertFalse(dashboard["live_order_allowed"])
+
     def test_dashboard_shows_runner_stopping_without_running_claim(self):
         dashboard = build_dashboard_with_runner_operations(stopping=True)
         result = validate_read_only_dashboard_shell(dashboard)
