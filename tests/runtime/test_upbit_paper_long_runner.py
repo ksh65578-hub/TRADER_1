@@ -1388,6 +1388,18 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertEqual(report["candidate_scorecard_status"], "PASS")
             self.assertTrue(report["candidate_scorecard_candidate_id"])
             self.assertEqual(report["candidate_scorecard_snapshot_status"], "PASS")
+            self.assertIn(
+                report["candidate_scorecard_active_scope_status"],
+                {
+                    "CURRENT_FOR_ACTIVE_PAPER_SCOPE",
+                    "STALE_FOR_ACTIVE_PAPER_SCOPE",
+                    "SCORECARD_NOT_LOADED_FOR_ACTIVE_SCOPE",
+                },
+            )
+            self.assertFalse(
+                report["candidate_scorecard_current_for_paper_scope"]
+                and report["candidate_scorecard_candidate_id"] != report["paper_scope_candidate_id"]
+            )
             snapshot_path = Path(report["candidate_scorecard_snapshot_path"])
             self.assertTrue(snapshot_path.exists())
             snapshot = _load_json(snapshot_path)
@@ -1454,6 +1466,14 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             )
             self.assertEqual(loaded["candidate_scorecard_candidate_id"], report["candidate_scorecard_candidate_id"])
             self.assertEqual(loaded["paper_scope_candidate_id"], report["paper_scope_candidate_id"])
+            self.assertEqual(
+                loaded["candidate_scorecard_current_for_paper_scope"],
+                report["candidate_scorecard_current_for_paper_scope"],
+            )
+            self.assertEqual(
+                loaded["candidate_scorecard_active_scope_status"],
+                report["candidate_scorecard_active_scope_status"],
+            )
             self.assertEqual(loaded["paper_scope_sample_deficit"], report["paper_scope_sample_deficit"])
             self.assertEqual(loaded["candidate_scorecard_snapshot_status"], "PASS")
             self.assertTrue(
@@ -2875,6 +2895,34 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertEqual(validation["status"], "BLOCKED")
             self.assertEqual(validation["blocker_code"], "RUNNER_STATUS_LIVE_FLAG_MUTATED")
 
+    def test_runner_status_validation_blocks_stale_scorecard_ranking(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            report = run_upbit_paper_long_running_runner(
+                root=root,
+                session_id="stale_scorecard_ranking_session",
+                runner_id="stale-scorecard-ranking-runner",
+                cycle_interval_seconds=0,
+                max_cycles=1,
+                attempt_public_symbol_discovery=False,
+                attempt_network_market_data=False,
+                refresh_dashboard=False,
+            )
+            mutated = dict(report)
+            mutated["candidate_scorecard_current_for_paper_scope"] = False
+            mutated["candidate_scorecard_active_scope_status"] = "STALE_FOR_ACTIVE_PAPER_SCOPE"
+            mutated["candidate_scorecard_active_scope_blocker_code"] = "SCORECARD_ACTIVE_SCOPE_MISMATCH"
+            mutated["candidate_scorecard_active_scope_message"] = "Scorecard belongs to a previous PAPER scope."
+            mutated["candidate_scorecard_active_scope_candidate_id"] = mutated["paper_scope_candidate_id"]
+            mutated["candidate_scorecard_candidate_id"] = "KRW-OLD-pullback-trend-long"
+            mutated["candidate_scorecard_ranking_eligible"] = True
+            mutated["status_hash"] = upbit_paper_long_runner_status_hash(mutated)
+
+            validation = validate_upbit_paper_long_runner_status_report(mutated)
+
+            self.assertEqual(validation["status"], "BLOCKED")
+            self.assertEqual(validation["blocker_code"], "RUNNER_STATUS_SCORECARD_STALE_RANKING_ENABLED")
+
     def test_runner_status_validation_blocks_missing_candidate_scorecard_snapshot(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -3451,6 +3499,19 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertIsInstance(payload["runner_status_source_age_seconds"], int)
             self.assertFalse(payload["stop_requested"])
             self.assertEqual(payload["completed_cycle_count"], 2)
+            self.assertIn(
+                payload["candidate_scorecard_active_scope_status"],
+                {
+                    "CURRENT_FOR_ACTIVE_PAPER_SCOPE",
+                    "STALE_FOR_ACTIVE_PAPER_SCOPE",
+                    "SCORECARD_NOT_LOADED_FOR_ACTIVE_SCOPE",
+                    "NO_ACTIVE_PAPER_SCOPE",
+                },
+            )
+            self.assertFalse(
+                payload["candidate_scorecard_current_for_paper_scope"]
+                and payload["candidate_scorecard_candidate_id"] != payload["paper_scope_candidate_id"]
+            )
             self.assertTrue(payload["live_flag_drift_detected"])
             self.assertFalse(payload["live_order_ready"])
             self.assertFalse(payload["live_order_allowed"])
