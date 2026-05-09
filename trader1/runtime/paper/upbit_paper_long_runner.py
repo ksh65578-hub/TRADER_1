@@ -100,6 +100,7 @@ DEFAULT_ALTERNATIVE_REPLAY_MATURITY_EXPANSION_MAX_TARGET_COUNT = 6000
 DEFAULT_ALTERNATIVE_REPLAY_MATURITY_EXPANSION_TIMEOUT_SECONDS = 10.0
 DEFAULT_ALTERNATIVE_REPLAY_MATURITY_EXPANSION_MAX_WINDOWS = 6000
 DEFAULT_ALTERNATIVE_REPLAY_MATURITY_EXPANSION_CANDIDATE_LIMIT = 1
+DEFAULT_ALTERNATIVE_REPLAY_MATURITY_EXPANSION_ROTATION_LIMIT = 3
 DEFAULT_RETENTION_MAX_ACTIVE_ARTIFACTS_BY_GROUP = {
     "paper_runtime_cycles": 240,
     "persistent_loop_reports": 120,
@@ -1012,6 +1013,10 @@ def _candidate_generation_public_review_blocked_fields(
         ),
         "alternative_public_replay_maturity_expansion_status": replay.get("maturity_expansion_status"),
         "alternative_public_replay_maturity_expansion_reason": replay.get("maturity_expansion_reason"),
+        "alternative_public_replay_maturity_expansion_candidate_id": replay.get("maturity_expansion_candidate_id"),
+        "alternative_public_replay_maturity_expansion_rotation_count": _int_value(
+            replay.get("maturity_expansion_rotation_count"), 0
+        ),
         "alternative_public_replay_maturity_expansion_target_count": _int_value(
             replay.get("maturity_expansion_target_count"), 0
         ),
@@ -1117,6 +1122,36 @@ def _alternative_replay_closed_trade_priority(context: dict[str, Any]) -> tuple[
         _int_value(context.get("replay_closed_trade_sample_count"), 0),
         _float_value(context.get("replay_realized_vs_expected_edge_bps"), -999.0),
     )
+
+
+def _alternative_replay_closed_trade_maturity_expansion_candidates(
+    context: dict[str, Any],
+    *,
+    limit: int = DEFAULT_ALTERNATIVE_REPLAY_MATURITY_EXPANSION_ROTATION_LIMIT,
+) -> list[dict[str, Any]]:
+    primary_candidate_id = str(context.get("candidate_id") or "")
+    candidates_by_id: dict[str, dict[str, Any]] = {}
+
+    def add_candidate(item: dict[str, Any]) -> None:
+        candidate_id = str(item.get("candidate_id") or "")
+        if not candidate_id or not _alternative_replay_closed_trade_maturity_expansion_needed(item):
+            return
+        candidates_by_id[candidate_id] = dict(item)
+
+    add_candidate(context)
+    evaluations = context.get("candidate_review_evaluations")
+    if isinstance(evaluations, list):
+        for item in evaluations:
+            if isinstance(item, dict):
+                add_candidate(item)
+
+    primary = [candidates_by_id.pop(primary_candidate_id)] if primary_candidate_id in candidates_by_id else []
+    remaining = sorted(
+        candidates_by_id.values(),
+        key=_alternative_replay_closed_trade_priority,
+        reverse=True,
+    )
+    return (primary + remaining)[: max(1, int(limit))]
 
 
 def _candidate_generation_report_preferred_replay_candidate(
@@ -1256,45 +1291,58 @@ def _review_public_alternatives_for_candidate_generation(
         min_required_sample_count=DEFAULT_ALTERNATIVE_REPLAY_MIN_REQUIRED_SAMPLE_COUNT,
         candidate_limit=DEFAULT_ALTERNATIVE_REPLAY_CANDIDATE_LIMIT,
     )
-    if _alternative_replay_closed_trade_maturity_expansion_needed(alternative_replay_context):
-        expansion_target_count = _alternative_replay_closed_trade_maturity_expansion_target(
-            alternative_replay_context
-        )
-        expansion_generation_report = _candidate_generation_report_preferred_replay_candidate(
-            candidate_generation_report,
-            candidate_id=str(alternative_replay_context.get("candidate_id") or ""),
-        )
-        expanded_context = _build_and_write_alternative_public_replay(
-            root=root,
-            session_id=session_id,
-            candidate_generation_report=expansion_generation_report,
-            history=history,
-            runtime_cycle_report=runtime,
-            candidate_discovery_runtime=candidate_discovery_runtime,
-            target_count=expansion_target_count,
-            page_size=DEFAULT_ALTERNATIVE_REPLAY_PAGE_SIZE,
-            timeout_seconds=DEFAULT_ALTERNATIVE_REPLAY_MATURITY_EXPANSION_TIMEOUT_SECONDS,
-            max_replay_windows=expansion_target_count,
-            min_required_sample_count=DEFAULT_ALTERNATIVE_REPLAY_MIN_REQUIRED_SAMPLE_COUNT,
-            candidate_limit=DEFAULT_ALTERNATIVE_REPLAY_MATURITY_EXPANSION_CANDIDATE_LIMIT,
-        )
-        expanded_context = dict(expanded_context)
-        expanded_context["maturity_expansion_attempted"] = True
-        expanded_context["maturity_expansion_target_count"] = expansion_target_count
-        expanded_context["maturity_expansion_max_windows"] = expansion_target_count
-        if _alternative_replay_closed_trade_priority(expanded_context) >= _alternative_replay_closed_trade_priority(
+    expansion_candidates = _alternative_replay_closed_trade_maturity_expansion_candidates(
+        alternative_replay_context
+    )
+    if expansion_candidates:
+        expanded_contexts: list[dict[str, Any]] = []
+        for expansion_candidate in expansion_candidates:
+            expansion_target_count = _alternative_replay_closed_trade_maturity_expansion_target(
+                expansion_candidate
+            )
+            expansion_generation_report = _candidate_generation_report_preferred_replay_candidate(
+                candidate_generation_report,
+                candidate_id=str(expansion_candidate.get("candidate_id") or ""),
+            )
+            expanded_context = _build_and_write_alternative_public_replay(
+                root=root,
+                session_id=session_id,
+                candidate_generation_report=expansion_generation_report,
+                history=history,
+                runtime_cycle_report=runtime,
+                candidate_discovery_runtime=candidate_discovery_runtime,
+                target_count=expansion_target_count,
+                page_size=DEFAULT_ALTERNATIVE_REPLAY_PAGE_SIZE,
+                timeout_seconds=DEFAULT_ALTERNATIVE_REPLAY_MATURITY_EXPANSION_TIMEOUT_SECONDS,
+                max_replay_windows=expansion_target_count,
+                min_required_sample_count=DEFAULT_ALTERNATIVE_REPLAY_MIN_REQUIRED_SAMPLE_COUNT,
+                candidate_limit=DEFAULT_ALTERNATIVE_REPLAY_MATURITY_EXPANSION_CANDIDATE_LIMIT,
+            )
+            expanded_context = dict(expanded_context)
+            expanded_context["maturity_expansion_attempted"] = True
+            expanded_context["maturity_expansion_candidate_id"] = str(expansion_candidate.get("candidate_id") or "")
+            expanded_context["maturity_expansion_rotation_count"] = len(expansion_candidates)
+            expanded_context["maturity_expansion_target_count"] = expansion_target_count
+            expanded_context["maturity_expansion_max_windows"] = expansion_target_count
+            expanded_contexts.append(expanded_context)
+        best_expanded_context = max(expanded_contexts, key=_alternative_replay_closed_trade_priority)
+        if _alternative_replay_closed_trade_priority(best_expanded_context) >= _alternative_replay_closed_trade_priority(
             alternative_replay_context
         ):
-            expanded_context["maturity_expansion_status"] = str(expanded_context.get("status") or "BLOCKED")
-            expanded_context["maturity_expansion_reason"] = "ADAPTIVE_CLOSED_TRADE_MATURITY_EXPANSION_SELECTED"
-            alternative_replay_context = expanded_context
+            best_expanded_context["maturity_expansion_status"] = str(best_expanded_context.get("status") or "BLOCKED")
+            best_expanded_context["maturity_expansion_reason"] = "ADAPTIVE_CLOSED_TRADE_MATURITY_EXPANSION_SELECTED"
+            alternative_replay_context = best_expanded_context
         else:
             alternative_replay_context = dict(alternative_replay_context)
             alternative_replay_context["maturity_expansion_attempted"] = True
-            alternative_replay_context["maturity_expansion_status"] = str(expanded_context.get("status") or "BLOCKED")
+            alternative_replay_context["maturity_expansion_status"] = str(best_expanded_context.get("status") or "BLOCKED")
             alternative_replay_context["maturity_expansion_reason"] = "INITIAL_REPLAY_RETAINED_HIGHER_CLOSED_TRADE_PRIORITY"
-            alternative_replay_context["maturity_expansion_target_count"] = expansion_target_count
-            alternative_replay_context["maturity_expansion_max_windows"] = expansion_target_count
+            alternative_replay_context["maturity_expansion_target_count"] = best_expanded_context.get(
+                "maturity_expansion_target_count"
+            )
+            alternative_replay_context["maturity_expansion_max_windows"] = best_expanded_context.get(
+                "maturity_expansion_max_windows"
+            )
     if isinstance(alternative_replay_context.get("report"), dict):
         reviewed_generation = candidate_generation_report_from_upbit_paper_runtime_cycle(
             runtime,
