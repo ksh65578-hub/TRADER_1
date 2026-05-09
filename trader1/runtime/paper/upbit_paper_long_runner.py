@@ -617,6 +617,64 @@ def _dashboard_next_cycle_channel_fields(status: dict[str, Any], *, running: boo
     }
 
 
+def _candidate_scorecard_channel_scope_fields(status: dict[str, Any]) -> dict[str, Any]:
+    active_candidate_id = status.get("paper_scope_candidate_id")
+    active_candidate_id = str(active_candidate_id) if active_candidate_id else None
+    scorecard_candidate_id = status.get("candidate_scorecard_candidate_id")
+    scorecard_candidate_id = str(scorecard_candidate_id) if scorecard_candidate_id else None
+    scorecard_status = str(status.get("candidate_scorecard_status") or "NOT_LOADED")
+
+    existing_scope_status = status.get("candidate_scorecard_active_scope_status")
+    if existing_scope_status:
+        return {
+            "candidate_scorecard_status": scorecard_status,
+            "candidate_scorecard_candidate_id": scorecard_candidate_id,
+            "candidate_scorecard_current_for_paper_scope": (
+                status.get("candidate_scorecard_current_for_paper_scope") is True
+            ),
+            "candidate_scorecard_active_scope_status": existing_scope_status,
+            "candidate_scorecard_active_scope_blocker_code": status.get(
+                "candidate_scorecard_active_scope_blocker_code"
+            ),
+            "candidate_scorecard_active_scope_message": status.get("candidate_scorecard_active_scope_message"),
+            "candidate_scorecard_active_scope_candidate_id": status.get(
+                "candidate_scorecard_active_scope_candidate_id"
+            ),
+        }
+    if not active_candidate_id:
+        scope_status = "NO_ACTIVE_PAPER_SCOPE"
+        current = False
+        blocker = "PAPER_SCOPE_NOT_LOADED"
+        message = "No active PAPER candidate scope is loaded for scorecard binding."
+    elif scorecard_status != "PASS" or not scorecard_candidate_id:
+        scope_status = "SCORECARD_NOT_LOADED_FOR_ACTIVE_SCOPE"
+        current = False
+        blocker = "SCORECARD_NOT_LOADED"
+        message = f"PAPER is collecting {active_candidate_id}, but no valid scorecard is loaded for that scope yet."
+    elif scorecard_candidate_id == active_candidate_id:
+        scope_status = "CURRENT_FOR_ACTIVE_PAPER_SCOPE"
+        current = True
+        blocker = None
+        message = f"Scorecard is bound to the active PAPER candidate {active_candidate_id}."
+    else:
+        scope_status = "STALE_FOR_ACTIVE_PAPER_SCOPE"
+        current = False
+        blocker = "SCORECARD_ACTIVE_SCOPE_MISMATCH"
+        message = (
+            f"Scorecard belongs to {scorecard_candidate_id}, while PAPER is collecting {active_candidate_id}; "
+            "treat scorecard values as previous-scope display only until the active scope refreshes."
+        )
+    return {
+        "candidate_scorecard_status": scorecard_status,
+        "candidate_scorecard_candidate_id": scorecard_candidate_id,
+        "candidate_scorecard_current_for_paper_scope": current,
+        "candidate_scorecard_active_scope_status": scope_status,
+        "candidate_scorecard_active_scope_blocker_code": blocker,
+        "candidate_scorecard_active_scope_message": message,
+        "candidate_scorecard_active_scope_candidate_id": active_candidate_id,
+    }
+
+
 def _dashboard_status_channel_payload(root: Path, session_id: str = DEFAULT_SESSION_ID) -> dict[str, Any]:
     source_path = runner_status_path(root, session_id)
     stop_path = runner_stop_file_path(root, session_id)
@@ -682,6 +740,7 @@ def _dashboard_status_channel_payload(root: Path, session_id: str = DEFAULT_SESS
                 "seconds_until_next_cycle": None,
             }
         )
+    scorecard_scope_fields = _candidate_scorecard_channel_scope_fields(status)
     payload = {
         "schema_id": DASHBOARD_STATUS_CHANNEL_PAYLOAD_SCHEMA_ID,
         "generated_at_utc": utc_now(),
@@ -727,6 +786,7 @@ def _dashboard_status_channel_payload(root: Path, session_id: str = DEFAULT_SESS
             DEFAULT_MIN_PROFITABILITY_SCOPE_SAMPLE_COUNT,
         ),
         "paper_scope_sample_deficit": _int_value(status.get("paper_scope_sample_deficit"), 0),
+        **scorecard_scope_fields,
         "stop_launcher_path": str(root / "STOP_UPBIT_PAPER.py"),
         "stop_file_path": str(stop_path),
         "stop_requested": stop_requested,
@@ -3020,6 +3080,53 @@ def _candidate_scorecard_snapshot_fields(
     }
 
 
+def _candidate_scorecard_active_scope_fields(
+    *,
+    scorecard: dict[str, Any] | None,
+    scorecard_status: str,
+    paper_scope_fields: dict[str, Any],
+) -> dict[str, Any]:
+    active_candidate_id = paper_scope_fields.get("paper_scope_candidate_id")
+    active_candidate_id = str(active_candidate_id) if active_candidate_id else None
+    scorecard_candidate_id = None
+    if isinstance(scorecard, dict) and scorecard.get("candidate_id"):
+        scorecard_candidate_id = str(scorecard.get("candidate_id"))
+
+    if not active_candidate_id:
+        status = "NO_ACTIVE_PAPER_SCOPE"
+        current = False
+        blocker = "PAPER_SCOPE_NOT_LOADED"
+        message = "No active PAPER candidate scope is loaded for scorecard binding."
+    elif scorecard_status != "PASS" or not scorecard_candidate_id:
+        status = "SCORECARD_NOT_LOADED_FOR_ACTIVE_SCOPE"
+        current = False
+        blocker = "SCORECARD_NOT_LOADED"
+        message = (
+            f"PAPER is collecting {active_candidate_id}, but no valid scorecard is loaded for that scope yet."
+        )
+    elif scorecard_candidate_id == active_candidate_id:
+        status = "CURRENT_FOR_ACTIVE_PAPER_SCOPE"
+        current = True
+        blocker = None
+        message = f"Scorecard is bound to the active PAPER candidate {active_candidate_id}."
+    else:
+        status = "STALE_FOR_ACTIVE_PAPER_SCOPE"
+        current = False
+        blocker = "SCORECARD_ACTIVE_SCOPE_MISMATCH"
+        message = (
+            f"Scorecard belongs to {scorecard_candidate_id}, while PAPER is collecting {active_candidate_id}; "
+            "treat scorecard values as previous-scope display only until the active scope refreshes."
+        )
+
+    return {
+        "candidate_scorecard_current_for_paper_scope": current,
+        "candidate_scorecard_active_scope_status": status,
+        "candidate_scorecard_active_scope_blocker_code": blocker,
+        "candidate_scorecard_active_scope_message": message,
+        "candidate_scorecard_active_scope_candidate_id": active_candidate_id,
+    }
+
+
 def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[str, Any]:
     history_path = paper_runtime_sample_history_path(root, session_id)
     scorecard_path = paper_candidate_scorecard_path(root, session_id)
@@ -3200,6 +3307,11 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
         history=history if isinstance(history, dict) else None,
         evidence=evidence if isinstance(evidence, dict) else None,
     )
+    scorecard_active_scope_fields = _candidate_scorecard_active_scope_fields(
+        scorecard=scorecard if isinstance(scorecard, dict) else None,
+        scorecard_status=scorecard_status,
+        paper_scope_fields=paper_scope_fields,
+    )
     strategy_mutation_fields = _strategy_mutation_compiler_artifact_fields(
         root=root,
         session_id=session_id,
@@ -3241,6 +3353,7 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
             else None
         ),
         **scorecard_snapshot_fields,
+        **scorecard_active_scope_fields,
         "overfit_diagnostic_path": str(overfit_path),
         "overfit_diagnostic_contract_status": overfit_contract_status,
         "overfit_diagnostic_status": str(overfit.get("diagnostic_status") or "NOT_LOADED") if isinstance(overfit, dict) else "NOT_LOADED",
@@ -4765,6 +4878,42 @@ def validate_upbit_paper_long_runner_status_report(report: dict[str, Any]) -> di
     candidate_scorecard_candidate_id = report.get("candidate_scorecard_candidate_id")
     if candidate_scorecard_candidate_id is not None and not isinstance(candidate_scorecard_candidate_id, str):
         return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SCORECARD_CANDIDATE_INVALID"}
+    active_scorecard_candidate_id = report.get("candidate_scorecard_active_scope_candidate_id")
+    scorecard_active_scope_fields_present = any(
+        field in report
+        for field in (
+            "candidate_scorecard_current_for_paper_scope",
+            "candidate_scorecard_active_scope_status",
+            "candidate_scorecard_active_scope_message",
+            "candidate_scorecard_active_scope_candidate_id",
+        )
+    )
+    if scorecard_active_scope_fields_present:
+        if active_scorecard_candidate_id is not None and not isinstance(active_scorecard_candidate_id, str):
+            return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SCORECARD_ACTIVE_SCOPE_INVALID"}
+        if not isinstance(report.get("candidate_scorecard_current_for_paper_scope"), bool):
+            return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SCORECARD_ACTIVE_SCOPE_INVALID"}
+        if report.get("candidate_scorecard_active_scope_status") not in {
+            "NO_ACTIVE_PAPER_SCOPE",
+            "SCORECARD_NOT_LOADED_FOR_ACTIVE_SCOPE",
+            "CURRENT_FOR_ACTIVE_PAPER_SCOPE",
+            "STALE_FOR_ACTIVE_PAPER_SCOPE",
+        }:
+            return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SCORECARD_ACTIVE_SCOPE_INVALID"}
+        if not isinstance(report.get("candidate_scorecard_active_scope_message"), str) or not report[
+            "candidate_scorecard_active_scope_message"
+        ]:
+            return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SCORECARD_ACTIVE_SCOPE_INVALID"}
+        if report.get("candidate_scorecard_current_for_paper_scope") is True:
+            if report.get("candidate_scorecard_active_scope_status") != "CURRENT_FOR_ACTIVE_PAPER_SCOPE":
+                return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SCORECARD_ACTIVE_SCOPE_INVALID"}
+            if (
+                report.get("paper_scope_candidate_id")
+                and candidate_scorecard_candidate_id != report.get("paper_scope_candidate_id")
+            ):
+                return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SCORECARD_ACTIVE_SCOPE_MISMATCH"}
+        elif report.get("candidate_scorecard_ranking_eligible") is True:
+            return {"status": "BLOCKED", "blocker_code": "RUNNER_STATUS_SCORECARD_STALE_RANKING_ENABLED"}
     if report.get("paper_scope_candidate_id") is not None and not isinstance(report.get("paper_scope_candidate_id"), str):
         return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_PAPER_SCOPE_INVALID"}
     for counter in (

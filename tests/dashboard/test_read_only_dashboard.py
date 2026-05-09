@@ -1031,6 +1031,13 @@ def runner_status_fixture(session_id="test_read_only_dashboard_runner_ops", *, b
         "candidate_scorecard_status": "PASS",
         "candidate_scorecard_ranking_eligible": False,
         "candidate_scorecard_primary_blocker_code": "OOS_MISSING",
+        "candidate_scorecard_current_for_paper_scope": True,
+        "candidate_scorecard_active_scope_status": "CURRENT_FOR_ACTIVE_PAPER_SCOPE",
+        "candidate_scorecard_active_scope_blocker_code": None,
+        "candidate_scorecard_active_scope_message": (
+            "Scorecard is bound to the active PAPER candidate KRW-BTC-pullback-trend-long."
+        ),
+        "candidate_scorecard_active_scope_candidate_id": "KRW-BTC-pullback-trend-long",
         "runtime_quality_feedback_count": 1,
         "runtime_quality_feedback_candidate_ids": ["KRW-WLFI-pullback-trend-long"],
         "selected_candidate_recent_failure_feedback_kind": "NONE",
@@ -2541,6 +2548,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(runner["candidate_scorecard_status"], "PASS")
         self.assertEqual(runner["candidate_scorecard_candidate_id"], "KRW-BTC-pullback-trend-long")
         self.assertFalse(runner["candidate_scorecard_ranking_eligible"])
+        self.assertTrue(runner["candidate_scorecard_current_for_paper_scope"])
+        self.assertEqual(runner["candidate_scorecard_active_scope_status"], "CURRENT_FOR_ACTIVE_PAPER_SCOPE")
         self.assertEqual(runner["runtime_quality_feedback_count"], 1)
         self.assertEqual(runner["runtime_quality_feedback_candidate_ids"], ["KRW-WLFI-pullback-trend-long"])
         self.assertEqual(runner["selected_candidate_recent_failure_feedback_kind"], "NONE")
@@ -2583,6 +2592,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("KRW-WLFI-pullback-trend-long", html)
         self.assertIn("PAPER/SHADOW evidence", html)
         self.assertIn("Evidence scorecard", html)
+        self.assertIn("active-scope-current", html)
+        self.assertIn("CURRENT_FOR_ACTIVE_PAPER_SCOPE", html)
         self.assertIn("PAPER=3 / SHADOW=2", html)
         self.assertIn("Reason: PAPER/SHADOW evidence is collecting PAPER samples", html)
         self.assertIn(
@@ -2598,6 +2609,61 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("feedback=NONE", html)
         self.assertIn("Current PAPER Runner", html)
         self.assertIn("runner-current-snapshot", html)
+
+    def test_dashboard_marks_scorecard_previous_scope_when_runner_candidate_rotates(self):
+        session_id = "test_read_only_dashboard_scorecard_previous_scope"
+        summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+        runner_status = runner_status_fixture(session_id=session_id)
+        runner_status.update(
+            {
+                "paper_scope_candidate_id": "KRW-KAT-breakout-retest-long",
+                "paper_scope_strategy_id": "breakout_retest",
+                "paper_scope_symbol": "KRW-KAT",
+                "paper_scope_sample_count": 2,
+                "paper_scope_sample_deficit": 28,
+                "candidate_scorecard_candidate_id": "KRW-SAHARA-pullback-trend-long",
+                "candidate_scorecard_current_for_paper_scope": False,
+                "candidate_scorecard_active_scope_status": "STALE_FOR_ACTIVE_PAPER_SCOPE",
+                "candidate_scorecard_active_scope_blocker_code": "SCORECARD_ACTIVE_SCOPE_MISMATCH",
+                "candidate_scorecard_active_scope_message": (
+                    "Scorecard belongs to KRW-SAHARA-pullback-trend-long, while PAPER is collecting "
+                    "KRW-KAT-breakout-retest-long; treat scorecard values as previous-scope display only "
+                    "until the active scope refreshes."
+                ),
+                "candidate_scorecard_active_scope_candidate_id": "KRW-KAT-breakout-retest-long",
+            }
+        )
+        runner_status["status_hash"] = upbit_paper_long_runner_status_hash(runner_status)
+
+        dashboard = build_read_only_dashboard_shell(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            upbit_paper_long_runner_status_report=runner_status,
+            upbit_paper_long_runner_retention_manifest=runner_retention_manifest_fixture(session_id=session_id),
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        runner = dashboard["paper_runner_operations_status"]
+        self.assertEqual(runner["status"], "RUNNING_NOW")
+        self.assertEqual(runner["paper_scope_candidate_id"], "KRW-KAT-breakout-retest-long")
+        self.assertEqual(runner["candidate_scorecard_candidate_id"], "KRW-SAHARA-pullback-trend-long")
+        self.assertFalse(runner["candidate_scorecard_current_for_paper_scope"])
+        self.assertEqual(runner["candidate_scorecard_active_scope_status"], "STALE_FOR_ACTIVE_PAPER_SCOPE")
+        self.assertEqual(
+            runner["candidate_scorecard_active_scope_blocker_code"],
+            "SCORECARD_ACTIVE_SCOPE_MISMATCH",
+        )
+        self.assertFalse(runner["candidate_scorecard_ranking_eligible"])
+        html = render_dashboard_html(dashboard)
+        self.assertIn("active-scope-current", html)
+        self.assertIn("STALE_FOR_ACTIVE_PAPER_SCOPE", html)
+        self.assertIn("previous-scope display only", html)
         self.assertIn("Running", html)
         self.assertIn("Current: KRW-BTC / HOLD_POSITION", html)
         self.assertIn("1 open PAPER position(s)", html)
@@ -3004,6 +3070,15 @@ class ReadOnlyDashboardTest(unittest.TestCase):
                     "Start PAPER again so runner status, sample history, and PAPER/SHADOW evidence "
                     "refresh together."
                 ),
+                "candidate_scorecard_current_for_paper_scope": False,
+                "candidate_scorecard_active_scope_status": "STALE_FOR_ACTIVE_PAPER_SCOPE",
+                "candidate_scorecard_active_scope_blocker_code": "SCORECARD_ACTIVE_SCOPE_MISMATCH",
+                "candidate_scorecard_active_scope_message": (
+                    "Scorecard belongs to KRW-BTC-pullback-trend-long, while PAPER is collecting "
+                    "KRW-ETH-breakout-retest-long; treat scorecard values as previous-scope display only "
+                    "until the active scope refreshes."
+                ),
+                "candidate_scorecard_active_scope_candidate_id": "KRW-ETH-breakout-retest-long",
                 "primary_blocker_code": "RUNTIME_SAMPLE_HISTORY_COMPANION_MISMATCH",
                 "profitability_evidence_primary_blocker_code": "RUNTIME_SAMPLE_HISTORY_COMPANION_MISMATCH",
             }
@@ -3065,6 +3140,15 @@ class ReadOnlyDashboardTest(unittest.TestCase):
                 "paper_scope_sample_count": 7,
                 "paper_scope_sample_deficit": 23,
                 "paper_scope_latest_sample_at_utc": latest_sample_at,
+                "candidate_scorecard_current_for_paper_scope": False,
+                "candidate_scorecard_active_scope_status": "STALE_FOR_ACTIVE_PAPER_SCOPE",
+                "candidate_scorecard_active_scope_blocker_code": "SCORECARD_ACTIVE_SCOPE_MISMATCH",
+                "candidate_scorecard_active_scope_message": (
+                    "Scorecard belongs to KRW-BTC-pullback-trend-long, while PAPER is collecting "
+                    "KRW-PROS-pullback-trend-long; treat scorecard values as previous-scope display only "
+                    "until the active scope refreshes."
+                ),
+                "candidate_scorecard_active_scope_candidate_id": "KRW-PROS-pullback-trend-long",
             }
         )
         runner_status["status_hash"] = upbit_paper_long_runner_status_hash(runner_status)
@@ -10515,6 +10599,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("data-runner-channel-state", html)
         self.assertIn("data-runner-channel-runner-status", html)
         self.assertIn("data-runner-channel-message", html)
+        self.assertIn("data-runner-channel-scorecard-current", html)
+        self.assertIn("data-runner-channel-scorecard-scope", html)
+        self.assertIn("data-runner-channel-scorecard-message", html)
         self.assertIn("data-primary-status-text", html)
         self.assertIn("data-quick-run-status", html)
         self.assertIn("data-quick-run-detail", html)
@@ -10522,6 +10609,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("data-quick-next-action", html)
         self.assertIn("runnerChannelPrimaryStatusText", html)
         self.assertIn("runnerChannelNextAction", html)
+        self.assertIn("candidate_scorecard_active_scope_message", html)
         self.assertIn("updateFirstScreenFromRunnerChannel", html)
         self.assertIn("Collect \" + String(deficit) + \" more PAPER samples", html)
         self.assertIn("new EventSource(\"/events\")", html)

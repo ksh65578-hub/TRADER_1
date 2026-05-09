@@ -6430,6 +6430,13 @@ def _paper_runner_operations_status(
         "candidate_scorecard_status": "NOT_LOADED",
         "candidate_scorecard_candidate_id": None,
         "candidate_scorecard_ranking_eligible": False,
+        "candidate_scorecard_current_for_paper_scope": False,
+        "candidate_scorecard_active_scope_status": "SCORECARD_NOT_LOADED_FOR_ACTIVE_SCOPE",
+        "candidate_scorecard_active_scope_blocker_code": "SCORECARD_NOT_LOADED",
+        "candidate_scorecard_active_scope_message": (
+            "No scorecard is loaded for the active PAPER candidate scope yet."
+        ),
+        "candidate_scorecard_active_scope_candidate_id": None,
         "runtime_quality_feedback_count": 0,
         "runtime_quality_feedback_candidate_ids": [],
         "selected_candidate_recent_failure_feedback_kind": "NONE",
@@ -6630,6 +6637,48 @@ def _paper_runner_operations_status(
     if status in {"RUNNING_NOW", "STOPPED"} and scope_sample_deficit > 0 and isinstance(scope_next_action, str):
         next_action = scope_next_action.strip() or next_action
 
+    projected_paper_scope_candidate_id = safe_value(runner_status_report.get("paper_scope_candidate_id"))
+    projected_scorecard_candidate_id = safe_value(runner_status_report.get("candidate_scorecard_candidate_id"))
+    projected_scorecard_status = str(runner_status_report.get("candidate_scorecard_status") or "NOT_LOADED")
+    projected_scope_status = safe_text(runner_status_report.get("candidate_scorecard_active_scope_status"))
+    projected_scope_message = safe_text(runner_status_report.get("candidate_scorecard_active_scope_message"))
+    projected_scope_blocker = safe_value(runner_status_report.get("candidate_scorecard_active_scope_blocker_code"))
+    projected_scope_candidate_id = safe_value(
+        runner_status_report.get("candidate_scorecard_active_scope_candidate_id")
+    )
+    if projected_scope_status:
+        projected_scorecard_current = runner_status_report.get("candidate_scorecard_current_for_paper_scope") is True
+    elif not projected_paper_scope_candidate_id:
+        projected_scorecard_current = False
+        projected_scope_status = "NO_ACTIVE_PAPER_SCOPE"
+        projected_scope_blocker = "PAPER_SCOPE_NOT_LOADED"
+        projected_scope_message = "No active PAPER candidate scope is loaded for scorecard binding."
+        projected_scope_candidate_id = None
+    elif projected_scorecard_status != "PASS" or not projected_scorecard_candidate_id:
+        projected_scorecard_current = False
+        projected_scope_status = "SCORECARD_NOT_LOADED_FOR_ACTIVE_SCOPE"
+        projected_scope_blocker = "SCORECARD_NOT_LOADED"
+        projected_scope_message = (
+            f"PAPER is collecting {projected_paper_scope_candidate_id}, but no valid scorecard is loaded for that scope yet."
+        )
+        projected_scope_candidate_id = projected_paper_scope_candidate_id
+    elif projected_scorecard_candidate_id == projected_paper_scope_candidate_id:
+        projected_scorecard_current = True
+        projected_scope_status = "CURRENT_FOR_ACTIVE_PAPER_SCOPE"
+        projected_scope_blocker = None
+        projected_scope_message = f"Scorecard is bound to the active PAPER candidate {projected_paper_scope_candidate_id}."
+        projected_scope_candidate_id = projected_paper_scope_candidate_id
+    else:
+        projected_scorecard_current = False
+        projected_scope_status = "STALE_FOR_ACTIVE_PAPER_SCOPE"
+        projected_scope_blocker = "SCORECARD_ACTIVE_SCOPE_MISMATCH"
+        projected_scope_message = (
+            f"Scorecard belongs to {projected_scorecard_candidate_id}, while PAPER is collecting "
+            f"{projected_paper_scope_candidate_id}; treat scorecard values as previous-scope display only until "
+            "the active scope refreshes."
+        )
+        projected_scope_candidate_id = projected_paper_scope_candidate_id
+
     base.update(
         {
             "status": status,
@@ -6739,7 +6788,7 @@ def _paper_runner_operations_status(
             ),
             "runtime_sample_count": safe_count(runner_status_report.get("runtime_sample_count")),
             "paper_scope_progress_status": paper_scope_progress_status,
-            "paper_scope_candidate_id": safe_value(runner_status_report.get("paper_scope_candidate_id")),
+            "paper_scope_candidate_id": projected_paper_scope_candidate_id,
             "paper_scope_strategy_id": safe_value(runner_status_report.get("paper_scope_strategy_id")),
             "paper_scope_parameter_hash": safe_value(runner_status_report.get("paper_scope_parameter_hash")),
             "paper_scope_symbol": safe_value(runner_status_report.get("paper_scope_symbol")),
@@ -6786,13 +6835,16 @@ def _paper_runner_operations_status(
             "candidate_scorecard_status": str(
                 runner_status_report.get("candidate_scorecard_status") or "NOT_LOADED"
             ),
-            "candidate_scorecard_candidate_id": safe_value(
-                runner_status_report.get("candidate_scorecard_candidate_id")
-            ),
+            "candidate_scorecard_candidate_id": projected_scorecard_candidate_id,
             "candidate_scorecard_ranking_eligible": runner_status_report.get(
                 "candidate_scorecard_ranking_eligible"
             )
             is True,
+            "candidate_scorecard_current_for_paper_scope": projected_scorecard_current,
+            "candidate_scorecard_active_scope_status": str(projected_scope_status),
+            "candidate_scorecard_active_scope_blocker_code": projected_scope_blocker,
+            "candidate_scorecard_active_scope_message": str(projected_scope_message),
+            "candidate_scorecard_active_scope_candidate_id": projected_scope_candidate_id,
             "runtime_quality_feedback_count": safe_count(
                 runner_status_report.get("runtime_quality_feedback_count")
             ),
@@ -20533,6 +20585,10 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "candidate_scorecard_source",
                 "candidate_scorecard_status",
                 "candidate_scorecard_candidate_id",
+                "candidate_scorecard_active_scope_status",
+                "candidate_scorecard_active_scope_blocker_code",
+                "candidate_scorecard_active_scope_message",
+                "candidate_scorecard_active_scope_candidate_id",
                 "candidate_scorecard_strategy_id",
                 "candidate_scorecard_symbol",
                 "candidate_scorecard_objective_basis",
@@ -26614,6 +26670,17 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         if isinstance(paper_sample_history_issues, list) and paper_sample_history_issues
         else "none"
     )
+    scorecard_active_scope_status = paper_runner_operations.get(
+        "candidate_scorecard_active_scope_status",
+        "SCORECARD_NOT_LOADED_FOR_ACTIVE_SCOPE",
+    )
+    scorecard_active_scope_message = paper_runner_operations.get(
+        "candidate_scorecard_active_scope_message",
+        "No scorecard is loaded for the active PAPER candidate scope yet.",
+    )
+    scorecard_active_scope_current = (
+        "yes" if paper_runner_operations.get("candidate_scorecard_current_for_paper_scope") is True else "no"
+    )
     operation_html = (
         f"<section class=\"operation operation-{operation_color}\" aria-label=\"system operation status\">"
         "<div class=\"operation-copy\">"
@@ -26662,6 +26729,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"netEV_gap_bps={safe_text(paper_scope_continuity_net_ev_gap)}</dd></div>"
         f"<div><dt>Scorecard</dt><dd>{safe_text(paper_runner_operations.get('candidate_scorecard_status', 'NOT_LOADED'))} / rank={safe_text(str(paper_runner_operations.get('candidate_scorecard_ranking_eligible') is True).lower())}</dd></div>"
         f"<div><dt>Evidence scorecard</dt><dd>{safe_text(paper_runner_operations.get('candidate_scorecard_candidate_id') or 'none')}<br>"
+        f"active-scope-current=<span data-runner-channel-scorecard-current>{safe_text(scorecard_active_scope_current)}</span>; "
+        f"<span data-runner-channel-scorecard-scope>{safe_text(scorecard_active_scope_status)}</span><br>"
+        f"<span data-runner-channel-scorecard-message>{safe_text(scorecard_active_scope_message)}</span><br>"
         f"PAPER={safe_text(paper_runner_operations.get('paper_shadow_evidence_paper_sample_count', 0))} / "
         f"SHADOW={safe_text(paper_runner_operations.get('paper_shadow_evidence_shadow_sample_count', 0))}</dd></div>"
         f"<div><dt>Early robustness</dt><dd>{safe_text(paper_runner_operations.get('overfit_preliminary_robustness_status', 'INSUFFICIENT_PRELIMINARY_SAMPLE'))}<br>"
@@ -29241,6 +29311,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
           return "Wait for the local runner channel to disconnect after the stop request.";
         }
         if (payload.running === true && payload.runner_status === "RUNNING") {
+          if (payload.candidate_scorecard_current_for_paper_scope === false && payload.candidate_scorecard_active_scope_message) {
+            return String(payload.candidate_scorecard_active_scope_message);
+          }
           if (payload.next_cycle_eta_status === "CURRENT_CYCLE_RUNNING") {
             return "Current PAPER cycle is still running; keep collecting source-bound samples for " + String(candidate) + ".";
           }
@@ -29301,6 +29374,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         setRunnerChannelText("[data-runner-channel-runner-status]", payload.runner_status);
         setRunnerChannelText("[data-runner-channel-cycles]", payload.completed_cycle_count);
         setRunnerChannelText("[data-runner-channel-next]", payload.next_cycle_eta_display || payload.next_cycle_eta || "not scheduled");
+        setRunnerChannelText("[data-runner-channel-scorecard-current]", payload.candidate_scorecard_current_for_paper_scope === true ? "yes" : "no");
+        setRunnerChannelText("[data-runner-channel-scorecard-scope]", payload.candidate_scorecard_active_scope_status || "SCORECARD_NOT_LOADED_FOR_ACTIVE_SCOPE");
+        setRunnerChannelText("[data-runner-channel-scorecard-message]", payload.candidate_scorecard_active_scope_message || "No scorecard is loaded for the active PAPER candidate scope yet.");
         var message = drift
           ? "Read-only dashboard detected live/scale flag drift in runner status and keeps live orders blocked."
           : stopped
