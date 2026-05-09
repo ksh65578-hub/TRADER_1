@@ -317,10 +317,32 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
                 loop_report=second_loop,
                 stop_reason="TEST",
             )
+            materialized = _load_json(paper_runtime_sample_history_path(root, session_id))
+            materialized_validation_status = validate_upbit_paper_runtime_sample_history_sources(
+                root=root,
+                history=materialized,
+            ).status
+            repeat_report = long_runner.build_runner_status_report(
+                root=root,
+                runner_id="source-derived-history-status-runner-repeat",
+                session_id=session_id,
+                runner_status=RUNNER_STATUS_STOPPED,
+                started_at_utc=utc_now(),
+                completed_cycle_count=2,
+                failed_cycle_count=0,
+                cycle_interval_seconds=0,
+                loop_report=second_loop,
+                stop_reason="TEST_REPEAT",
+            )
+            repeated_materialized = _load_json(paper_runtime_sample_history_path(root, session_id))
 
         self.assertEqual(report["runtime_sample_history_status"], "PASS")
         self.assertEqual(report["runtime_sample_history_effective_source"], "RUNTIME_SOURCE_DERIVED_SAMPLE_HISTORY")
         self.assertEqual(report["runtime_sample_history_source_consistency_status"], "PASS")
+        self.assertEqual(report["runtime_sample_history_materialization_status"], "PASS")
+        self.assertTrue(report["runtime_sample_history_materialized_from_source"])
+        self.assertEqual(report["runtime_sample_history_materialized_accepted_cycle_sample_count"], 2)
+        self.assertEqual(report["runtime_sample_history_materialized_active_candidate_id"], focus["candidate_id"])
         self.assertIn(
             "COMPANION_HISTORY_HASH_MISMATCH_SOURCE_REFRESH_USED",
             report["runtime_sample_history_source_consistency_issues"],
@@ -330,6 +352,22 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
         self.assertEqual(report["runtime_sample_count"], 2)
         self.assertEqual(report["paper_scope_candidate_id"], focus["candidate_id"])
         self.assertEqual(report["paper_scope_sample_count"], 2)
+        self.assertEqual(materialized["accepted_cycle_sample_count"], 2)
+        self.assertEqual(materialized["active_candidate_scope"]["candidate_id"], focus["candidate_id"])
+        self.assertEqual(materialized["active_candidate_scope_sample_count"], 2)
+        self.assertEqual(materialized["active_candidate_scope_sample_deficit"], 28)
+        self.assertFalse(materialized["live_order_ready"])
+        self.assertFalse(materialized["live_order_allowed"])
+        self.assertFalse(materialized["can_live_trade"])
+        self.assertFalse(materialized["scale_up_allowed"])
+        self.assertEqual(materialized_validation_status, "PASS")
+        self.assertEqual(repeat_report["runtime_sample_history_materialization_status"], "NOT_NEEDED")
+        self.assertFalse(repeat_report["runtime_sample_history_materialized_from_source"])
+        self.assertEqual(repeated_materialized["history_hash"], materialized["history_hash"])
+        self.assertNotIn(
+            "COMPANION_HISTORY_HASH_MISMATCH_SOURCE_REFRESH_USED",
+            repeat_report["runtime_sample_history_source_consistency_issues"],
+        )
         self.assertFalse(report["live_order_ready"])
         self.assertFalse(report["live_order_allowed"])
         self.assertFalse(report["can_live_trade"])

@@ -260,6 +260,179 @@ def _profitability_sample_usable(sample: dict[str, Any]) -> bool:
     )
 
 
+def _runtime_sample_history_source_identity(history: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(history, dict):
+        return None
+    samples = history.get("samples")
+    if not isinstance(samples, list):
+        samples = []
+    active = history.get("active_candidate_scope")
+    return {
+        "accepted_cycle_sample_count": _int_value(history.get("accepted_cycle_sample_count")),
+        "unique_runtime_cycle_hash_count": _int_value(history.get("unique_runtime_cycle_hash_count")),
+        "source_loop_report_hashes": (
+            list(history.get("source_loop_report_hashes"))
+            if isinstance(history.get("source_loop_report_hashes"), list)
+            else []
+        ),
+        "source_runtime_cycle_hashes": (
+            list(history.get("source_runtime_cycle_hashes"))
+            if isinstance(history.get("source_runtime_cycle_hashes"), list)
+            else []
+        ),
+        "sample_hashes": [
+            str(sample.get("sample_hash"))
+            for sample in samples
+            if isinstance(sample, dict) and sample.get("sample_hash")
+        ],
+        "active_candidate_scope": active if isinstance(active, dict) else None,
+        "active_candidate_scope_sample_count": _int_value(history.get("active_candidate_scope_sample_count")),
+        "active_candidate_scope_sample_deficit": _int_value(history.get("active_candidate_scope_sample_deficit")),
+    }
+
+
+def _sample_history_live_private_drift(history: dict[str, Any]) -> bool:
+    drift_flags = (*LIVE_FALSE_FLAGS, "order_endpoint_called")
+    if any(history.get(flag) is True for flag in drift_flags):
+        return True
+    active = history.get("active_candidate_scope")
+    if isinstance(active, dict) and _paper_scope_focus_has_live_private_drift(active):
+        return True
+    for summary in history.get("candidate_scope_sample_summaries") or []:
+        if isinstance(summary, dict) and _paper_scope_focus_has_live_private_drift(summary):
+            return True
+    for sample in history.get("samples") or []:
+        if isinstance(sample, dict) and any(sample.get(flag) is True for flag in drift_flags):
+            return True
+    return False
+
+
+def _materialize_source_runtime_sample_history(
+    *,
+    root: Path,
+    history_path: Path,
+    source_history: dict[str, Any] | None,
+    companion_history: dict[str, Any] | None,
+    companion_status: str,
+) -> dict[str, Any]:
+    base = {
+        "runtime_sample_history_materialization_status": "NOT_RUN",
+        "runtime_sample_history_materialized_from_source": False,
+        "runtime_sample_history_materialized_path": str(history_path),
+        "runtime_sample_history_materialized_accepted_cycle_sample_count": 0,
+        "runtime_sample_history_materialized_active_candidate_id": None,
+        "runtime_sample_history_materialization_blocker_code": None,
+        "runtime_sample_history_materialization_message": "No validated source-derived runtime sample history was available.",
+    }
+    if not isinstance(source_history, dict):
+        return base
+
+    source_identity = _runtime_sample_history_source_identity(source_history)
+    companion_identity = _runtime_sample_history_source_identity(companion_history)
+    source_accepted_count = _int_value(source_history.get("accepted_cycle_sample_count"))
+    active = source_history.get("active_candidate_scope")
+    active_candidate_id = (
+        str(active.get("candidate_id"))
+        if isinstance(active, dict) and active.get("candidate_id")
+        else None
+    )
+    base.update(
+        {
+            "runtime_sample_history_materialized_accepted_cycle_sample_count": source_accepted_count,
+            "runtime_sample_history_materialized_active_candidate_id": active_candidate_id,
+        }
+    )
+    if source_accepted_count <= 0:
+        base.update(
+            {
+                "runtime_sample_history_materialization_status": "NOT_NEEDED",
+                "runtime_sample_history_materialization_message": (
+                    "Validated source-derived runtime sample history has no accepted PAPER samples to materialize."
+                ),
+            }
+        )
+        return base
+    if companion_status == "PASS" and companion_identity == source_identity:
+        base.update(
+            {
+                "runtime_sample_history_materialization_status": "NOT_NEEDED",
+                "runtime_sample_history_materialization_message": (
+                    "Canonical runtime sample history already matches validated source-derived PAPER samples."
+                ),
+            }
+        )
+        return base
+    if _sample_history_live_private_drift(source_history):
+        base.update(
+            {
+                "runtime_sample_history_materialization_status": "BLOCKED",
+                "runtime_sample_history_materialization_blocker_code": "LIVE_FINAL_GUARD_FAILED",
+                "runtime_sample_history_materialization_message": (
+                    "Source-derived runtime sample history attempted live/private/order/key state."
+                ),
+            }
+        )
+        return base
+
+    try:
+        written_path = write_upbit_paper_runtime_sample_history(root=root, history=source_history)
+        materialized = _read_json(written_path)
+        materialized_result = (
+            validate_upbit_paper_runtime_sample_history_sources(root=root, history=materialized)
+            if isinstance(materialized, dict)
+            else None
+        )
+    except Exception as exc:  # pragma: no cover - filesystem failure must fail closed.
+        base.update(
+            {
+                "runtime_sample_history_materialization_status": "BLOCKED",
+                "runtime_sample_history_materialization_blocker_code": "RUNTIME_SAMPLE_HISTORY_MATERIALIZATION_FAILED",
+                "runtime_sample_history_materialization_message": str(exc),
+            }
+        )
+        return base
+    if materialized_result is None or _result_status(materialized_result) != "PASS":
+        base.update(
+            {
+                "runtime_sample_history_materialization_status": "BLOCKED",
+                "runtime_sample_history_materialization_blocker_code": (
+                    _result_blocker_code(materialized_result)
+                    if materialized_result is not None
+                    else "RUNTIME_SAMPLE_HISTORY_MATERIALIZATION_FAILED"
+                ),
+                "runtime_sample_history_materialization_message": (
+                    str(getattr(materialized_result, "message", "") or "")
+                    if materialized_result is not None
+                    else "Materialized runtime sample history was not readable."
+                ),
+            }
+        )
+        return base
+    if _runtime_sample_history_source_identity(materialized) != source_identity:
+        base.update(
+            {
+                "runtime_sample_history_materialization_status": "BLOCKED",
+                "runtime_sample_history_materialization_blocker_code": "SOURCE_IDENTITY_MISMATCH",
+                "runtime_sample_history_materialization_message": (
+                    "Materialized runtime sample history no longer matches source-derived PAPER sample identity."
+                ),
+            }
+        )
+        return base
+
+    base.update(
+        {
+            "runtime_sample_history_materialization_status": "PASS",
+            "runtime_sample_history_materialized_from_source": True,
+            "runtime_sample_history_materialized_path": str(written_path),
+            "runtime_sample_history_materialization_message": (
+                "Canonical runtime sample history was refreshed from validated source-derived PAPER samples."
+            ),
+        }
+    )
+    return base
+
+
 def _profitability_sample_rank_key(index: int, sample: dict[str, Any]) -> tuple[int, int, int, float, int, int, int, int]:
     decision = str(sample.get("scorecard_candidate_decision") or "")
     net_ev = _float_value(sample.get("scorecard_candidate_net_ev_after_cost_bps"))
@@ -962,7 +1135,10 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
 
     history = source_history if isinstance(source_history, dict) else companion_history
     consistency_issues = list(companion_issues)
-    if isinstance(source_history, dict) and isinstance(companion_history, dict):
+    source_identity = _runtime_sample_history_source_identity(source_history)
+    companion_identity = _runtime_sample_history_source_identity(companion_history)
+    source_identity_mismatch = source_identity != companion_identity
+    if isinstance(source_history, dict) and isinstance(companion_history, dict) and source_identity_mismatch:
         if companion_history_hash != source_history.get("history_hash"):
             consistency_issues.append("COMPANION_HISTORY_HASH_MISMATCH_SOURCE_REFRESH_USED")
         if companion_accepted_count != int(source_history.get("accepted_cycle_sample_count") or 0):
@@ -978,12 +1154,26 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
         if companion_active_sample_count != int(source_history.get("active_candidate_scope_sample_count") or 0):
             consistency_issues.append("COMPANION_ACTIVE_SAMPLE_COUNT_MISMATCH_SOURCE_REFRESH_USED")
 
+    materialization_fields = _materialize_source_runtime_sample_history(
+        root=root,
+        history_path=history_path,
+        source_history=source_history,
+        companion_history=companion_history,
+        companion_status=companion_status,
+    )
+    materialization_status = str(
+        materialization_fields.get("runtime_sample_history_materialization_status") or "NOT_RUN"
+    )
+    materialization_blocker = materialization_fields.get("runtime_sample_history_materialization_blocker_code")
+    if materialization_status == "BLOCKED":
+        consistency_issues.append(str(materialization_blocker or "RUNTIME_SAMPLE_HISTORY_MATERIALIZATION_BLOCKED"))
+
     if isinstance(source_history, dict):
         history_status = "PASS"
         history_blocker = None
         history_effective_source = "RUNTIME_SOURCE_DERIVED_SAMPLE_HISTORY"
-        consistency_status = "PASS"
-        consistency_blocker = None
+        consistency_status = "BLOCKED" if materialization_status == "BLOCKED" else "PASS"
+        consistency_blocker = materialization_blocker if materialization_status == "BLOCKED" else None
     elif isinstance(companion_history, dict):
         history_result = validate_upbit_paper_runtime_sample_history_sources(root=root, history=companion_history)
         history_status = _result_status(history_result)
@@ -1033,6 +1223,7 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
             item
             for item in (
                 history_blocker if history_status not in {"PASS"} else None,
+                materialization_blocker if materialization_status == "BLOCKED" else None,
                 "SCORECARD_SCHEMA_INVALID" if scorecard_status == "FAIL" else None,
                 scorecard_snapshot_fields.get("candidate_scorecard_snapshot_blocker_code"),
                 "SCHEMA_IDENTITY_MISMATCH" if overfit_contract_status == "FAIL" else None,
@@ -1072,6 +1263,7 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
         "runtime_sample_history_source_consistency_status": consistency_status,
         "runtime_sample_history_source_consistency_issues": sorted(set(consistency_issues)),
         "runtime_sample_history_source_consistency_blocker_code": consistency_blocker,
+        **materialization_fields,
         "runtime_sample_history_companion_path": str(history_path),
         "runtime_sample_history_companion_status": companion_status,
         "runtime_sample_history_companion_blocker_code": companion_blocker,
