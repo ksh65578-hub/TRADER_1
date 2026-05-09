@@ -830,6 +830,44 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
             ),
         )
 
+    def test_maturity_rollup_review_priority_prefers_runtime_linkable_candidate(self):
+        invalid_runtime_high_score = {
+            "candidate_id": "KRW-BTC-pullback-trend-long",
+            "ranking_eligible": False,
+            "performance_ready": True,
+            "robustness_ready": True,
+            "net_ev_after_cost_bps": 48.0,
+            "source_evidence_ids": [
+                "upbit_paper_runtime_cycle:stale:" + "A" * 64,
+                "public_replay_robustness:stale:" + "B" * 64,
+            ],
+            "blockers": [],
+        }
+        runtime_linkable_lower_score = {
+            "candidate_id": "KRW-ETH-breakout-retest-long",
+            "ranking_eligible": False,
+            "performance_ready": False,
+            "robustness_ready": False,
+            "net_ev_after_cost_bps": 3.0,
+            "source_evidence_ids": ["upbit_paper_runtime_cycle:linked:" + "C" * 64],
+            "blockers": [{"code": "SAMPLE_INSUFFICIENT"}],
+        }
+
+        self.assertGreater(
+            scorecard_review_priority(
+                runtime_linkable_lower_score,
+                active_source=False,
+                has_matching_overfit=True,
+                runtime_linkage_status="PASS",
+            ),
+            scorecard_review_priority(
+                invalid_runtime_high_score,
+                active_source=True,
+                has_matching_overfit=True,
+                runtime_linkage_status="BLOCKED",
+            ),
+        )
+
     def test_maturity_rollup_membership_accepts_runtime_strategy_candidate(self):
         evidence = candidate_scorecard_runtime_membership_evidence(
             {
