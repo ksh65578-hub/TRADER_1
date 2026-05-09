@@ -1,9 +1,13 @@
 import unittest
+from decimal import Decimal
 
+from trader1.adapters.upbit.market_data import build_upbit_public_candle_data_from_rest_payload
+from trader1.runtime.paper.upbit_public_collector import build_upbit_public_market_data_collection_report
 from trader1.runtime.portfolio.paper_portfolio import (
     build_initial_paper_portfolio_snapshot,
     build_paper_portfolio_snapshot_after_sell_fill,
     build_paper_portfolio_snapshot_from_fill,
+    mark_paper_portfolio_snapshot_to_public_market,
     paper_portfolio_hash,
     validate_paper_portfolio_snapshot,
 )
@@ -126,6 +130,69 @@ class PaperPortfolioTest(unittest.TestCase):
         self.assertEqual(snapshot["total_pnl"], "-10")
         self.assertEqual(snapshot["equity"], "999990")
         self.assertFalse(snapshot["live_order_allowed"])
+
+    def test_paper_portfolio_normalizes_legacy_static_altcoin_price_basis_to_public_mark(self):
+        snapshot = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test-paper-portfolio-alt-price-basis",
+            symbol="KRW-ADA",
+            side="BUY",
+            quantity="0.007",
+            fill_price="1000870",
+            mark_price="1000870",
+            fee_amount="3",
+            source_runtime_cycle_id="portfolio-alt-price-basis-cycle",
+            source_paper_ledger_head_hash="A" * 64,
+        )
+        close = Decimal("405")
+        payload = [
+            {
+                "market": "KRW-ADA",
+                "candle_date_time_utc": f"2026-05-06T21:{35 - offset:02d}:00",
+                "opening_price": str(close),
+                "high_price": str(close),
+                "low_price": str(close),
+                "trade_price": str(close),
+                "candle_acc_trade_volume": str(10 + offset),
+            }
+            for offset in range(6)
+        ]
+        market_data = build_upbit_public_candle_data_from_rest_payload(
+            payload=payload,
+            symbol="KRW-ADA",
+            session_id="test-paper-portfolio-alt-price-basis",
+        )
+        public_collection = build_upbit_public_market_data_collection_report(
+            collector_id="test-paper-portfolio-alt-price-basis-public",
+            session_id="test-paper-portfolio-alt-price-basis",
+            symbol="KRW-ADA",
+            market_data=market_data,
+        )
+
+        marked = mark_paper_portfolio_snapshot_to_public_market(
+            paper_portfolio_snapshot=snapshot,
+            public_market_data_collection_report=public_collection,
+        )
+        result = validate_paper_portfolio_snapshot(marked)
+
+        self.assertEqual(result.status, "PASS")
+        position = marked["positions"][0]
+        expected_quantity = Decimal("0.007") * Decimal("1000870") / close
+        self.assertEqual(marked["mark_to_market_status"], "PASS_PUBLIC_MARK_TO_MARKET")
+        self.assertEqual(marked["price_basis_repair_status"], "APPLIED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION")
+        self.assertEqual(
+            marked["price_basis_repair_source"],
+            "LEGACY_STATIC_FIXTURE_PRICE_BASIS_TO_UPBIT_KRW_SPOT_PUBLIC_MARK",
+        )
+        self.assertEqual(position["symbol"], "KRW-ADA")
+        self.assertEqual(position["average_entry_price"], "405")
+        self.assertEqual(position["mark_price"], "405")
+        self.assertEqual(Decimal(position["quantity"]), expected_quantity)
+        self.assertFalse(marked["live_order_ready"])
+        self.assertFalse(marked["live_order_allowed"])
+        self.assertFalse(marked["can_live_trade"])
+        self.assertFalse(marked["scale_up_allowed"])
 
     def test_paper_portfolio_persists_entry_strategy_context_through_partial_sell(self):
         entry_context = {

@@ -23,10 +23,15 @@ from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_js
 from trader1.runtime.portfolio.paper_portfolio import (
     LEGACY_STATIC_KRW_BTC_MAX_PRICE,
     LEGACY_STATIC_KRW_BTC_MIN_PRICE,
+    LEGACY_STATIC_KRW_SPOT_PUBLIC_MARK_INVERSE_REPAIR_MIN_RATIO,
+    LEGACY_STATIC_KRW_SPOT_PUBLIC_MARK_MAX_PRICE,
+    LEGACY_STATIC_KRW_SPOT_PUBLIC_MARK_MIN_PRICE,
+    KRW_SPOT_PRICE_BASIS_REPAIR_SOURCE,
     PAPER_PORTFOLIO_SCHEMA_ID,
     PAPER_STARTING_CASH_BY_SCOPE,
     PRICE_BASIS_REPAIR_SOURCE,
     PRICE_BASIS_REPAIR_STATUS_APPLIED,
+    PUBLIC_MARK_PRICE_BASIS_MIN_RATIO,
     PUBLIC_MARK_PRICE_BASIS_REPAIR_MAX_RATIO,
     PUBLIC_MARK_PRICE_BASIS_REPAIR_MIN_RATIO,
     UPBIT_KRW_BTC_PUBLIC_MARK_MAX_PRICE,
@@ -88,7 +93,7 @@ def _legacy_public_sell_price_basis_repair(
     state: dict[str, Decimal | str],
     public_sell_price: Decimal,
 ) -> dict[str, Decimal | str] | None:
-    if symbol != "KRW-BTC" or public_sell_price <= 0:
+    if not symbol.startswith("KRW-") or public_sell_price <= 0:
         return None
     current_qty = Decimal(state["quantity"])
     current_gross_cost = Decimal(state["gross_cost"])
@@ -97,11 +102,32 @@ def _legacy_public_sell_price_basis_repair(
     average_entry = current_gross_cost / current_qty
     if not (LEGACY_STATIC_KRW_BTC_MIN_PRICE <= average_entry <= LEGACY_STATIC_KRW_BTC_MAX_PRICE):
         return None
-    if not (UPBIT_KRW_BTC_PUBLIC_MARK_MIN_PRICE <= public_sell_price <= UPBIT_KRW_BTC_PUBLIC_MARK_MAX_PRICE):
-        return None
     ratio = public_sell_price / average_entry
-    if not (PUBLIC_MARK_PRICE_BASIS_REPAIR_MIN_RATIO < ratio <= PUBLIC_MARK_PRICE_BASIS_REPAIR_MAX_RATIO):
-        return None
+    repair_source = KRW_SPOT_PRICE_BASIS_REPAIR_SOURCE
+    if symbol == "KRW-BTC":
+        if not (UPBIT_KRW_BTC_PUBLIC_MARK_MIN_PRICE <= public_sell_price <= UPBIT_KRW_BTC_PUBLIC_MARK_MAX_PRICE):
+            return None
+        if not (PUBLIC_MARK_PRICE_BASIS_REPAIR_MIN_RATIO < ratio <= PUBLIC_MARK_PRICE_BASIS_REPAIR_MAX_RATIO):
+            return None
+        repair_source = PRICE_BASIS_REPAIR_SOURCE
+    else:
+        if not (
+            LEGACY_STATIC_KRW_SPOT_PUBLIC_MARK_MIN_PRICE
+            <= public_sell_price
+            <= LEGACY_STATIC_KRW_SPOT_PUBLIC_MARK_MAX_PRICE
+        ):
+            return None
+        ratio_repairable = (
+            LEGACY_STATIC_KRW_SPOT_PUBLIC_MARK_INVERSE_REPAIR_MIN_RATIO
+            <= ratio
+            < PUBLIC_MARK_PRICE_BASIS_MIN_RATIO
+        ) or (
+            PUBLIC_MARK_PRICE_BASIS_REPAIR_MIN_RATIO
+            < ratio
+            <= PUBLIC_MARK_PRICE_BASIS_REPAIR_MAX_RATIO
+        )
+        if not ratio_repairable:
+            return None
     normalized_quantity = current_gross_cost / public_sell_price
     if normalized_quantity <= 0:
         return None
@@ -109,7 +135,7 @@ def _legacy_public_sell_price_basis_repair(
         "quantity": normalized_quantity,
         "mark_price": public_sell_price,
         "price_basis_repair_status": PRICE_BASIS_REPAIR_STATUS_APPLIED,
-        "price_basis_repair_source": PRICE_BASIS_REPAIR_SOURCE,
+        "price_basis_repair_source": repair_source,
         "price_basis_original_quantity": _decimal_text(current_qty),
         "price_basis_original_average_entry_price": _decimal_text(average_entry),
         "price_basis_original_gross_entry_cost": _decimal_text(current_gross_cost),
@@ -383,7 +409,12 @@ def _portfolio_snapshot_from_fills(
         gross_cost = Decimal(state["gross_cost"])
         fee = Decimal(state["fee"])
         mark_price = Decimal(state["mark_price"])
-        average_entry = Decimal("0") if qty <= 0 else gross_cost / qty
+        repaired_average_entry = (
+            _decimal(state.get("price_basis_normalized_average_entry_price"))
+            if state.get("price_basis_repair_status") == PRICE_BASIS_REPAIR_STATUS_APPLIED
+            else Decimal("-1")
+        )
+        average_entry = repaired_average_entry if repaired_average_entry > 0 else Decimal("0") if qty <= 0 else gross_cost / qty
         market_value = qty * mark_price
         cost_basis = gross_cost + fee
         market_value_text = _decimal_text(market_value)

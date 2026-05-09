@@ -159,12 +159,12 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
         ledger["rollup_hash"] = paper_ledger_rollup_hash(ledger)
         return ledger
 
-    def stale_krw_ada_ledger_rollup(self) -> dict:
+    def stale_krw_ada_ledger_rollup(self, *, average_entry_value: str = "50000") -> dict:
         ledger = deepcopy(self.source_ledger_rollup())
         portfolio = deepcopy(ledger["portfolio_snapshot"])
         quantity = Decimal("0.007")
-        average_entry = Decimal("1000870")
-        mark = Decimal("1000870")
+        average_entry = Decimal(average_entry_value)
+        mark = Decimal(average_entry_value)
         fee = Decimal("3")
         cost_basis = quantity * average_entry + fee
         market_value = quantity * mark
@@ -426,6 +426,53 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
             self.assertEqual(Decimal(position["market_value"]), original_gross)
             self.assertEqual(current_evidence["verified_equity_krw"], portfolio["equity"])
             self.assertEqual(current_evidence["source_public_market_data_hash"], mismatched_public["collection_hash"])
+            self.assertFalse(report["live_order_ready"])
+            self.assertFalse(report["live_order_allowed"])
+            self.assertFalse(report["can_live_trade"])
+            self.assertFalse(report["scale_up_allowed"])
+
+    def test_writer_normalizes_legacy_static_altcoin_price_basis_to_public_mark(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            legacy_ledger = self.stale_krw_ada_ledger_rollup(average_entry_value="1000870")
+            mismatched_public = self.public_collection(close="405", minute_start=30, symbol="KRW-ADA")
+            source_position = legacy_ledger["portfolio_snapshot"]["positions"][0]
+
+            report = self.build_report(
+                root,
+                ledger=legacy_ledger,
+                public_market_data_collection_report=mismatched_public,
+            )
+
+            self.assertEqual(report["writer_status"], AUDITED_WRITER_WRITTEN_STATUS)
+            self.assertTrue(report["writer_passed"])
+            self.assertEqual(validate_upbit_paper_repaired_current_evidence_audited_writer_report(report).status, "PASS")
+            runtime_base = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / SESSION_ID
+            current_evidence = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[0])
+            portfolio = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[2])
+            position = portfolio["positions"][0]
+            original_gross = Decimal(source_position["quantity"]) * Decimal(source_position["average_entry_price"])
+            expected_quantity = original_gross / Decimal("405")
+
+            self.assertEqual(portfolio["mark_to_market_status"], "PASS_PUBLIC_MARK_TO_MARKET")
+            self.assertEqual(portfolio["price_basis_repair_status"], "APPLIED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION")
+            self.assertEqual(portfolio["price_basis_repair_count"], 1)
+            self.assertEqual(
+                portfolio["price_basis_repair_source"],
+                "LEGACY_STATIC_FIXTURE_PRICE_BASIS_TO_UPBIT_KRW_SPOT_PUBLIC_MARK",
+            )
+            self.assertEqual(position["symbol"], "KRW-ADA")
+            self.assertEqual(position["price_basis_repair_status"], "APPLIED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION")
+            self.assertEqual(
+                position["price_basis_repair_source"],
+                "LEGACY_STATIC_FIXTURE_PRICE_BASIS_TO_UPBIT_KRW_SPOT_PUBLIC_MARK",
+            )
+            self.assertEqual(position["price_basis_original_average_entry_price"], source_position["average_entry_price"])
+            self.assertEqual(Decimal(position["quantity"]), expected_quantity)
+            self.assertEqual(position["average_entry_price"], "405")
+            self.assertEqual(position["mark_price"], "405")
+            self.assertLess(abs(Decimal(position["market_value"]) - original_gross), Decimal("0.000000000000000001"))
+            self.assertEqual(current_evidence["verified_equity_krw"], portfolio["equity"])
             self.assertFalse(report["live_order_ready"])
             self.assertFalse(report["live_order_allowed"])
             self.assertFalse(report["can_live_trade"])

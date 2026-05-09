@@ -31,6 +31,7 @@ class PaperLedgerRollupTest(unittest.TestCase):
         client_order_id: str,
         price: str,
         *,
+        symbol: str = "KRW-BTC",
         side: str = "BUY",
         quantity: str = "0.001",
         fee_amount: str = "1",
@@ -49,7 +50,7 @@ class PaperLedgerRollupTest(unittest.TestCase):
         ledger_dir.mkdir(parents=True, exist_ok=True)
         events = build_upbit_paper_fill_chain(
             session_id="mvp1_upbit_paper_launcher",
-            symbol="KRW-BTC",
+            symbol=symbol,
             intent_id=f"{cycle_id}-intent",
             client_order_id=client_order_id,
             side=side,
@@ -306,6 +307,70 @@ class PaperLedgerRollupTest(unittest.TestCase):
                 manifest_rollup["portfolio_snapshot"]["positions"][0]["price_basis_repair_status"],
                 "APPLIED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION",
             )
+
+    def test_rollup_repairs_legacy_fixture_altcoin_price_basis_before_public_price_sell(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            legacy_quantity = "0.007"
+            legacy_price = "1000870"
+            public_sell_price = "405"
+            sold_quantity = "4"
+            self._write_cycle_ledger(
+                root,
+                "paper-rollup-legacy-ada-buy-cycle",
+                "paper-rollup-legacy-ada-buy-client",
+                legacy_price,
+                symbol="KRW-ADA",
+                quantity=legacy_quantity,
+                fee_amount="3",
+            )
+            sell_path, sell_events = self._write_cycle_ledger(
+                root,
+                "paper-rollup-public-ada-sell-cycle",
+                "paper-rollup-public-ada-sell-client",
+                public_sell_price,
+                symbol="KRW-ADA",
+                side="SELL",
+                quantity=sold_quantity,
+                fee_amount="1",
+            )
+            self._write_latest_head(root, "paper-rollup-public-ada-sell-cycle", sell_path, sell_events)
+
+            rollup = build_paper_ledger_rollup_report(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                rollup_id="test-paper-ledger-rollup-legacy-alt-public-sell",
+            )
+            result = validate_paper_ledger_rollup_report(rollup)
+
+            self.assertEqual(result.status, "PASS")
+            portfolio = rollup["portfolio_snapshot"]
+            self.assertEqual(portfolio["open_position_count"], 1)
+            position = portfolio["positions"][0]
+            self.assertEqual(position["symbol"], "KRW-ADA")
+            self.assertEqual(
+                position["price_basis_repair_status"],
+                "APPLIED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION",
+            )
+            self.assertEqual(
+                position["price_basis_repair_source"],
+                "LEGACY_STATIC_FIXTURE_PRICE_BASIS_TO_UPBIT_KRW_SPOT_PUBLIC_MARK",
+            )
+            original_cost = Decimal(legacy_quantity) * Decimal(legacy_price)
+            normalized_quantity = original_cost / Decimal(public_sell_price)
+            expected_remaining_quantity = normalized_quantity - Decimal(sold_quantity)
+
+            self.assertGreater(Decimal(position["quantity"]), Decimal("0"))
+            self.assertLess(
+                abs(Decimal(position["quantity"]) - expected_remaining_quantity),
+                Decimal("0.00000000000000000000000001"),
+            )
+            self.assertEqual(position["average_entry_price"], public_sell_price)
+            self.assertEqual(position["mark_price"], public_sell_price)
+            self.assertFalse(rollup["live_order_ready"])
+            self.assertFalse(rollup["live_order_allowed"])
+            self.assertFalse(rollup["can_live_trade"])
+            self.assertFalse(rollup["scale_up_allowed"])
 
     def test_input_manifest_filters_cash_overrun_ledgers_from_default_rollup(self):
         with TemporaryDirectory() as tmp:

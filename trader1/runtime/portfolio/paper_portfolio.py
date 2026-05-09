@@ -51,12 +51,16 @@ PRICE_BASIS_REPAIR_STATUS_APPLIED = "APPLIED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATI
 PRICE_BASIS_REPAIR_STATUS_NOT_REQUIRED = "NOT_REQUIRED"
 PRICE_BASIS_REPAIR_STATUS_BLOCKED = "BLOCKED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION"
 PRICE_BASIS_REPAIR_SOURCE = "LEGACY_STATIC_FIXTURE_PRICE_BASIS_TO_UPBIT_KRW_BTC_PUBLIC_MARK"
+KRW_SPOT_PRICE_BASIS_REPAIR_SOURCE = "LEGACY_STATIC_FIXTURE_PRICE_BASIS_TO_UPBIT_KRW_SPOT_PUBLIC_MARK"
 LEGACY_STATIC_KRW_BTC_MIN_PRICE = Decimal("900000")
 LEGACY_STATIC_KRW_BTC_MAX_PRICE = Decimal("1200000")
 UPBIT_KRW_BTC_PUBLIC_MARK_MIN_PRICE = Decimal("10000000")
 UPBIT_KRW_BTC_PUBLIC_MARK_MAX_PRICE = Decimal("300000000")
 PUBLIC_MARK_PRICE_BASIS_REPAIR_MIN_RATIO = Decimal("5")
 PUBLIC_MARK_PRICE_BASIS_REPAIR_MAX_RATIO = Decimal("500")
+LEGACY_STATIC_KRW_SPOT_PUBLIC_MARK_MIN_PRICE = Decimal("1")
+LEGACY_STATIC_KRW_SPOT_PUBLIC_MARK_MAX_PRICE = Decimal("300000000")
+LEGACY_STATIC_KRW_SPOT_PUBLIC_MARK_INVERSE_REPAIR_MIN_RATIO = Decimal("0.000001")
 PAPER_STARTING_CASH_BY_SCOPE = {
     ("UPBIT", "KRW_SPOT"): ("KRW", Decimal("1000000")),
     ("BINANCE", "SPOT"): ("USDT", Decimal("10000")),
@@ -149,7 +153,7 @@ def _public_mark_price_basis_blockers(
             continue
         ratio = mark / valid_reference
         if ratio < PUBLIC_MARK_PRICE_BASIS_MIN_RATIO or ratio > PUBLIC_MARK_PRICE_BASIS_MAX_RATIO:
-            repair = _legacy_static_krw_btc_price_basis_repair(
+            repair = _legacy_static_krw_spot_price_basis_repair(
                 position=position,
                 public_mark_price=mark,
                 valid_reference=valid_reference,
@@ -215,6 +219,64 @@ def _legacy_static_krw_btc_price_basis_repair(
     }
 
 
+def _legacy_static_krw_spot_price_basis_repair(
+    *,
+    position: dict[str, Any],
+    public_mark_price: Decimal,
+    valid_reference: Decimal,
+    ratio: Decimal,
+) -> dict[str, str] | None:
+    symbol = str(position.get("symbol") or "")
+    if symbol == "KRW-BTC":
+        return _legacy_static_krw_btc_price_basis_repair(
+            position=position,
+            public_mark_price=public_mark_price,
+            valid_reference=valid_reference,
+            ratio=ratio,
+        )
+    if not symbol.startswith("KRW-") or str(position.get("side")) != "LONG":
+        return None
+    quantity = _decimal(position.get("quantity"))
+    cost_basis = _decimal(position.get("cost_basis"))
+    if quantity <= 0 or cost_basis <= 0 or public_mark_price <= 0 or valid_reference <= 0:
+        return None
+    if not (LEGACY_STATIC_KRW_BTC_MIN_PRICE <= valid_reference <= LEGACY_STATIC_KRW_BTC_MAX_PRICE):
+        return None
+    if not (
+        LEGACY_STATIC_KRW_SPOT_PUBLIC_MARK_MIN_PRICE
+        <= public_mark_price
+        <= LEGACY_STATIC_KRW_SPOT_PUBLIC_MARK_MAX_PRICE
+    ):
+        return None
+    ratio_repairable = (
+        LEGACY_STATIC_KRW_SPOT_PUBLIC_MARK_INVERSE_REPAIR_MIN_RATIO
+        <= ratio
+        < PUBLIC_MARK_PRICE_BASIS_MIN_RATIO
+    ) or (
+        PUBLIC_MARK_PRICE_BASIS_REPAIR_MIN_RATIO
+        < ratio
+        <= PUBLIC_MARK_PRICE_BASIS_REPAIR_MAX_RATIO
+    )
+    if not ratio_repairable:
+        return None
+    gross_entry_cost = quantity * valid_reference
+    if gross_entry_cost <= 0 or cost_basis < gross_entry_cost:
+        return None
+    normalized_quantity = gross_entry_cost / public_mark_price
+    if normalized_quantity <= 0:
+        return None
+    return {
+        "price_basis_repair_status": PRICE_BASIS_REPAIR_STATUS_APPLIED,
+        "price_basis_repair_source": KRW_SPOT_PRICE_BASIS_REPAIR_SOURCE,
+        "price_basis_original_quantity": _decimal_text(quantity),
+        "price_basis_original_average_entry_price": _decimal_text(valid_reference),
+        "price_basis_original_gross_entry_cost": _decimal_text(gross_entry_cost),
+        "price_basis_scale_factor": _decimal_text(ratio),
+        "price_basis_normalized_quantity": _decimal_text(normalized_quantity),
+        "price_basis_normalized_average_entry_price": _decimal_text(public_mark_price),
+    }
+
+
 def portfolio_needs_public_mark_basis_repair(snapshot: dict[str, Any]) -> bool:
     if not isinstance(snapshot, dict) or snapshot.get("source") != "PAPER_LEDGER_ROLLUP_PUBLIC_MARK":
         return False
@@ -233,7 +295,7 @@ def portfolio_needs_public_mark_basis_repair(snapshot: dict[str, Any]) -> bool:
             continue
         if position.get("price_basis_repair_status") == PRICE_BASIS_REPAIR_STATUS_APPLIED:
             continue
-        repair = _legacy_static_krw_btc_price_basis_repair(
+        repair = _legacy_static_krw_spot_price_basis_repair(
             position=position,
             public_mark_price=mark,
             valid_reference=reference,
@@ -441,6 +503,15 @@ def mark_paper_portfolio_snapshot_to_public_market(
     equity = cash_available + locked_balance + position_market_value
     starting = _decimal(base["starting_cash"])
     return_pct = Decimal("0") if starting <= 0 else ((equity - starting) / starting * Decimal("100"))
+    repair_sources = sorted(
+        {
+            str(position.get("price_basis_repair_source"))
+            for position in marked_positions
+            if position.get("price_basis_repair_status") == PRICE_BASIS_REPAIR_STATUS_APPLIED
+            and isinstance(position.get("price_basis_repair_source"), str)
+            and position.get("price_basis_repair_source")
+        }
+    )
     marked = dict(base)
     marked.update(
         {
@@ -469,7 +540,13 @@ def mark_paper_portfolio_snapshot_to_public_market(
                 PRICE_BASIS_REPAIR_STATUS_APPLIED if applied_repair_count else PRICE_BASIS_REPAIR_STATUS_NOT_REQUIRED
             ),
             "price_basis_repair_count": applied_repair_count,
-            "price_basis_repair_source": PRICE_BASIS_REPAIR_SOURCE if applied_repair_count else None,
+            "price_basis_repair_source": (
+                repair_sources[0]
+                if applied_repair_count and len(repair_sources) == 1
+                else "MIXED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION"
+                if applied_repair_count and repair_sources
+                else None
+            ),
             "live_order_ready": False,
             "live_order_allowed": False,
             "can_live_trade": False,
