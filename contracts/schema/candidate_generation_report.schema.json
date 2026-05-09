@@ -218,6 +218,32 @@
       "type": "integer",
       "minimum": 0
     },
+    "best_alternative_public_replay_min_closed_trade_sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "best_alternative_public_replay_closed_trade_deficit": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "best_alternative_public_replay_closed_trade_maturity_status": {
+      "enum": [
+        "PASS",
+        "UNTESTED",
+        "BLOCKED"
+      ]
+    },
+    "best_alternative_public_replay_closed_trade_maturity_blocker_code": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "REPLAY_CLOSED_TRADES_BELOW_MIN",
+        "REPLAY_CLOSED_TRADES_MISSING",
+        null
+      ]
+    },
     "best_alternative_public_replay_strategy_exit_policy_sample_count": {
       "type": "integer",
       "minimum": 0

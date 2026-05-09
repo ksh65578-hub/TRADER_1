@@ -1962,6 +1962,21 @@ def build_current_upbit_paper_candidate_scorecard(
         "candidate_generation_best_alternative_public_replay_sample_count": candidate_generation_report[
             "best_alternative_public_replay_sample_count"
         ],
+        "candidate_generation_best_alternative_public_replay_closed_trade_sample_count": candidate_generation_report[
+            "best_alternative_public_replay_closed_trade_sample_count"
+        ],
+        "candidate_generation_best_alternative_public_replay_min_closed_trade_sample_count": candidate_generation_report[
+            "best_alternative_public_replay_min_closed_trade_sample_count"
+        ],
+        "candidate_generation_best_alternative_public_replay_closed_trade_deficit": candidate_generation_report[
+            "best_alternative_public_replay_closed_trade_deficit"
+        ],
+        "candidate_generation_best_alternative_public_replay_closed_trade_maturity_status": candidate_generation_report[
+            "best_alternative_public_replay_closed_trade_maturity_status"
+        ],
+        "candidate_generation_best_alternative_public_replay_closed_trade_maturity_blocker_code": candidate_generation_report[
+            "best_alternative_public_replay_closed_trade_maturity_blocker_code"
+        ],
         "candidate_generation_next_action": candidate_generation_report["next_action"],
         "diagnostic_status": diagnostic["diagnostic_status"],
         "robustness_eligible": diagnostic["robustness_eligible"],
