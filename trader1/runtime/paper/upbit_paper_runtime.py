@@ -618,8 +618,46 @@ def _candidate_rank_key(candidate: dict[str, Any]) -> tuple[Decimal, Decimal, in
     )
 
 
+def _valid_mutated_paper_candidate_spec(paper_scope_focus: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(paper_scope_focus, dict):
+        return None
+    spec = paper_scope_focus.get("mutated_paper_candidate_spec")
+    if spec is None:
+        return None
+    if not isinstance(spec, dict):
+        return None
+    if spec.get("schema_id") != "trader1.mutated_paper_candidate_spec.v1":
+        return None
+    if spec.get("mutation_status") != "PASS" or spec.get("mode") != "PAPER":
+        return None
+    if spec.get("exchange") != "UPBIT" or spec.get("market_type") != "KRW_SPOT":
+        return None
+    if spec.get("ranking_eligible") is not False:
+        return None
+    if any(spec.get(flag) is True for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
+        return None
+    if any(
+        spec.get(flag) is True
+        for flag in ("credential_load_attempted", "private_endpoint_called", "order_endpoint_called", "order_adapter_called", "live_key_loaded")
+    ):
+        return None
+    if str(spec.get("candidate_id") or "") != str(paper_scope_focus.get("candidate_id") or ""):
+        return None
+    deltas = spec.get("bounded_parameter_delta")
+    if not isinstance(deltas, list) or len(deltas) > 3:
+        return None
+    for item in deltas:
+        if not isinstance(item, dict) or not item.get("parameter_id"):
+            return None
+        if abs(_decimal(item.get("delta_pct"))) > Decimal("20"):
+            return None
+    return spec
+
+
 def _paper_scope_focus_requested(paper_scope_focus: dict[str, Any] | None) -> bool:
     if not isinstance(paper_scope_focus, dict):
+        return False
+    if paper_scope_focus.get("mutated_paper_candidate_spec") is not None and _valid_mutated_paper_candidate_spec(paper_scope_focus) is None:
         return False
     return bool(
         paper_scope_focus.get("candidate_id")
@@ -2324,6 +2362,57 @@ def _candidate(
     }
 
 
+def _apply_mutated_paper_candidate_spec(
+    *,
+    candidates: list[dict[str, Any]],
+    paper_scope_focus: dict[str, Any] | None,
+) -> None:
+    spec = _valid_mutated_paper_candidate_spec(paper_scope_focus)
+    if spec is None:
+        return
+    target_candidate_id = str(spec.get("candidate_id") or "")
+    mutation_id = str(spec.get("mutation_id") or "")
+    spec_hash = str(spec.get("spec_hash") or "")
+    edge_delta = max(Decimal("-25"), min(Decimal("25"), _decimal(spec.get("edge_delta_bps"))))
+    signal_delta = max(Decimal("-0.15"), min(Decimal("0.15"), _decimal(spec.get("signal_delta"))))
+    for candidate in candidates:
+        if str(candidate.get("candidate_id") or "") != target_candidate_id:
+            continue
+        old_edge = _decimal(candidate.get("expected_edge_bps"))
+        old_net_ev = _decimal(candidate.get("net_ev_after_cost_bps"))
+        old_signal = _decimal(candidate.get("signal_strength"))
+        new_edge = old_edge + edge_delta
+        new_net_ev = old_net_ev + edge_delta
+        new_signal = _clamp_decimal(old_signal + signal_delta)
+        candidate["expected_edge_bps"] = _decimal_text(new_edge)
+        candidate["net_ev_after_cost_bps"] = _decimal_text(new_net_ev)
+        candidate["signal_strength"] = _decimal_text(new_signal)
+        candidate["candidate_selection_score"] = _decimal_text(
+            _candidate_selection_score_value(
+                symbol_score=_decimal(candidate.get("symbol_selection_score")),
+                net_ev_bps=new_net_ev,
+                signal_strength=new_signal,
+            )
+        )
+        candidate["mutation_status"] = "APPLIED_TO_PAPER_CANDIDATE"
+        candidate["mutation_id"] = mutation_id
+        candidate["mutation_reason_code"] = spec.get("mutation_reason_code")
+        candidate["mutated_paper_candidate_spec_id"] = spec.get("spec_id")
+        candidate["mutation_spec_hash"] = spec_hash
+        candidate["mutation_source_evidence_id"] = f"strategy_mutation_spec:{mutation_id}:{spec_hash}"
+        candidate["parent_candidate_lineage"] = spec.get("parent_candidate_lineage")
+        candidate["bounded_parameter_delta"] = spec.get("bounded_parameter_delta")
+        candidate["exploration_budget_id"] = spec.get("exploration_budget_id")
+        candidate["parent_parameter_hash"] = spec.get("parent_parameter_hash")
+        candidate["parameter_hash"] = spec.get("parameter_hash")
+        candidate["ranking_eligible"] = False
+        candidate["live_order_ready"] = False
+        candidate["live_order_allowed"] = False
+        candidate["can_live_trade"] = False
+        candidate["scale_up_allowed"] = False
+        break
+
+
 def _apply_recent_failure_penalty(
     *,
     edge_bps: Decimal,
@@ -3481,6 +3570,7 @@ def build_upbit_paper_runtime_cycle_report(
             symbol_selection=symbol_selection,
             recent_failure_feedback=recent_failure_feedback,
         )
+        _apply_mutated_paper_candidate_spec(candidates=symbol_candidates, paper_scope_focus=paper_scope_focus)
         symbol_selection_universe.append(
             {
                 "rank_input_order": index,
@@ -3589,6 +3679,7 @@ def build_upbit_paper_runtime_cycle_report(
             symbol_selection=_symbol_selection_scores_for_universe(feature_snapshots_by_symbol)[symbol],
             recent_failure_feedback=recent_failure_feedback,
         )
+        _apply_mutated_paper_candidate_spec(candidates=candidates, paper_scope_focus=paper_scope_focus)
         fallback_symbol_selection = _symbol_selection_scores_for_universe(feature_snapshots_by_symbol)[symbol]
         symbol_selection_universe = [
             {

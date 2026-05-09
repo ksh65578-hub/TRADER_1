@@ -1908,6 +1908,9 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
     source_runtime_cycle_id = str(runtime_cycle_report["cycle_id"])
     source_runtime_cycle_hash = str(runtime_cycle_report["cycle_hash"])
     source_ids = [runtime_cycle_source_evidence_id(source_runtime_cycle_id, source_runtime_cycle_hash)]
+    mutation_source_evidence_id = selected.get("mutation_source_evidence_id")
+    if mutation_source_evidence_id:
+        source_ids.append(str(mutation_source_evidence_id))
     source_ids.extend(robustness_source_evidence_ids or [])
     source_ids.extend(performance_source_evidence_ids or [])
     source_role_errors = source_role_semantics_errors(source_ids)
@@ -2098,7 +2101,11 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         "source_runtime_cycle_hash": source_runtime_cycle_hash,
         "strategy_id": strategy_id_for_family(selected["strategy_family"]),
         "strategy_build_id": "upbit_paper_runtime_cycle_v1",
-        "parameter_hash": stable_hash(f"{selected['candidate_id']}:{selected['strategy_family']}:{selected_symbol}"),
+        "parameter_hash": (
+            str(selected.get("parameter_hash") or "").upper()
+            if isinstance(selected.get("parameter_hash"), str) and len(str(selected.get("parameter_hash"))) == 64
+            else stable_hash(f"{selected['candidate_id']}:{selected['strategy_family']}:{selected_symbol}")
+        ),
         "exchange": runtime_cycle_report["exchange"],
         "market_type": runtime_cycle_report["market_type"],
         "mode": runtime_cycle_report["mode"],
@@ -2194,6 +2201,15 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         "live_readiness_status": "NOT_LIVE_READY",
         "operator_warning": "PAPER candidate scorecard is not LIVE_READY and live orders remain blocked.",
         "source_evidence_ids": source_ids,
+        "mutation_status": selected.get("mutation_status", "NOT_MUTATED"),
+        "mutation_id": selected.get("mutation_id"),
+        "mutation_reason_code": selected.get("mutation_reason_code"),
+        "mutated_paper_candidate_spec_id": selected.get("mutated_paper_candidate_spec_id"),
+        "mutation_spec_hash": selected.get("mutation_spec_hash"),
+        "parent_candidate_lineage": selected.get("parent_candidate_lineage"),
+        "bounded_parameter_delta": selected.get("bounded_parameter_delta", []),
+        "exploration_budget_id": selected.get("exploration_budget_id"),
+        "parent_parameter_hash": selected.get("parent_parameter_hash"),
         "blockers": blockers,
         "evaluated_symbol_count": evaluated_symbol_count,
         "paper_entry_review_symbol_count": paper_entry_review_symbol_count,

@@ -60,6 +60,17 @@
     "strategy_id": {"type": "string", "minLength": 1},
     "strategy_build_id": {"type": "string", "minLength": 1},
     "parameter_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "mutation_status": {
+      "enum": [
+        "NOT_MUTATED",
+        "APPLIED_TO_PAPER_CANDIDATE"
+      ]
+    },
+    "mutation_id": {"type": ["string", "null"]},
+    "mutation_reason_code": {"type": ["string", "null"]},
+    "mutated_paper_candidate_spec_id": {"type": ["string", "null"]},
+    "mutation_spec_hash": {"type": ["string", "null"], "pattern": "^[A-Fa-f0-9]{64}$"},
+    "parent_parameter_hash": {"type": ["string", "null"], "pattern": "^[A-Fa-f0-9]{64}$"},
     "value_source": {"const": "PUBLIC_REST_REPLAY_DECISION_ADJUSTED_NET_EV_AFTER_COST_BPS"},
     "public_market_data_source": {
       "enum": [

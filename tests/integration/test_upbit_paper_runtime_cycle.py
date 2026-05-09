@@ -410,6 +410,7 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
             **features,
             "volatility_pct": "0.40",
             "spread_bps": "1.00",
+            "total_quote_volume": "40000000",
             "liquidity_status": "PASS",
         }
         mark_price = Decimal(features["last_price"])
@@ -417,8 +418,8 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
             cycle_id="runtime-cycle-maker-paper-fill",
             symbol="KRW-BTC",
             side="BUY",
-            requested_notional=Decimal("5000"),
-            requested_quantity=Decimal("5000") / mark_price,
+            requested_notional=Decimal("7000"),
+            requested_quantity=Decimal("7000") / mark_price,
             mark_price=mark_price,
             features=features,
             fee_rate=Decimal("0.0005"),
@@ -431,6 +432,7 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(fill["time_in_force"], "GTT_PAPER")
         self.assertLessEqual(float(fill["effective_spread_bps"]), 0)
         self.assertGreater(float(fill["queue_fill_probability"]), 0.70)
+        self.assertGreaterEqual(float(fill["filled_notional"]), 5000)
         self.assertGreater(float(fill["queue_wait_ms"]), 0)
         self.assertTrue(fill["reservation_released"])
         self.assertFalse(fill["live_order_allowed"])

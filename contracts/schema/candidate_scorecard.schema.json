@@ -643,6 +643,60 @@
         "minLength": 1
       }
     },
+    "mutation_status": {
+      "enum": [
+        "NOT_MUTATED",
+        "APPLIED_TO_PAPER_CANDIDATE"
+      ]
+    },
+    "mutation_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "mutation_reason_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "mutated_paper_candidate_spec_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "mutation_spec_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "parent_parameter_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "parent_candidate_lineage": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "bounded_parameter_delta": {
+      "type": "array",
+      "maxItems": 3
+    },
+    "exploration_budget_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "blockers": {
       "type": "array",
       "items": {
