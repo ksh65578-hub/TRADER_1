@@ -203,6 +203,16 @@ RECENT_FAILURE_FEEDBACK_FORMULA = (
     "quality_signal_penalty=min(0.50,0.08_symbol+0.28_same_candidate_or_strategy); "
     "active cooldown blocks PAPER_ENTRY_REVIEW"
 )
+EXECUTION_COST_FEEDBACK_MAX_ADJUSTMENT_BPS = Decimal("35")
+EXECUTION_COST_FEEDBACK_PARTIAL_FILL_PENALTY_BPS = Decimal("8")
+EXECUTION_COST_FEEDBACK_TERMINAL_ATTEMPT_PENALTY_BPS = Decimal("15")
+EXECUTION_COST_FEEDBACK_FORMULA = (
+    "PAPER-only execution feedback is loaded only from validated prior PAPER broker attempts with "
+    "live/order/private/key flags false; adjustment_bps=min(35,max(0,avg_realized_execution_cost_bps-"
+    "avg_expected_execution_cost_bps)+8*partial_fill_rate+15*terminal_attempt_rate); adjustment is "
+    "added to adaptive slippage_bps, never reduces costs, never promotes ranking eligibility, and "
+    "never writes LIVE config or order paths"
+)
 STRATEGY_EXIT_POLICY_ID = "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1"
 TREND_PULLBACK_EXIT_VARIATION = "trailing_tp"
 VWAP_REVERSION_EXIT_VARIATION = "fixed_tp"
@@ -1838,13 +1848,153 @@ def _paper_orderbook_proxy(features: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _paper_candidate_cost_breakdown(features: dict[str, Any]) -> dict[str, str]:
+def _execution_cost_feedback_clear() -> dict[str, Any]:
+    return {
+        "execution_cost_feedback_status": "CLEAR",
+        "execution_cost_feedback_source": "NONE",
+        "execution_cost_feedback_sample_count": 0,
+        "execution_cost_feedback_adjustment_bps": "0",
+        "execution_cost_feedback_realized_cost_bps": "0",
+        "execution_cost_feedback_expected_cost_bps": "0",
+        "execution_cost_feedback_partial_fill_rate": "0",
+        "execution_cost_feedback_terminal_attempt_rate": "0",
+        "execution_cost_feedback_source_cycle_id": None,
+        "execution_cost_feedback_source_cycle_hash": None,
+        "execution_cost_feedback_formula": EXECUTION_COST_FEEDBACK_FORMULA,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
+def _execution_cost_feedback_item_unsafe(item: dict[str, Any]) -> bool:
+    for field in (
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "order_adapter_called",
+        "private_endpoint_called",
+        "credential_load_attempted",
+        "live_key_loaded",
+        "can_submit_order",
+        "order_endpoint_called",
+    ):
+        if item.get(field):
+            return True
+    mode = item.get("mode")
+    if mode is not None and mode != "PAPER":
+        return True
+    scope = str(item.get("scope") or item.get("execution_scope") or item.get("target_scope") or "")
+    return "LIVE" in scope.upper()
+
+
+def _execution_cost_feedback_blockers(
+    execution_cost_feedback: list[dict[str, Any]] | None,
+) -> list[dict[str, str]]:
+    if execution_cost_feedback is None:
+        return []
+    if not isinstance(execution_cost_feedback, list):
+        return [_blocker("MEASUREMENT_MISSING", "execution cost feedback must be a PAPER-only feedback list")]
+    blockers: list[dict[str, str]] = []
+    for item in execution_cost_feedback:
+        if not isinstance(item, dict):
+            blockers.append(_blocker("MEASUREMENT_MISSING", "execution cost feedback item is not an object"))
+            continue
+        if _execution_cost_feedback_item_unsafe(item):
+            blockers.append(_blocker("LIVE_FINAL_GUARD_FAILED", "execution cost feedback attempted live/order/private/key scope"))
+    return blockers
+
+
+def _execution_cost_feedback_for_candidate(
+    *,
+    symbol: str,
+    strategy_family: str,
+    candidate_id: str,
+    execution_cost_feedback: list[dict[str, Any]] | None,
+) -> dict[str, Any]:
+    if not isinstance(execution_cost_feedback, list):
+        return _execution_cost_feedback_clear()
+    matched: list[dict[str, Any]] = []
+    for item in execution_cost_feedback:
+        if not isinstance(item, dict) or _execution_cost_feedback_item_unsafe(item):
+            continue
+        if str(item.get("symbol") or "") != symbol:
+            continue
+        item_candidate_id = str(item.get("candidate_id") or "")
+        item_strategy_family = str(item.get("strategy_family") or "")
+        if item_candidate_id and item_candidate_id != candidate_id:
+            continue
+        if not item_candidate_id and item_strategy_family and item_strategy_family != strategy_family:
+            continue
+        sample_count = int(max(0, _decimal(item.get("sample_count"))))
+        adjustment_bps = _decimal(item.get("adjustment_bps"))
+        if sample_count <= 0 or adjustment_bps <= 0:
+            continue
+        matched.append(item)
+    if not matched:
+        return _execution_cost_feedback_clear()
+    matched.sort(
+        key=lambda item: (
+            _decimal(item.get("adjustment_bps")),
+            int(max(0, _decimal(item.get("sample_count")))),
+            str(item.get("source_generated_at_utc") or ""),
+            str(item.get("source_runtime_cycle_id") or item.get("source_cycle_id") or ""),
+        ),
+        reverse=True,
+    )
+    best = matched[0]
+    adjustment_bps = max(Decimal("0"), min(EXECUTION_COST_FEEDBACK_MAX_ADJUSTMENT_BPS, _decimal(best.get("adjustment_bps"))))
+    return {
+        "execution_cost_feedback_status": "ACTIVE",
+        "execution_cost_feedback_source": str(best.get("source") or "PAPER_RUNTIME_EXECUTION_COST_FEEDBACK"),
+        "execution_cost_feedback_sample_count": int(max(0, _decimal(best.get("sample_count")))),
+        "execution_cost_feedback_adjustment_bps": _decimal_text(adjustment_bps),
+        "execution_cost_feedback_realized_cost_bps": _decimal_text(max(Decimal("0"), _decimal(best.get("realized_execution_cost_bps")))),
+        "execution_cost_feedback_expected_cost_bps": _decimal_text(max(Decimal("0"), _decimal(best.get("expected_execution_cost_bps")))),
+        "execution_cost_feedback_partial_fill_rate": _decimal_text(
+            max(Decimal("0"), min(Decimal("1"), _decimal(best.get("partial_fill_rate"))))
+        ),
+        "execution_cost_feedback_terminal_attempt_rate": _decimal_text(
+            max(Decimal("0"), min(Decimal("1"), _decimal(best.get("terminal_attempt_rate"))))
+        ),
+        "execution_cost_feedback_source_cycle_id": best.get("source_runtime_cycle_id") or best.get("source_cycle_id"),
+        "execution_cost_feedback_source_cycle_hash": best.get("source_runtime_cycle_hash") or best.get("source_cycle_hash"),
+        "execution_cost_feedback_formula": EXECUTION_COST_FEEDBACK_FORMULA,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
+def _execution_cost_feedback_adjustment_bps(execution_cost_feedback: dict[str, Any] | None) -> Decimal:
+    if not isinstance(execution_cost_feedback, dict):
+        return Decimal("0")
+    if execution_cost_feedback.get("execution_cost_feedback_status") != "ACTIVE":
+        return Decimal("0")
+    return max(
+        Decimal("0"),
+        min(
+            EXECUTION_COST_FEEDBACK_MAX_ADJUSTMENT_BPS,
+            _decimal(execution_cost_feedback.get("execution_cost_feedback_adjustment_bps")),
+        ),
+    )
+
+
+def _paper_candidate_cost_breakdown(
+    features: dict[str, Any],
+    *,
+    execution_cost_feedback: dict[str, Any] | None = None,
+) -> dict[str, str]:
     proxy = _paper_orderbook_proxy(features)
     spread_bps = _decimal(proxy["spread_bps"])
     volatility_pct = max(Decimal("0"), _decimal(features.get("volatility_pct")))
     aggregate_depth = max(Decimal("1"), _decimal(proxy["estimated_aggregate_depth_krw"]))
     expected_notional = UPBIT_KRW_PAPER_MIN_ENTRY_NOTIONAL
     adaptive_slippage_bps = max(Decimal("1.50"), (spread_bps / Decimal("2")) + (volatility_pct * Decimal("0.80")))
+    adaptive_slippage_bps += _execution_cost_feedback_adjustment_bps(execution_cost_feedback)
     impact_bps = min(Decimal("30"), (expected_notional / aggregate_depth) * Decimal("500"))
     latency_bps = min(Decimal("15"), Decimal("0.75") + (volatility_pct * Decimal("0.45")) + (impact_bps * Decimal("0.10")))
     return {
@@ -2262,11 +2412,13 @@ def _candidate(
     symbol_selection: dict[str, str],
     selection_priority: int,
     recent_failure_feedback: dict[str, Any] | None = None,
+    execution_cost_feedback: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     expected_cost_bps = _cost_breakdown_sum(cost_breakdown_bps)
     net_ev = expected_edge_bps - expected_cost_bps
     symbol_score = _decimal(symbol_selection.get("symbol_selection_score"))
     recent_failure_feedback = recent_failure_feedback or _recent_failure_clear_feedback()
+    execution_cost_feedback = execution_cost_feedback or _execution_cost_feedback_clear()
     cooldown_active = (
         recent_failure_feedback.get("recent_failure_cooldown_status") == "ACTIVE"
         and int(recent_failure_feedback.get("recent_failure_cooldown_cycles_remaining", 0) or 0) > 0
@@ -2355,6 +2507,7 @@ def _candidate(
         "decision": decision,
         "no_trade_reason": no_trade_reason,
         **recent_failure_feedback,
+        **execution_cost_feedback,
         "live_order_ready": False,
         "live_order_allowed": False,
         "can_live_trade": False,
@@ -2434,10 +2587,10 @@ def _build_candidates(
     edge_profile: str,
     symbol_selection: dict[str, Any] | None = None,
     recent_failure_feedback: list[dict[str, Any]] | None = None,
+    execution_cost_feedback: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     regime = str(features["regime"])
     market_state = str(features.get("market_state") or regime)
-    cost_breakdown_bps = _paper_candidate_cost_breakdown(features)
     symbol_selection = symbol_selection or _symbol_selection_score(features)
     symbol_score = _decimal(symbol_selection["symbol_selection_score"])
     momentum = _decimal(features.get("momentum_pct"))
@@ -2590,6 +2743,36 @@ def _build_candidates(
         signal_strength=mean_reversion_signal,
         feedback=mean_reversion_feedback,
     )
+    pullback_execution_feedback = _execution_cost_feedback_for_candidate(
+        symbol=symbol,
+        strategy_family="PULLBACK_TREND_LONG",
+        candidate_id=f"{symbol}-pullback-trend-long",
+        execution_cost_feedback=execution_cost_feedback,
+    )
+    breakout_execution_feedback = _execution_cost_feedback_for_candidate(
+        symbol=symbol,
+        strategy_family="BREAKOUT_RETEST_LONG",
+        candidate_id=f"{symbol}-breakout-retest-long",
+        execution_cost_feedback=execution_cost_feedback,
+    )
+    mean_reversion_execution_feedback = _execution_cost_feedback_for_candidate(
+        symbol=symbol,
+        strategy_family="VWAP_MEAN_REVERSION",
+        candidate_id=f"{symbol}-vwap-mean-reversion",
+        execution_cost_feedback=execution_cost_feedback,
+    )
+    pullback_cost_breakdown_bps = _paper_candidate_cost_breakdown(
+        features,
+        execution_cost_feedback=pullback_execution_feedback,
+    )
+    breakout_cost_breakdown_bps = _paper_candidate_cost_breakdown(
+        features,
+        execution_cost_feedback=breakout_execution_feedback,
+    )
+    mean_reversion_cost_breakdown_bps = _paper_candidate_cost_breakdown(
+        features,
+        execution_cost_feedback=mean_reversion_execution_feedback,
+    )
     return [
         _candidate(
             candidate_id=f"{symbol}-pullback-trend-long",
@@ -2597,12 +2780,13 @@ def _build_candidates(
             strategy_family="PULLBACK_TREND_LONG",
             features=features,
             expected_edge_bps=pullback_edge + edge_shift,
-            cost_breakdown_bps=cost_breakdown_bps,
+            cost_breakdown_bps=pullback_cost_breakdown_bps,
             signal_strength=pullback_signal,
             regime=regime,
             symbol_selection=symbol_selection,
             selection_priority=1,
             recent_failure_feedback=pullback_feedback,
+            execution_cost_feedback=pullback_execution_feedback,
         ),
         _candidate(
             candidate_id=f"{symbol}-breakout-retest-long",
@@ -2610,12 +2794,13 @@ def _build_candidates(
             strategy_family="BREAKOUT_RETEST_LONG",
             features=features,
             expected_edge_bps=breakout_edge + edge_shift,
-            cost_breakdown_bps=cost_breakdown_bps,
+            cost_breakdown_bps=breakout_cost_breakdown_bps,
             signal_strength=breakout_signal,
             regime=regime,
             symbol_selection=symbol_selection,
             selection_priority=2,
             recent_failure_feedback=breakout_feedback,
+            execution_cost_feedback=breakout_execution_feedback,
         ),
         _candidate(
             candidate_id=f"{symbol}-vwap-mean-reversion",
@@ -2623,12 +2808,13 @@ def _build_candidates(
             strategy_family="VWAP_MEAN_REVERSION",
             features=features,
             expected_edge_bps=mean_reversion_edge + edge_shift,
-            cost_breakdown_bps=cost_breakdown_bps,
+            cost_breakdown_bps=mean_reversion_cost_breakdown_bps,
             signal_strength=mean_reversion_signal,
             regime=regime,
             symbol_selection=symbol_selection,
             selection_priority=3,
             recent_failure_feedback=mean_reversion_feedback,
+            execution_cost_feedback=mean_reversion_execution_feedback,
         ),
     ]
 
@@ -2914,7 +3100,14 @@ def _validate_candidate_costs(
     adaptive_top_n_filtered = symbol_selection.get("adaptive_top_n_filter_status") == "OUTSIDE_ADAPTIVE_TOP_N"
     component_cost = sum((_decimal(breakdown[field]) for field in sorted(cost_fields)), Decimal("0"))
     if require_adaptive_cost_model and isinstance(features, dict):
-        expected_breakdown = _paper_candidate_cost_breakdown(features)
+        expected_breakdown = _paper_candidate_cost_breakdown(
+            features,
+            execution_cost_feedback=(
+                candidate
+                if candidate.get("execution_cost_feedback_status") == "ACTIVE"
+                else None
+            ),
+        )
         for field in sorted(cost_fields):
             if _decimal(breakdown.get(field)) != _decimal(expected_breakdown.get(field)):
                 return UpbitPaperRuntimeCycleValidationResult(
@@ -2922,6 +3115,26 @@ def _validate_candidate_costs(
                     f"candidate adaptive cost component mismatch: {field}",
                     "SCHEMA_IDENTITY_MISMATCH",
                 )
+    if "execution_cost_feedback_status" in candidate:
+        feedback_status = candidate.get("execution_cost_feedback_status")
+        if feedback_status not in {"CLEAR", "ACTIVE"}:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate execution cost feedback status is invalid", "SCHEMA_IDENTITY_MISMATCH")
+        if (
+            candidate.get("execution_cost_feedback_formula") != EXECUTION_COST_FEEDBACK_FORMULA
+            or candidate.get("live_order_ready")
+            or candidate.get("live_order_allowed")
+            or candidate.get("can_live_trade")
+            or candidate.get("scale_up_allowed")
+        ):
+            return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "candidate execution cost feedback attempted unsafe live scope", "LIVE_FINAL_GUARD_FAILED")
+        adjustment_bps = _decimal(candidate.get("execution_cost_feedback_adjustment_bps"))
+        sample_count = int(max(0, _decimal(candidate.get("execution_cost_feedback_sample_count"))))
+        if adjustment_bps < 0 or adjustment_bps > EXECUTION_COST_FEEDBACK_MAX_ADJUSTMENT_BPS:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate execution cost feedback adjustment exceeds bounds", "SCHEMA_IDENTITY_MISMATCH")
+        if feedback_status == "ACTIVE" and (sample_count <= 0 or adjustment_bps <= 0):
+            return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "active execution cost feedback requires mature PAPER samples and positive adjustment", "MEASUREMENT_MISSING")
+        if feedback_status == "CLEAR" and adjustment_bps != 0:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "clear execution cost feedback cannot alter cost", "SCHEMA_IDENTITY_MISMATCH")
     if not _decimal_close(expected_cost, component_cost):
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate expected cost does not equal fee+slippage+spread+impact+latency", "SCHEMA_IDENTITY_MISMATCH")
     if not _decimal_close(reported_net_ev, expected_edge - expected_cost):
@@ -3501,6 +3714,7 @@ def build_upbit_paper_runtime_cycle_report(
     paper_cash_source: str = "PAPER_LEDGER_ROLLUP",
     current_paper_portfolio_snapshot: dict[str, Any] | None = None,
     recent_failure_feedback: list[dict[str, Any]] | None = None,
+    execution_cost_feedback: list[dict[str, Any]] | None = None,
     paper_scope_focus: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     source_collection_report_hash = None
@@ -3508,6 +3722,7 @@ def build_upbit_paper_runtime_cycle_report(
     canonical_event_count = 0
     runtime_input_role = "STATIC_FIXTURE"
     blockers: list[dict[str, str]] = []
+    blockers.extend(_execution_cost_feedback_blockers(execution_cost_feedback))
     supplied_collection_reports: list[dict[str, Any]] = []
     if isinstance(source_collection_report, dict):
         supplied_collection_reports.append(source_collection_report)
@@ -3569,6 +3784,7 @@ def build_upbit_paper_runtime_cycle_report(
             edge_profile=edge_profile,
             symbol_selection=symbol_selection,
             recent_failure_feedback=recent_failure_feedback,
+            execution_cost_feedback=execution_cost_feedback,
         )
         _apply_mutated_paper_candidate_spec(candidates=symbol_candidates, paper_scope_focus=paper_scope_focus)
         symbol_selection_universe.append(
@@ -3678,6 +3894,7 @@ def build_upbit_paper_runtime_cycle_report(
             edge_profile="NEGATIVE",
             symbol_selection=_symbol_selection_scores_for_universe(feature_snapshots_by_symbol)[symbol],
             recent_failure_feedback=recent_failure_feedback,
+            execution_cost_feedback=execution_cost_feedback,
         )
         _apply_mutated_paper_candidate_spec(candidates=candidates, paper_scope_focus=paper_scope_focus)
         fallback_symbol_selection = _symbol_selection_scores_for_universe(feature_snapshots_by_symbol)[symbol]

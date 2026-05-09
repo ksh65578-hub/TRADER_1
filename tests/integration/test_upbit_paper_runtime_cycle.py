@@ -340,6 +340,107 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertFalse(report["can_submit_order"])
         self.assertFalse(report["scale_up_allowed"])
         self.assertFalse(report["order_adapter_called"])
+        self.assertEqual(report["selected_candidate"]["execution_cost_feedback_status"], "CLEAR")
+        self.assertEqual(report["selected_candidate"]["execution_cost_feedback_adjustment_bps"], "0")
+
+    def test_execution_cost_feedback_increases_candidate_cost_without_live_permission(self):
+        baseline = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-execution-cost-baseline")
+        baseline_result = validate_upbit_paper_runtime_cycle_report(baseline)
+        self.assertEqual(baseline_result.status, "PASS", baseline_result.message)
+        target_candidate = baseline["selected_candidate"]
+        feedback = [
+            {
+                "source": "PAPER_RUNTIME_EXECUTION_COST_FEEDBACK",
+                "exchange": "UPBIT",
+                "market_type": "KRW_SPOT",
+                "mode": "PAPER",
+                "symbol": target_candidate["symbol"],
+                "candidate_id": target_candidate["candidate_id"],
+                "strategy_family": target_candidate["strategy_family"],
+                "sample_count": 2,
+                "realized_execution_cost_bps": "32",
+                "expected_execution_cost_bps": "20",
+                "partial_fill_rate": "0.5",
+                "terminal_attempt_rate": "0",
+                "adjustment_bps": "10",
+                "source_runtime_cycle_id": "prior-paper-execution-cost-cycle",
+                "source_runtime_cycle_hash": "C" * 64,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+                "order_adapter_called": False,
+                "private_endpoint_called": False,
+                "credential_load_attempted": False,
+                "live_key_loaded": False,
+            }
+        ]
+        adjusted = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-execution-cost-adjusted",
+            execution_cost_feedback=feedback,
+        )
+        adjusted_result = validate_upbit_paper_runtime_cycle_report(adjusted)
+        self.assertEqual(adjusted_result.status, "PASS", adjusted_result.message)
+
+        baseline_by_id = {candidate["candidate_id"]: candidate for candidate in baseline["strategy_candidates"]}
+        adjusted_by_id = {candidate["candidate_id"]: candidate for candidate in adjusted["strategy_candidates"]}
+        baseline_candidate = baseline_by_id[target_candidate["candidate_id"]]
+        adjusted_candidate = adjusted_by_id[target_candidate["candidate_id"]]
+
+        self.assertEqual(adjusted_candidate["execution_cost_feedback_status"], "ACTIVE")
+        self.assertEqual(adjusted_candidate["execution_cost_feedback_source"], "PAPER_RUNTIME_EXECUTION_COST_FEEDBACK")
+        self.assertEqual(adjusted_candidate["execution_cost_feedback_sample_count"], 2)
+        self.assertEqual(adjusted_candidate["execution_cost_feedback_adjustment_bps"], "10")
+        self.assertEqual(
+            Decimal(adjusted_candidate["cost_breakdown_bps"]["slippage_bps"]),
+            Decimal(baseline_candidate["cost_breakdown_bps"]["slippage_bps"]) + Decimal("10"),
+        )
+        self.assertEqual(
+            Decimal(adjusted_candidate["expected_cost_bps"]),
+            Decimal(baseline_candidate["expected_cost_bps"]) + Decimal("10"),
+        )
+        self.assertEqual(
+            Decimal(adjusted_candidate["net_ev_after_cost_bps"]),
+            Decimal(baseline_candidate["net_ev_after_cost_bps"]) - Decimal("10"),
+        )
+        self.assertFalse(adjusted_candidate["live_order_ready"])
+        self.assertFalse(adjusted_candidate["live_order_allowed"])
+        self.assertFalse(adjusted_candidate["can_live_trade"])
+        self.assertFalse(adjusted_candidate["scale_up_allowed"])
+        self.assertFalse(adjusted["live_order_allowed"])
+
+    def test_unsafe_execution_cost_feedback_blocks_runtime_without_order_path(self):
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-unsafe-execution-cost-feedback",
+            execution_cost_feedback=[
+                {
+                    "source": "PAPER_RUNTIME_EXECUTION_COST_FEEDBACK",
+                    "symbol": "KRW-BTC",
+                    "candidate_id": "KRW-BTC-pullback-trend-long",
+                    "strategy_family": "PULLBACK_TREND_LONG",
+                    "sample_count": 1,
+                    "adjustment_bps": "5",
+                    "realized_execution_cost_bps": "25",
+                    "expected_execution_cost_bps": "20",
+                    "partial_fill_rate": "0",
+                    "terminal_attempt_rate": "0",
+                    "mode": "LIVE",
+                    "live_order_allowed": True,
+                }
+            ],
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["final_decision"], "BLOCKED")
+        self.assertIn("LIVE_FINAL_GUARD_FAILED", report["no_trade_reasons"])
+        self.assertIsNone(report["paper_fill"])
+        self.assertEqual(report["paper_ledger_events"], [])
+        self.assertFalse(report["live_order_ready"])
+        self.assertFalse(report["live_order_allowed"])
+        self.assertFalse(report["can_live_trade"])
+        self.assertFalse(report["scale_up_allowed"])
+        self.assertFalse(report["order_adapter_called"])
 
     def test_recent_negative_exit_feedback_cooldown_blocks_same_symbol_reentry(self):
         report = build_upbit_paper_runtime_cycle_report(
