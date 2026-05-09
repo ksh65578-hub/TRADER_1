@@ -1205,14 +1205,21 @@ def _public_replay_source_evidence_ids(report: dict[str, Any]) -> list[str]:
     return source_ids
 
 
+def _min_required_closed_trade_sample_count_for_public_replay(min_required_sample_count: int) -> int:
+    window_minimum = max(1, int(min_required_sample_count))
+    if window_minimum < 30:
+        return window_minimum
+    one_tenth_of_windows = (window_minimum + 9) // 10
+    return max(30, min(120, one_tenth_of_windows))
+
+
 def _public_replay_closed_trade_maturity(report: dict[str, Any]) -> dict[str, Any]:
     closed_count = int(report.get("replay_closed_trade_sample_count") or 0)
-    min_required = int(
-        report.get("min_required_closed_trade_sample_count")
-        or report.get("min_required_sample_count")
-        or 1
-    )
-    min_required = max(1, min_required)
+    min_required = int(report.get("min_required_closed_trade_sample_count") or 0)
+    if min_required <= 0:
+        min_required = _min_required_closed_trade_sample_count_for_public_replay(
+            int(report.get("min_required_sample_count") or 1)
+        )
     deficit = max(0, min_required - closed_count)
     status = str(report.get("replay_closed_trade_maturity_status") or "")
     if status not in {"PASS", "BLOCKED", "UNTESTED"}:

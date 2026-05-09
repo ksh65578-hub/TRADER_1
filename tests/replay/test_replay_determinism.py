@@ -10,6 +10,7 @@ from trader1.research.replay.replay_runner import (
     build_public_replay_fetch_failure_report,
     build_replay_consistency_report,
     build_public_replay_robustness_report,
+    min_required_closed_trade_sample_count_for_public_replay,
     public_replay_robustness_report_hash,
     public_replay_robustness_values_from_report,
     validate_public_replay_robustness_report,
@@ -113,10 +114,10 @@ class ReplayDeterminismTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS")
         self.assertEqual(report["replay_status"], "PASS")
         self.assertGreaterEqual(report["sample_count"], 50)
-        self.assertEqual(report["min_required_closed_trade_sample_count"], 50)
+        self.assertEqual(report["min_required_closed_trade_sample_count"], 30)
         self.assertEqual(
             report["replay_closed_trade_deficit"],
-            max(50 - report["replay_closed_trade_sample_count"], 0),
+            max(30 - report["replay_closed_trade_sample_count"], 0),
         )
         self.assertIn(report["replay_closed_trade_maturity_status"], {"PASS", "BLOCKED", "UNTESTED"})
         self.assertFalse(report["live_order_ready"])
@@ -248,6 +249,13 @@ class ReplayDeterminismTest(unittest.TestCase):
         self.assertFalse(calls[0]["paper_scope_focus"]["live_order_allowed"])
         self.assertIsNotNone(calls[1].get("current_paper_portfolio_snapshot"))
         self.assertFalse(report["live_order_allowed"])
+
+    def test_closed_trade_maturity_threshold_is_not_window_count(self):
+        self.assertEqual(min_required_closed_trade_sample_count_for_public_replay(2), 2)
+        self.assertEqual(min_required_closed_trade_sample_count_for_public_replay(50), 30)
+        self.assertEqual(min_required_closed_trade_sample_count_for_public_replay(300), 30)
+        self.assertEqual(min_required_closed_trade_sample_count_for_public_replay(1000), 100)
+        self.assertEqual(min_required_closed_trade_sample_count_for_public_replay(5000), 120)
 
     def test_public_replay_ignores_non_target_candidate_fills_for_candidate_lifecycle(self):
         runtime = build_upbit_paper_runtime_cycle_report(
