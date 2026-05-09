@@ -622,19 +622,50 @@ def _dashboard_status_channel_payload(root: Path, session_id: str = DEFAULT_SESS
     stop_path = runner_stop_file_path(root, session_id)
     status = _read_json(source_path)
     status = status if isinstance(status, dict) else {}
+    channel_report = _dashboard_status_channel_report(root, session_id)
+    channel_report = channel_report if isinstance(channel_report, dict) else {}
     drift_fields = [
         field
         for field in (*LIVE_FALSE_FLAGS, "order_endpoint_called", "can_submit_order")
         if status.get(field) is True
     ]
+    drift_fields.extend(
+        f"dashboard_status_channel.{field}"
+        for field in LIVE_FALSE_FLAGS
+        if channel_report.get(field) is True or channel_report.get(f"dashboard_status_channel_{field}") is True
+    )
     stop_requested = stop_path.exists()
     source_age_seconds = _runner_status_source_age_seconds(status, source_path)
     raw_runner_status = str(status.get("runner_status") or "NOT_LOADED")
     raw_running = status.get("running") is True and raw_runner_status == RUNNER_STATUS_RUNNING
     stop_confirmed = raw_runner_status == RUNNER_STATUS_STOPPED
     stop_signal_active = stop_requested and not stop_confirmed
-    running = raw_running and not stop_signal_active
+    channel_running = (
+        channel_report.get("dashboard_status_channel_status") == RUNNER_STATUS_RUNNING
+        and _safe_local_dashboard_url(channel_report.get("dashboard_status_channel_url")) is not None
+        and not any(channel_report.get(field) is True for field in LIVE_FALSE_FLAGS)
+    )
+    channel_runner_pid = _int_value(channel_report.get("dashboard_status_channel_runner_pid"), -1)
+    source_belongs_to_running_channel = _runner_status_matches_expected_pid(
+        status,
+        channel_runner_pid if channel_runner_pid > 0 else None,
+    )
+    source_is_previous_runner_stop = (
+        raw_runner_status == RUNNER_STATUS_STOPPED
+        and str(status.get("runner_id") or "").startswith("upbit-paper-runner-")
+        and channel_runner_pid > 0
+        and not source_belongs_to_running_channel
+    )
+    status_file_pending = (
+        channel_running
+        and not raw_running
+        and not stop_signal_active
+        and (raw_runner_status == "NOT_LOADED" or source_is_previous_runner_stop)
+    )
+    running = (raw_running or status_file_pending) and not stop_signal_active
     effective_runner_status = RUNNER_STATUS_STOPPING if stop_signal_active else raw_runner_status
+    if status_file_pending:
+        effective_runner_status = RUNNER_STATUS_RUNNING
     if stop_signal_active:
         channel_status = "STOPPING"
     elif running:
@@ -642,6 +673,15 @@ def _dashboard_status_channel_payload(root: Path, session_id: str = DEFAULT_SESS
     else:
         channel_status = raw_runner_status
     next_cycle_fields = _dashboard_next_cycle_channel_fields(status, running=running)
+    if status_file_pending:
+        next_cycle_fields.update(
+            {
+                "next_cycle_eta_display": "runner starting; first cycle status will appear shortly",
+                "next_cycle_eta_status": "RUNNER_STARTING_STATUS_FILE_PENDING",
+                "cycle_in_progress": True,
+                "seconds_until_next_cycle": None,
+            }
+        )
     payload = {
         "schema_id": DASHBOARD_STATUS_CHANNEL_PAYLOAD_SCHEMA_ID,
         "generated_at_utc": utc_now(),
@@ -660,6 +700,9 @@ def _dashboard_status_channel_payload(root: Path, session_id: str = DEFAULT_SESS
         "runner_status_source_generated_at_utc": status.get("generated_at_utc"),
         "runner_status_source_age_seconds": source_age_seconds,
         "runner_status_source_status": raw_runner_status,
+        "runner_status_channel_transition_status": (
+            "RUNNER_STARTING_STATUS_FILE_PENDING" if status_file_pending else "SOURCE_STATUS_CURRENT"
+        ),
         "runner_status": effective_runner_status,
         "running": running,
         "completed_cycle_count": _int_value(status.get("completed_cycle_count"), 0),
