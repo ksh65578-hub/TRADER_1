@@ -23,6 +23,7 @@ from trader1.runtime.paper.upbit_paper_long_runner import (
     DISK_PRESSURE_BLOCKER_CODE,
     RUNNER_STATUS_RUNNING,
     runner_lock_liveness_from_status_report,
+    upbit_paper_long_runner_status_hash,
     validate_upbit_paper_long_runner_retention_manifest,
     validate_upbit_paper_long_runner_status_report,
 )
@@ -6160,6 +6161,83 @@ def _paper_persistent_loop_status(
         }
     )
     return base
+
+
+def _nonnegative_int(value: Any) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return parsed if parsed >= 0 else 0
+
+
+def _runner_status_guarded_by_sample_history_report(
+    runner_status_report: dict[str, Any] | None,
+    sample_history_report: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(runner_status_report, dict) or not isinstance(sample_history_report, dict):
+        return runner_status_report
+    if sample_history_report.get("schema_id") != "trader1.upbit_paper_runtime_sample_history.v1":
+        return runner_status_report
+
+    guarded = dict(runner_status_report)
+    active_scope = sample_history_report.get("active_candidate_scope")
+    active_scope = active_scope if isinstance(active_scope, dict) else {}
+    issues: list[str] = []
+    history_count = _nonnegative_int(sample_history_report.get("accepted_cycle_sample_count"))
+    runner_count = _nonnegative_int(guarded.get("runtime_sample_count"))
+    if runner_count != history_count:
+        issues.append("accepted_cycle_sample_count")
+    runner_candidate = guarded.get("paper_scope_candidate_id")
+    history_candidate = active_scope.get("candidate_id")
+    if runner_candidate and history_candidate and runner_candidate != history_candidate:
+        issues.append("active_candidate_scope")
+    runner_scope_count = _nonnegative_int(guarded.get("paper_scope_sample_count"))
+    history_scope_count = _nonnegative_int(active_scope.get("sample_count"))
+    if runner_scope_count != history_scope_count:
+        issues.append("active_candidate_sample_count")
+    runner_latest_sample = guarded.get("paper_scope_latest_sample_at_utc")
+    history_latest_sample = active_scope.get("latest_sample_at_utc") or sample_history_report.get("latest_sample_at_utc")
+    if runner_latest_sample and history_latest_sample and runner_latest_sample != history_latest_sample:
+        issues.append("active_candidate_latest_sample")
+    if not issues:
+        return runner_status_report
+
+    blocker_code = "RUNTIME_SAMPLE_HISTORY_COMPANION_MISMATCH"
+    min_required = _nonnegative_int(guarded.get("paper_scope_min_required_sample_count")) or 30
+    guarded.update(
+        {
+            "runtime_sample_history_status": "STALE",
+            "runtime_sample_history_source_consistency_status": "MISMATCH",
+            "runtime_sample_history_source_consistency_issues": sorted(set(issues)),
+            "runtime_sample_history_source_consistency_blocker_code": blocker_code,
+            "runtime_sample_history_companion_generated_at_utc": sample_history_report.get("generated_at_utc"),
+            "runtime_sample_history_companion_accepted_cycle_sample_count": history_count,
+            "runtime_sample_history_companion_active_candidate_id": active_scope.get("candidate_id"),
+            "runtime_sample_history_companion_active_sample_count": history_scope_count,
+            "runtime_sample_count": history_count,
+            "paper_scope_progress_status": "STALE_SAMPLE_HISTORY_MISMATCH",
+            "paper_scope_candidate_id": active_scope.get("candidate_id") or guarded.get("paper_scope_candidate_id"),
+            "paper_scope_strategy_id": active_scope.get("strategy_id") or guarded.get("paper_scope_strategy_id"),
+            "paper_scope_parameter_hash": active_scope.get("parameter_hash") or guarded.get("paper_scope_parameter_hash"),
+            "paper_scope_symbol": active_scope.get("symbol") or guarded.get("paper_scope_symbol"),
+            "paper_scope_sample_count": history_scope_count,
+            "paper_scope_sample_deficit": max(0, min_required - history_scope_count),
+            "paper_scope_latest_sample_at_utc": active_scope.get("latest_sample_at_utc")
+            or guarded.get("paper_scope_latest_sample_at_utc"),
+            "paper_scope_next_operator_action": (
+                "Start PAPER again so runner status, sample history, and PAPER/SHADOW evidence refresh together."
+            ),
+            "primary_blocker_code": blocker_code,
+            "primary_blocker_message": (
+                "PAPER runner status and its sample-history companion artifact disagree; "
+                "dashboard cannot treat embedded sample progress as current truth."
+            ),
+            "profitability_evidence_primary_blocker_code": blocker_code,
+        }
+    )
+    guarded["status_hash"] = upbit_paper_long_runner_status_hash(guarded)
+    return guarded
 
 
 def _paper_runner_operations_status(
@@ -17558,6 +17636,7 @@ def build_read_only_dashboard_shell(
     upbit_paper_ledger_idempotency_runtime_evidence_report: dict[str, Any] | None = None,
     upbit_paper_persistent_loop_report: dict[str, Any] | None = None,
     upbit_paper_long_runner_status_report: dict[str, Any] | None = None,
+    upbit_paper_runtime_sample_history_report: dict[str, Any] | None = None,
     upbit_paper_long_runner_retention_manifest: dict[str, Any] | None = None,
     upbit_paper_runtime_recovery_guard_report: dict[str, Any] | None = None,
     upbit_paper_runtime_evidence_collection_profile_report: dict[str, Any] | None = None,
@@ -18203,18 +18282,22 @@ def build_read_only_dashboard_shell(
                 persistent_loop_freshness,
             )
         )
+    guarded_runner_status_report = _runner_status_guarded_by_sample_history_report(
+        upbit_paper_long_runner_status_report,
+        upbit_paper_runtime_sample_history_report,
+    )
     runner_operations_status = _paper_runner_operations_status(
-        runner_status_report=upbit_paper_long_runner_status_report,
+        runner_status_report=guarded_runner_status_report,
         retention_manifest=upbit_paper_long_runner_retention_manifest,
         exchange=exchange,
         market_type=market_type,
         mode=mode,
         session_id=session_id,
     )
-    if isinstance(upbit_paper_long_runner_status_report, dict):
-        runner_validation = validate_upbit_paper_long_runner_status_report(upbit_paper_long_runner_status_report)
+    if isinstance(guarded_runner_status_report, dict):
+        runner_validation = validate_upbit_paper_long_runner_status_report(guarded_runner_status_report)
         runner_sample_history_consistency = str(
-            upbit_paper_long_runner_status_report.get("runtime_sample_history_source_consistency_status")
+            guarded_runner_status_report.get("runtime_sample_history_source_consistency_status")
             or "NOT_CHECKED"
         )
         runner_sample_history_consistent = runner_sample_history_consistency in {
@@ -18226,7 +18309,7 @@ def build_read_only_dashboard_shell(
         runner_freshness = (
             "PASS"
             if runner_validation.get("status") in {"PASS", "BLOCKED"}
-            and _freshness_from_generated_at(upbit_paper_long_runner_status_report) == "PASS"
+            and _freshness_from_generated_at(guarded_runner_status_report) == "PASS"
             and runner_sample_history_consistent
             else "STALE"
         )
