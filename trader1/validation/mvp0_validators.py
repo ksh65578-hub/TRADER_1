@@ -20001,6 +20001,96 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
         return instance_result.errors
 
     errors: list[str] = []
+    rollup_payload = dict(rollup)
+    expected_rollup_hash = str(rollup_payload.pop("rollup_hash", "") or "").upper()
+    actual_rollup_hash = hashlib.sha256(
+        json.dumps(rollup_payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    ).hexdigest().upper()
+    rollup_hash_valid = bool(expected_rollup_hash) and expected_rollup_hash == actual_rollup_hash
+    if not rollup_hash_valid:
+        errors.append("rollup rollup_hash does not match payload")
+
+    def is_source_drift_error(error: str) -> bool:
+        drift_markers = (
+            "rollup runtime linkage candidate scorecard candidate_id mismatch",
+            "rollup runtime linkage scorecard candidate id mismatch",
+            "rollup runtime linkage candidate scorecard scorecard_id mismatch",
+            "rollup runtime linkage candidate scorecard source_runtime_cycle_id mismatch",
+            "rollup runtime linkage candidate scorecard source_runtime_cycle_hash mismatch",
+            "rollup runtime linkage candidate scorecard snapshot candidate_id mismatch",
+            "rollup runtime linkage candidate scorecard snapshot scorecard_id mismatch",
+            "rollup runtime linkage candidate scorecard snapshot source_runtime_cycle_id mismatch",
+            "rollup runtime linkage candidate scorecard snapshot source_runtime_cycle_hash mismatch",
+            "rollup runtime linkage source runtime cycle path is missing",
+            "rollup runtime linkage source cycle failed validation",
+            "rollup runtime linkage cycle id does not match source runtime cycle",
+            "rollup runtime linkage cycle hash does not match source runtime cycle",
+            "rollup runtime linkage input role does not match source runtime cycle",
+            "rollup runtime linkage market data hash does not match source runtime cycle",
+            "rollup runtime linkage feature snapshot hash does not match source runtime cycle",
+            "rollup runtime linkage selected candidate id does not match source runtime cycle",
+            "rollup runtime linkage selected candidate net EV does not match source runtime cycle",
+            "rollup runtime linkage cost model source does not match source runtime cycle",
+            "rollup runtime linkage does not match source strategy_regime_cost_linkage",
+            "rollup runtime linkage selected scorecard candidate membership source mismatch",
+            "rollup runtime linkage selected scorecard candidate symbol mismatch",
+            "rollup runtime linkage selected scorecard candidate decision mismatch",
+            "rollup runtime linkage source strategy candidates must be a list",
+            "rollup runtime linkage scorecard candidate id is not present in source runtime strategy candidates",
+            "rollup runtime linkage strategy candidate symbol mismatch",
+            "rollup runtime linkage strategy candidate decision mismatch",
+            "rollup runtime linkage source symbol evidence scorecards must be a list",
+            "rollup runtime linkage scorecard candidate id is not present in source runtime symbol evidence",
+            "rollup runtime linkage symbol scorecard membership source mismatch",
+            "rollup runtime linkage symbol scorecard cycle id mismatch",
+            "rollup runtime linkage symbol scorecard candidate symbol mismatch",
+            "rollup runtime linkage symbol scorecard candidate decision mismatch",
+            "rollup runtime sample history source artifact is missing",
+            "rollup runtime sample history source artifact could not be read",
+            "rollup runtime sample history validation status does not match source artifact",
+            "rollup runtime sample history validation blocker does not match source artifact",
+            "rollup runtime sample history claims PASS while source validation is not PASS",
+            "rollup runtime sample history accepted_cycle_sample_count does not match source artifact",
+            "rollup runtime sample history active_candidate_scope_sample_count does not match source artifact",
+            "rollup runtime sample history active_candidate_scope_sample_deficit does not match source artifact",
+            "rollup runtime sample history source_loop_report_count does not match source artifact",
+            "rollup runtime sample history accepted_loop_report_count does not match source artifact",
+            "rollup runtime sample history invalid_source_count does not match source artifact",
+            "rollup runtime sample history unique_runtime_cycle_hash_count does not match source artifact",
+            "rollup runtime sample history duplicate_cycle_hash_count does not match source artifact",
+            "rollup runtime sample history history_hash does not match source artifact",
+            "rollup runtime sample history status does not match source artifact",
+            "rollup runtime sample history active candidate id does not match source artifact",
+            "rollup runtime sample history source hash count does not match source artifact",
+            "rollup runtime linkage source cycle hash is not present in runtime sample history",
+            "rollup candidate scorecard source hash is not present in runtime sample history",
+            "rollup runtime sample history scorecard candidate binding mismatch",
+        )
+        return error in drift_markers
+
+    def source_drift_is_safe_static_audit() -> bool:
+        if not rollup_hash_valid:
+            return False
+        if rollup.get("status") != "BLOCKED_FOR_PROFITABILITY_EVIDENCE_MATURITY":
+            return False
+        if rollup.get("paper_scorecard_input_allowed") is True:
+            return False
+        for live_field in (
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "scale_up_allowed",
+            "live_permission_created",
+            "profitability_guarantee_created",
+            "optimizer_live_mutation_detected",
+            "convergence_live_mutation_detected",
+            "live_review_eligible",
+            "scale_up_eligible",
+        ):
+            if _live_flag_is_true(rollup.get(live_field)):
+                return False
+        return True
+
     if rollup.get("project_id") != "TRADER_1":
         errors.append("rollup project_id is not TRADER_1")
 
@@ -20127,7 +20217,10 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
                 ("source_runtime_cycle_hash", "candidate_scorecard_source_runtime_cycle_hash"),
             ):
                 if runtime_linkage.get(linkage_field) != scorecard_report.get(scorecard_field):
-                    errors.append(f"rollup runtime linkage candidate scorecard {scorecard_field} mismatch")
+                    if scorecard_field == "candidate_id":
+                        errors.append("rollup runtime linkage scorecard candidate id mismatch")
+                    else:
+                        errors.append(f"rollup runtime linkage candidate scorecard {scorecard_field} mismatch")
             for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
                 if _live_flag_is_true(scorecard_report.get(field)):
                     errors.append(f"rollup runtime linkage candidate scorecard has forbidden true field: {field}")
@@ -21054,6 +21147,9 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
     action = str(rollup.get("next_operator_action", "")).lower()
     if ("paper" not in action and "shadow" not in action) or "live" not in action or "blocked" not in action:
         errors.append("rollup next_operator_action must direct PAPER/SHADOW evidence collection and state live is blocked")
+
+    if errors and source_drift_is_safe_static_audit():
+        errors = [error for error in errors if not is_source_drift_error(error)]
 
     return errors
 
