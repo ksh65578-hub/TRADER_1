@@ -13855,12 +13855,26 @@ def _reconciliation_recovery_summary(
         upbit_paper_repaired_current_evidence_audited_writer_blocker_codes = (
             [str(code) for code in raw_blocker_codes if code] if isinstance(raw_blocker_codes, list) else []
         )
+        raw_audited_writer_status = upbit_paper_repaired_current_evidence_audited_writer_status
         if audited_writer_result.status != "PASS":
             upbit_paper_repaired_current_evidence_audited_writer_status = "INVALID"
-            ledger_state = "INVALID"
-            single_writer_state = "INVALID"
-            idempotency_state = "INVALID"
-            primary_blocker = audited_writer_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH"
+            if (
+                upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_status
+                == "BLOCKED_IMPLEMENTATION_PREP_WRITER_NOT_ENABLED"
+                and upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_validation_status
+                == "PASS"
+                and raw_audited_writer_status in AUDITED_WRITER_DISPLAY_PASS_STATUSES
+                and (audited_writer_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH")
+                == "SCHEMA_IDENTITY_MISMATCH"
+            ):
+                primary_blocker = (
+                    upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_primary_blocker_code
+                )
+            else:
+                ledger_state = "INVALID"
+                single_writer_state = "INVALID"
+                idempotency_state = "INVALID"
+                primary_blocker = audited_writer_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH"
             issue_messages.append(f"Audited current-evidence writer invalid: {audited_writer_result.message}")
         elif not _scope_matches(
             upbit_paper_repaired_current_evidence_audited_writer_report,
@@ -22543,6 +22557,7 @@ def validate_read_only_dashboard_shell(
                 "MEASUREMENT_MISSING",
                 "POST_RERUN_RECONCILIATION_REQUIRED",
                 "PUBLIC_MARK_PRICE_BASIS_MISMATCH",
+                "RECONCILIATION_REQUIRED",
             }
             or reconciliation.get(
                 "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_validation_status"

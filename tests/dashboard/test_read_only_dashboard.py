@@ -6160,6 +6160,87 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["scale_up_allowed"])
 
+    def test_dashboard_keeps_implementation_prep_primary_when_stale_writer_is_invalid(self):
+        runtime_base = (
+            ROOT
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+        )
+        implementation_prep = json.loads(
+            (runtime_base / "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        writer_report = json.loads(
+            (runtime_base / "upbit_paper_repaired_current_evidence_audited_writer_report.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        current_evidence = json.loads(
+            (runtime_base / "current_evidence" / "audited_current_evidence_snapshot.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        paper_portfolio = json.loads(
+            (runtime_base / "portfolio" / "paper_portfolio_snapshot.json").read_text(encoding="utf-8")
+        )
+        writer_report = json.loads(json.dumps(writer_report))
+        writer_report["archive_retention_compacted_count"] = writer_report.get(
+            "archive_retention_compacted_count",
+            0,
+        ) + 1
+        session_id = implementation_prep["session_id"]
+        summary, heartbeat, startup_probe = build_inputs(session_id=session_id, with_paper_portfolio=False)
+        dashboard = build_read_only_dashboard_shell(
+            exchange=implementation_prep["exchange"],
+            market_type=implementation_prep["market_type"],
+            mode=implementation_prep["mode"],
+            session_id=session_id,
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report=implementation_prep,
+            upbit_paper_repaired_current_evidence_audited_writer_report=writer_report,
+            audited_current_evidence_snapshot=current_evidence,
+            audited_paper_portfolio_snapshot=paper_portfolio,
+        )
+
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["status"], "BLOCKED")
+        self.assertEqual(reconciliation["severity"], "ERROR")
+        self.assertEqual(reconciliation["color_token"], "red")
+        self.assertEqual(
+            reconciliation["source"],
+            "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json",
+        )
+        self.assertEqual(
+            reconciliation["primary_blocker_code"],
+            "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+        )
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_status"],
+            "INVALID",
+        )
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_validation_status"],
+            "FAIL",
+        )
+        operator_action = dashboard["operator_action_summary"]
+        self.assertEqual(operator_action["primary_action_label"], "Inspect audited writer implementation prep")
+        self.assertEqual(
+            operator_action["primary_blocker_code"],
+            "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
     def test_dashboard_blocks_audited_writer_implementation_prep_operator_action_drift(self):
         dashboard = build_dashboard_with_audited_writer_implementation_prep()
         dashboard["operator_action_summary"]["primary_action_label"] = "Inspect audited writer locked output"
