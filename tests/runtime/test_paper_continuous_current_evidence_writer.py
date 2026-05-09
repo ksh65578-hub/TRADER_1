@@ -1,10 +1,15 @@
 import json
 import unittest
+from copy import deepcopy
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from trader1.adapters.upbit.market_data import build_upbit_public_candle_data_from_rest_payload
+from trader1.runtime.ledger.paper_ledger_rollup import paper_ledger_rollup_hash
 from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer import (
+    AUDITED_WRITER_UNVERIFIED_COLLECTION_STATUS,
     AUDITED_WRITER_REFRESHED_STATUS,
     EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS,
     build_upbit_paper_repaired_current_evidence_audited_writer_report,
@@ -12,13 +17,16 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer 
 )
 from trader1.runtime.portfolio.paper_continuous_current_evidence_writer import (
     PAPER_CONTINUOUS_WRITER_NOT_IMPLEMENTED_STATUS,
+    PAPER_CONTINUOUS_WRITER_REVIEW_ONLY_STATUS,
     PAPER_CONTINUOUS_WRITER_STALE_STATUS,
     PAPER_CONTINUOUS_WRITER_WRITING_STATUS,
     build_paper_continuous_current_evidence_writer_report,
     paper_continuous_current_evidence_writer_report_hash,
     validate_paper_continuous_current_evidence_writer_report,
 )
+from trader1.runtime.paper.upbit_public_collector import build_upbit_public_market_data_collection_report
 from trader1.runtime.portfolio.paper_current_truth_refresh import build_paper_current_truth_refresh_report
+from trader1.runtime.portfolio.paper_portfolio import paper_portfolio_hash
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -42,12 +50,111 @@ def plus_seconds(value: str, seconds: int) -> str:
 
 
 class PaperContinuousCurrentEvidenceWriterTest(unittest.TestCase):
+    def _public_collection(self, *, close: str, symbol: str) -> dict:
+        payload = []
+        close_value = Decimal(close)
+        step = max(Decimal("0.0001"), abs(close_value) * Decimal("0.001"))
+        for offset in range(6):
+            minute = 35 - offset
+            trade_price = close_value - Decimal(offset) * step
+            payload.append(
+                {
+                    "market": symbol,
+                    "candle_date_time_utc": f"2026-05-06T21:{minute:02d}:00",
+                    "opening_price": format(trade_price - (step / Decimal("2")), "f"),
+                    "high_price": format(trade_price + step, "f"),
+                    "low_price": format(max(Decimal("0"), trade_price - step), "f"),
+                    "trade_price": format(trade_price, "f"),
+                    "candle_acc_trade_volume": str(10 + offset),
+                }
+            )
+        market_data = build_upbit_public_candle_data_from_rest_payload(
+            payload=payload,
+            symbol=symbol,
+            session_id=SESSION_ID,
+        )
+        return build_upbit_public_market_data_collection_report(
+            collector_id=f"test-continuous-public-rest-mark-{close}",
+            session_id=SESSION_ID,
+            symbol=symbol,
+            market_data=market_data,
+        )
+
+    def _stale_krw_ada_ledger_rollup(self) -> dict:
+        ledger = deepcopy(load_json(SOURCE_LEDGER_ROLLUP_PATH))
+        portfolio = deepcopy(ledger["portfolio_snapshot"])
+        quantity = Decimal("0.007")
+        average_entry = Decimal("1000870")
+        mark = Decimal("1000870")
+        fee = Decimal("3")
+        cost_basis = quantity * average_entry + fee
+        market_value = quantity * mark
+        unrealized = market_value - cost_basis
+        cash_available = Decimal(portfolio["cash_available"])
+        locked_balance = Decimal(portfolio["locked_balance"])
+        realized = Decimal(portfolio["realized_pnl"])
+        starting = Decimal(portfolio["starting_cash"])
+        equity = cash_available + locked_balance + market_value
+        total_pnl = realized + unrealized
+        return_pct = Decimal("0") if starting <= 0 else ((equity - starting) / starting * Decimal("100"))
+        portfolio.update(
+            {
+                "position_market_value": str(market_value),
+                "equity": str(equity),
+                "unrealized_pnl": str(unrealized),
+                "total_pnl": str(total_pnl),
+                "return_pct": str(return_pct),
+                "open_position_count": 1,
+                "positions": [
+                    {
+                        "symbol": "KRW-ADA",
+                        "side": "LONG",
+                        "quantity": str(quantity),
+                        "average_entry_price": str(average_entry),
+                        "cost_basis": str(cost_basis),
+                        "mark_price": str(mark),
+                        "market_value": str(market_value),
+                        "unrealized_pnl": str(unrealized),
+                        "source": "PAPER_LEDGER_ROLLUP",
+                        "paper_only": True,
+                    }
+                ],
+            }
+        )
+        portfolio["snapshot_hash"] = paper_portfolio_hash(portfolio)
+        ledger["portfolio_snapshot"] = portfolio
+        ledger["rollup_hash"] = paper_ledger_rollup_hash(ledger)
+        return ledger
+
     def _writer_bundle(self, root: Path) -> tuple[dict, dict, dict, dict]:
         writer = build_upbit_paper_repaired_current_evidence_audited_writer_report(
             root=root,
             source_implementation_prep_report=load_json(SOURCE_IMPLEMENTATION_PREP_PATH),
             source_ledger_rollup_report=load_json(SOURCE_LEDGER_ROLLUP_PATH),
             audited_writer_id="test-continuous-current-evidence-writer",
+        )
+        runtime_base = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / SESSION_ID
+        current_evidence = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[0])
+        portfolio = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[2])
+        refresh = build_paper_current_truth_refresh_report(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=SESSION_ID,
+            paper_portfolio_snapshot=portfolio,
+            heartbeat=None,
+            startup_probe=None,
+            generated_at_utc=writer["generated_at_utc"],
+        )
+        return writer, current_evidence, portfolio, refresh
+
+    def _unverified_writer_bundle(self, root: Path) -> tuple[dict, dict, dict, dict]:
+        writer = build_upbit_paper_repaired_current_evidence_audited_writer_report(
+            root=root,
+            source_implementation_prep_report=load_json(SOURCE_IMPLEMENTATION_PREP_PATH),
+            source_ledger_rollup_report=self._stale_krw_ada_ledger_rollup(),
+            public_market_data_collection_report=self._public_collection(close="405", symbol="KRW-ADA"),
+            audited_writer_id="test-continuous-current-evidence-writer-unverified",
         )
         runtime_base = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / SESSION_ID
         current_evidence = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[0])
@@ -120,6 +227,41 @@ class PaperContinuousCurrentEvidenceWriterTest(unittest.TestCase):
         self.assertTrue(report["writer_source_valid"])
         self.assertTrue(report["writer_active_for_paper_current_truth"])
         self.assertTrue(report["source_hash_bound"])
+        self.assertFalse(report["live_order_ready"])
+        self.assertFalse(report["live_order_allowed"])
+        self.assertFalse(report["can_live_trade"])
+        self.assertFalse(report["scale_up_allowed"])
+
+    def test_unverified_audited_writer_artifacts_are_review_only_not_invalid(self):
+        with TemporaryDirectory() as tmp:
+            writer, current_evidence, portfolio, refresh = self._unverified_writer_bundle(Path(tmp))
+            report = build_paper_continuous_current_evidence_writer_report(
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id=SESSION_ID,
+                audited_writer_report=writer,
+                audited_current_evidence_snapshot=current_evidence,
+                audited_paper_portfolio_snapshot=portfolio,
+                paper_current_truth_refresh_report=refresh,
+                generated_at_utc=plus_seconds(writer["generated_at_utc"], 1),
+            )
+            result = validate_paper_continuous_current_evidence_writer_report(report)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "PUBLIC_MARK_PRICE_BASIS_MISMATCH")
+        self.assertEqual(writer["writer_status"], AUDITED_WRITER_UNVERIFIED_COLLECTION_STATUS)
+        self.assertEqual(report["continuous_writer_status"], PAPER_CONTINUOUS_WRITER_REVIEW_ONLY_STATUS)
+        self.assertEqual(report["writer_state_model_status"], PAPER_CONTINUOUS_WRITER_REVIEW_ONLY_STATUS)
+        self.assertTrue(report["writer_source_valid"])
+        self.assertTrue(report["current_snapshot_valid"])
+        self.assertTrue(report["portfolio_snapshot_valid"])
+        self.assertFalse(report["current_truth_refresh_valid"])
+        self.assertTrue(report["source_hash_bound"])
+        self.assertFalse(report["writer_active_for_paper_current_truth"])
+        self.assertEqual(report["primary_blocker_code"], "PUBLIC_MARK_PRICE_BASIS_MISMATCH")
+        self.assertIsNone(report["last_verified_paper_ledger_equity_krw"])
+        self.assertIsNone(report["current_refreshed_paper_equity_krw"])
         self.assertFalse(report["live_order_ready"])
         self.assertFalse(report["live_order_allowed"])
         self.assertFalse(report["can_live_trade"])

@@ -23,7 +23,9 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_
 )
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
 from trader1.runtime.portfolio.paper_portfolio import (
+    PUBLIC_MARK_PRICE_BASIS_MISMATCH,
     mark_paper_portfolio_snapshot_to_public_market,
+    paper_portfolio_hash,
     portfolio_needs_public_mark_basis_repair,
     validate_paper_portfolio_snapshot,
 )
@@ -47,10 +49,16 @@ UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_ROLE = (
 AUDITED_WRITER_WRITTEN_STATUS = "PASS_AUDITED_CURRENT_EVIDENCE_WRITTEN"
 AUDITED_WRITER_IDEMPOTENT_STATUS = "PASS_AUDITED_CURRENT_EVIDENCE_ALREADY_WRITTEN"
 AUDITED_WRITER_REFRESHED_STATUS = "PASS_AUDITED_CURRENT_EVIDENCE_REFRESHED"
+AUDITED_WRITER_UNVERIFIED_COLLECTION_STATUS = (
+    "PASS_AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_WRITTEN"
+)
 AUDITED_WRITER_BLOCKED_SOURCE_STATUS = "BLOCKED_SOURCE_IMPLEMENTATION_PREP_INVALID"
 AUDITED_WRITER_BLOCKED_LEDGER_STATUS = "BLOCKED_SOURCE_LEDGER_ROLLUP_INVALID"
 AUDITED_WRITER_BLOCKED_TARGET_STATUS = "BLOCKED_AUDITED_CURRENT_EVIDENCE_TARGET_DIRTY"
 AUDITED_WRITER_BLOCKED_LOCK_STATUS = "BLOCKED_AUDITED_CURRENT_EVIDENCE_WRITER_LOCKED"
+AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_STATUS = "UNVERIFIED_COLLECTION_ONLY"
+AUDITED_CURRENT_EVIDENCE_VERIFIED_STATUS = "PASS"
+AUDITED_PORTFOLIO_TRUTH_VERIFIED_STATUS = "VERIFIED_PAPER_LEDGER_ROLLUP"
 TARGET_DIRTY_CAUSE_NONE = "NONE"
 TARGET_DIRTY_CAUSE_PARTIAL_TARGET_SET = "PARTIAL_TARGET_SET"
 TARGET_DIRTY_CAUSE_TEMP_PATH_DIRTY = "TEMP_PATH_DIRTY"
@@ -257,6 +265,20 @@ def _artifact_result(
     }
 
 
+def _public_mark_basis_mismatch_can_be_collection_only(portfolio_snapshot: dict[str, Any]) -> bool:
+    if portfolio_snapshot.get("mark_to_market_blocker_code") != PUBLIC_MARK_PRICE_BASIS_MISMATCH:
+        return False
+    positions = portfolio_snapshot.get("positions")
+    if not isinstance(positions, list) or not positions:
+        return False
+    symbols = {
+        str(position.get("symbol"))
+        for position in positions
+        if isinstance(position, dict) and isinstance(position.get("symbol"), str)
+    }
+    return bool(symbols) and all(symbol.startswith("KRW-") and symbol != "KRW-BTC" for symbol in symbols)
+
+
 def _build_current_evidence_snapshot(
     *,
     source_implementation_prep_report: dict[str, Any],
@@ -264,7 +286,14 @@ def _build_current_evidence_snapshot(
     portfolio_snapshot: dict[str, Any],
     public_market_data_collection_report: dict[str, Any] | None = None,
     generated_at_utc: str,
+    current_evidence_status: str = AUDITED_CURRENT_EVIDENCE_VERIFIED_STATUS,
+    portfolio_truth_status: str = AUDITED_PORTFOLIO_TRUTH_VERIFIED_STATUS,
+    primary_blocker_code: str = "LIVE_READY_MISSING",
 ) -> dict[str, Any]:
+    verified_truth = (
+        current_evidence_status == AUDITED_CURRENT_EVIDENCE_VERIFIED_STATUS
+        and portfolio_truth_status == AUDITED_PORTFOLIO_TRUTH_VERIFIED_STATUS
+    )
     snapshot = {
         "schema_id": UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_SNAPSHOT_SCHEMA_ID,
         "generated_at_utc": generated_at_utc,
@@ -273,7 +302,7 @@ def _build_current_evidence_snapshot(
         "market_type": "KRW_SPOT",
         "mode": "PAPER",
         "session_id": source_implementation_prep_report["session_id"],
-        "current_evidence_status": "PASS",
+        "current_evidence_status": current_evidence_status,
         "truth_role": "paper_runtime_audited_current_evidence_truth",
         "source_implementation_prep_hash": source_implementation_prep_report.get(
             "audited_writer_implementation_prep_hash"
@@ -287,17 +316,17 @@ def _build_current_evidence_snapshot(
         "source_paper_ledger_head_hash": source_ledger_rollup_report.get("latest_ledger_head_hash"),
         "source_runtime_cycle_id": portfolio_snapshot.get("source_runtime_cycle_id"),
         "source_portfolio_snapshot_hash": portfolio_snapshot.get("snapshot_hash"),
-        "portfolio_truth_status": "VERIFIED_PAPER_LEDGER_ROLLUP",
+        "portfolio_truth_status": portfolio_truth_status,
         "ledger_head_status": source_ledger_rollup_report.get("ledger_head_match_status"),
         "runtime_cycle_status": "LINKED",
-        "cash_status": "VERIFIED",
-        "equity_status": "VERIFIED",
-        "position_status": "VERIFIED",
+        "cash_status": "VERIFIED" if verified_truth else "UNVERIFIED",
+        "equity_status": "VERIFIED" if verified_truth else "UNVERIFIED",
+        "position_status": "VERIFIED" if verified_truth else "UNVERIFIED",
         "configured_initial_cash_krw": portfolio_snapshot.get("starting_cash"),
-        "verified_cash_krw": portfolio_snapshot.get("cash_available"),
-        "verified_equity_krw": portfolio_snapshot.get("equity"),
-        "verified_total_pnl_krw": portfolio_snapshot.get("total_pnl"),
-        "verified_return_pct": portfolio_snapshot.get("return_pct"),
+        "verified_cash_krw": portfolio_snapshot.get("cash_available") if verified_truth else None,
+        "verified_equity_krw": portfolio_snapshot.get("equity") if verified_truth else None,
+        "verified_total_pnl_krw": portfolio_snapshot.get("total_pnl") if verified_truth else None,
+        "verified_return_pct": portfolio_snapshot.get("return_pct") if verified_truth else None,
         "open_position_count": portfolio_snapshot.get("open_position_count"),
         "mark_to_market_status": portfolio_snapshot.get("mark_to_market_status"),
         "mark_price_source": portfolio_snapshot.get("mark_price_source"),
@@ -330,7 +359,7 @@ def _build_current_evidence_snapshot(
         "can_live_trade": False,
         "can_submit_order": False,
         "scale_up_allowed": False,
-        "primary_blocker_code": "LIVE_READY_MISSING",
+        "primary_blocker_code": primary_blocker_code,
         "snapshot_hash": "",
     }
     snapshot["snapshot_hash"] = upbit_paper_audited_current_evidence_snapshot_hash(snapshot)
@@ -868,6 +897,8 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
     archived_artifact_count = 0
     archive_retention_compacted_archives: list[dict[str, Any]] = []
     stale_existing_outputs: tuple[dict[str, Any], dict[str, Any], dict[str, Any]] | None = None
+    portfolio_truth_unverified_collection_only = False
+    portfolio_truth_unverified_blocker_code: str | None = None
 
     if primary_blocker is None:
         if existing_outputs is not None:
@@ -964,16 +995,29 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
                 )
                 portfolio_mark_result = validate_paper_portfolio_snapshot(portfolio_snapshot)
                 if portfolio_snapshot.get("snapshot_status") != "PASS" or portfolio_mark_result.status != "PASS":
-                    status = AUDITED_WRITER_BLOCKED_LEDGER_STATUS
-                    primary_blocker = (
+                    mark_blocker = (
                         portfolio_snapshot.get("mark_to_market_blocker_code")
                         or portfolio_snapshot.get("primary_blocker_code")
                         or portfolio_mark_result.blocker_code
                         or "DATA_UNAVAILABLE"
                     )
-                    blocker_codes.add(primary_blocker)
-                    artifact_payloads = None
-                    portfolio_snapshot = {}
+                    if (
+                        mark_blocker == PUBLIC_MARK_PRICE_BASIS_MISMATCH
+                        and portfolio_mark_result.status == "PASS"
+                        and _public_mark_basis_mismatch_can_be_collection_only(portfolio_snapshot)
+                    ):
+                        portfolio_truth_unverified_collection_only = True
+                        portfolio_truth_unverified_blocker_code = mark_blocker
+                        portfolio_snapshot["generated_at_utc"] = now
+                        portfolio_snapshot["snapshot_hash"] = paper_portfolio_hash(portfolio_snapshot)
+                        status = AUDITED_WRITER_UNVERIFIED_COLLECTION_STATUS
+                        blocker_codes.add(mark_blocker)
+                    else:
+                        status = AUDITED_WRITER_BLOCKED_LEDGER_STATUS
+                        primary_blocker = mark_blocker
+                        blocker_codes.add(primary_blocker)
+                        artifact_payloads = None
+                        portfolio_snapshot = {}
             current_evidence_snapshot = None
             manifest = None
             if primary_blocker is None:
@@ -983,6 +1027,21 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
                     portfolio_snapshot=portfolio_snapshot,
                     public_market_data_collection_report=public_market_data_collection_report,
                     generated_at_utc=now,
+                    current_evidence_status=(
+                        AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_STATUS
+                        if portfolio_truth_unverified_collection_only
+                        else AUDITED_CURRENT_EVIDENCE_VERIFIED_STATUS
+                    ),
+                    portfolio_truth_status=(
+                        AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_STATUS
+                        if portfolio_truth_unverified_collection_only
+                        else AUDITED_PORTFOLIO_TRUTH_VERIFIED_STATUS
+                    ),
+                    primary_blocker_code=(
+                        portfolio_truth_unverified_blocker_code
+                        if portfolio_truth_unverified_collection_only
+                        else "LIVE_READY_MISSING"
+                    ),
                 )
                 manifest = _build_idempotency_manifest(
                     source_implementation_prep_report=source_implementation_prep_report,
@@ -1227,7 +1286,11 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
         "lock_present_after_run": lock_path.exists(),
         "primary_blocker_code": primary_blocker,
         "blocker_codes": sorted(blocker_codes),
-        "operator_next_action": "Use the audited PAPER current-evidence artifacts for dashboard portfolio binding; live review remains blocked.",
+        "operator_next_action": (
+            "Use the audited PAPER artifacts for sample collection only; portfolio truth remains UNVERIFIED until public mark basis is reconciled."
+            if portfolio_truth_unverified_collection_only and writer_passed
+            else "Use the audited PAPER current-evidence artifacts for dashboard portfolio binding; live review remains blocked."
+        ),
         "display_only": True,
         "dashboard_truth_only": True,
         "paper_only": True,
@@ -1365,6 +1428,26 @@ def validate_upbit_paper_audited_current_evidence_snapshot(
         return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
             "BLOCKED", "audited current evidence attempted live, order, or scale permission", "LIVE_FINAL_GUARD_FAILED"
         )
+    if snapshot.get("current_evidence_status") == AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_STATUS:
+        if (
+            snapshot.get("portfolio_truth_status") != AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_STATUS
+            or snapshot.get("cash_status") != "UNVERIFIED"
+            or snapshot.get("equity_status") != "UNVERIFIED"
+            or snapshot.get("position_status") != "UNVERIFIED"
+            or not isinstance(snapshot.get("primary_blocker_code"), str)
+            or not snapshot.get("primary_blocker_code")
+            or snapshot.get("paper_only") is not True
+        ):
+            return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
+                "BLOCKED",
+                "unverified audited current evidence must expose PAPER-only collection blocker",
+                "MEASUREMENT_MISSING",
+            )
+        return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
+            "PASS",
+            "audited current evidence is PAPER-only and explicitly UNVERIFIED for sample collection",
+            None,
+        )
     ledger_head_status_valid = snapshot.get("ledger_head_status") == "PASS" or (
         snapshot.get("ledger_head_status") == "NOT_APPLICABLE"
         and snapshot.get("source_ledger_rollup_status") == "PASS"
@@ -1372,8 +1455,8 @@ def validate_upbit_paper_audited_current_evidence_snapshot(
         and len(snapshot.get("source_paper_ledger_head_hash")) == 64
     )
     if (
-        snapshot.get("current_evidence_status") != "PASS"
-        or snapshot.get("portfolio_truth_status") != "VERIFIED_PAPER_LEDGER_ROLLUP"
+        snapshot.get("current_evidence_status") != AUDITED_CURRENT_EVIDENCE_VERIFIED_STATUS
+        or snapshot.get("portfolio_truth_status") != AUDITED_PORTFOLIO_TRUTH_VERIFIED_STATUS
         or not ledger_head_status_valid
         or snapshot.get("cash_status") != "VERIFIED"
         or snapshot.get("equity_status") != "VERIFIED"
@@ -1691,6 +1774,7 @@ def validate_upbit_paper_repaired_current_evidence_audited_writer_report(
         AUDITED_WRITER_WRITTEN_STATUS,
         AUDITED_WRITER_IDEMPOTENT_STATUS,
         AUDITED_WRITER_REFRESHED_STATUS,
+        AUDITED_WRITER_UNVERIFIED_COLLECTION_STATUS,
     }
     if report.get("writer_status") in pass_statuses:
         if (
@@ -1715,6 +1799,7 @@ def validate_upbit_paper_repaired_current_evidence_audited_writer_report(
         if report.get("writer_status") in {
             AUDITED_WRITER_WRITTEN_STATUS,
             AUDITED_WRITER_REFRESHED_STATUS,
+            AUDITED_WRITER_UNVERIFIED_COLLECTION_STATUS,
         } and report.get("artifact_written_count") != 3:
             return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
                 "FAIL", "audited writer written status did not write three artifacts", "SCHEMA_IDENTITY_MISMATCH"

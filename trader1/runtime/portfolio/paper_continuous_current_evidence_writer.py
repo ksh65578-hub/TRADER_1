@@ -11,8 +11,10 @@ from trader1.runtime.paper.paper_runtime_truth_state import (
     validate_paper_runtime_truth_state_report,
 )
 from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer import (
+    AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_STATUS,
     AUDITED_WRITER_IDEMPOTENT_STATUS,
     AUDITED_WRITER_REFRESHED_STATUS,
+    AUDITED_WRITER_UNVERIFIED_COLLECTION_STATUS,
     AUDITED_WRITER_WRITTEN_STATUS,
     validate_upbit_paper_audited_current_evidence_snapshot,
     validate_upbit_paper_repaired_current_evidence_audited_writer_report,
@@ -189,7 +191,12 @@ def build_paper_continuous_current_evidence_writer_report(
         and writer_result is not None
         and writer_result.status == "PASS"
         and audited_writer_report.get("writer_status")
-        in {AUDITED_WRITER_WRITTEN_STATUS, AUDITED_WRITER_IDEMPOTENT_STATUS, AUDITED_WRITER_REFRESHED_STATUS}
+        in {
+            AUDITED_WRITER_WRITTEN_STATUS,
+            AUDITED_WRITER_IDEMPOTENT_STATUS,
+            AUDITED_WRITER_REFRESHED_STATUS,
+            AUDITED_WRITER_UNVERIFIED_COLLECTION_STATUS,
+        }
         and audited_writer_report.get("writer_passed") is True
         and audited_writer_report.get("current_evidence_artifact_written") is True
         and audited_writer_report.get("idempotency_manifest_written") is True
@@ -203,13 +210,14 @@ def build_paper_continuous_current_evidence_writer_report(
         paper_scope
         and current_result is not None
         and current_result.status == "PASS"
-        and audited_current_evidence_snapshot.get("current_evidence_status") == "PASS"
+        and audited_current_evidence_snapshot.get("current_evidence_status")
+        in {"PASS", AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_STATUS}
     )
     portfolio_valid = bool(
         paper_scope
         and portfolio_result is not None
         and portfolio_result.status == "PASS"
-        and audited_paper_portfolio_snapshot.get("snapshot_status") == "PASS"
+        and audited_paper_portfolio_snapshot.get("snapshot_status") in {"PASS", "BLOCKED"}
         and audited_paper_portfolio_snapshot.get("paper_only") is True
     )
     refresh_valid = bool(
@@ -244,6 +252,27 @@ def build_paper_continuous_current_evidence_writer_report(
             and paper_current_truth_refresh_report.get("source_portfolio_snapshot_hash")
             in {audited_paper_portfolio_snapshot.get("snapshot_hash"), audited_writer_report.get("source_portfolio_snapshot_hash")}
         )
+    unverified_collection_hash_bound = bool(
+        writer_source_valid
+        and current_snapshot_valid
+        and portfolio_valid
+        and audited_current_evidence_snapshot.get("current_evidence_status")
+        == AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_STATUS
+        and audited_current_evidence_snapshot.get("portfolio_truth_status")
+        == AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_STATUS
+        and audited_current_evidence_snapshot.get("source_ledger_rollup_hash")
+        == audited_writer_report.get("source_ledger_rollup_hash")
+        and audited_current_evidence_snapshot.get("source_paper_ledger_head_hash")
+        == audited_writer_report.get("source_paper_ledger_head_hash")
+        == audited_paper_portfolio_snapshot.get("source_paper_ledger_head_hash")
+        and audited_current_evidence_snapshot.get("source_runtime_cycle_id")
+        == audited_writer_report.get("source_runtime_cycle_id")
+        == audited_paper_portfolio_snapshot.get("source_runtime_cycle_id")
+        and audited_current_evidence_snapshot.get("source_portfolio_snapshot_hash")
+        == audited_paper_portfolio_snapshot.get("snapshot_hash")
+    )
+    if unverified_collection_hash_bound:
+        hash_bound = True
     if paper_scope and not writer_source_present:
         blockers.append(_blocker("AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED", "audited writer report is not loaded"))
     elif paper_scope and not writer_source_valid:
@@ -307,6 +336,31 @@ def build_paper_continuous_current_evidence_writer_report(
         blockers = []
         summary = "Continuous PAPER current-evidence writer is implemented and refreshing audited PAPER truth."
         next_action = "Keep collecting PAPER/SHADOW evidence; live orders and scale-up remain blocked."
+    elif unverified_collection_hash_bound and truth_freshness_status in {"FRESH", "DELAYED"}:
+        continuous_writer_status = PAPER_CONTINUOUS_WRITER_REVIEW_ONLY_STATUS
+        writer_state_model_status = PAPER_CONTINUOUS_WRITER_REVIEW_ONLY_STATUS
+        primary_blocker_code = str(
+            audited_current_evidence_snapshot.get("primary_blocker_code")
+            or (
+                paper_current_truth_refresh_report.get("primary_blocker_code")
+                if isinstance(paper_current_truth_refresh_report, dict)
+                else None
+            )
+            or "MEASUREMENT_MISSING"
+        )
+        writer_active = False
+        blockers = [
+            _blocker(
+                primary_blocker_code,
+                "audited PAPER artifacts were written, but portfolio truth is UNVERIFIED collection-only",
+                "MEDIUM",
+            )
+        ]
+        summary = (
+            "Continuous PAPER current-evidence writer has fresh audited artifacts, "
+            "but portfolio truth is UNVERIFIED and may only support safe sample collection."
+        )
+        next_action = "Continue PAPER collection; reconcile the portfolio truth blocker before using cash, equity, or PnL as verified."
     elif sources_clean and truth_freshness_status == "STALE_DISPLAY_ONLY":
         continuous_writer_status = PAPER_CONTINUOUS_WRITER_STALE_STATUS
         writer_state_model_status = PAPER_CONTINUOUS_WRITER_STALE_STATUS
@@ -332,12 +386,13 @@ def build_paper_continuous_current_evidence_writer_report(
         summary = "Continuous PAPER current-evidence writer is implemented but blocked by source validation."
         next_action = "Resolve the listed PAPER source blocker before using current evidence as fresh truth."
 
-    configured_capital = (
-        audited_paper_portfolio_snapshot.get("starting_cash") if portfolio_valid else None
+    portfolio_truth_verified = bool(
+        portfolio_valid
+        and audited_paper_portfolio_snapshot.get("snapshot_status") == "PASS"
+        and audited_current_evidence_snapshot.get("current_evidence_status") == "PASS"
     )
-    last_verified_equity = (
-        audited_paper_portfolio_snapshot.get("equity") if portfolio_valid else None
-    )
+    configured_capital = audited_paper_portfolio_snapshot.get("starting_cash") if portfolio_valid else None
+    last_verified_equity = audited_paper_portfolio_snapshot.get("equity") if portfolio_truth_verified else None
     current_refreshed_equity = (
         paper_current_truth_refresh_report.get("verified_equity")
         if continuous_writer_status == PAPER_CONTINUOUS_WRITER_WRITING_STATUS
@@ -633,6 +688,32 @@ def validate_paper_continuous_current_evidence_writer_report(
             )
         return PaperContinuousCurrentEvidenceWriterValidationResult(
             "BLOCKED", "continuous PAPER current-evidence writer is stale display-only", "STALE_CURRENT_TRUTH"
+        )
+    if report.get("continuous_writer_status") == PAPER_CONTINUOUS_WRITER_REVIEW_ONLY_STATUS:
+        if (
+            report.get("writer_active_for_paper_current_truth") is not False
+            or report.get("writer_stale") is not False
+            or report.get("truth_freshness_status") not in {"FRESH", "DELAYED"}
+            or report.get("writer_state_model_status") != PAPER_CONTINUOUS_WRITER_REVIEW_ONLY_STATUS
+            or report.get("writer_source_valid") is not True
+            or report.get("current_snapshot_valid") is not True
+            or report.get("portfolio_snapshot_valid") is not True
+            or report.get("current_truth_refresh_valid") is not False
+            or report.get("source_hash_bound") is not True
+            or not blockers
+            or not isinstance(report.get("primary_blocker_code"), str)
+            or not report.get("primary_blocker_code")
+            or report.get("current_refreshed_paper_equity_krw") is not None
+            or report.get("last_verified_paper_ledger_equity_krw") is not None
+            or report.get("stale_display_only_equity_krw") is not None
+        ):
+            return PaperContinuousCurrentEvidenceWriterValidationResult(
+                "FAIL", "continuous writer review-only status invariant mismatch", "SCHEMA_IDENTITY_MISMATCH"
+            )
+        return PaperContinuousCurrentEvidenceWriterValidationResult(
+            "BLOCKED",
+            "continuous PAPER current-evidence writer is review-only because portfolio truth is unverified",
+            report.get("primary_blocker_code"),
         )
     if report.get("continuous_writer_status") == PAPER_CONTINUOUS_WRITER_NOT_IMPLEMENTED_STATUS:
         if (
