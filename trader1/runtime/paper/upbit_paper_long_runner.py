@@ -123,12 +123,14 @@ DEFAULT_RUNNER_LOG_MAX_BYTES = 2_000_000
 DEFAULT_RUNTIME_DISK_PRESSURE_MAX_BYTES = 5_000_000_000
 
 RUNNER_STATUS_RUNNING = "RUNNING"
+RUNNER_STATUS_STOPPING = "STOPPING"
 RUNNER_STATUS_STOPPED = "STOPPED"
 RUNNER_STATUS_BLOCKED = "BLOCKED"
 RUNNER_STATUS_LOCKED = "LOCKED"
 
 RUNNER_STATUS_SET = {
     RUNNER_STATUS_RUNNING,
+    RUNNER_STATUS_STOPPING,
     RUNNER_STATUS_STOPPED,
     RUNNER_STATUS_BLOCKED,
     RUNNER_STATUS_LOCKED,
@@ -567,6 +569,78 @@ def _dashboard_status_channel_report_payload(
     return report
 
 
+def _write_dashboard_status_channel_stopping_report(
+    root: Path,
+    session_id: str,
+    *,
+    blocker_message: str = "Operator stop requested; local runner status channel is shutting down.",
+) -> None:
+    channel = _dashboard_status_channel_report(root, session_id)
+    channel_url = None
+    if isinstance(channel, dict):
+        channel_url = _safe_local_dashboard_url(channel.get("dashboard_status_channel_url"))
+    durable_atomic_write_json(
+        runner_dashboard_status_channel_path(root, session_id),
+        _dashboard_status_channel_report_payload(
+            root=root,
+            session_id=session_id,
+            url=channel_url,
+            status=RUNNER_STATUS_STOPPING,
+            blocker_code=None,
+            blocker_message=blocker_message,
+        ),
+    )
+
+
+def _write_runner_status_stop_requested(
+    root: Path,
+    session_id: str,
+    *,
+    reason: str,
+    generated_at_utc: str,
+) -> dict[str, Any] | None:
+    status_path = runner_status_path(root, session_id)
+    status = _read_json(status_path)
+    if not isinstance(status, dict):
+        return None
+    updated = dict(status)
+    updated.update(
+        {
+            "generated_at_utc": generated_at_utc,
+            "updated_at_utc": generated_at_utc,
+            "runner_status": RUNNER_STATUS_STOPPING,
+            "running": False,
+            "next_cycle_eta": None,
+            "stop_reason": "STOP_FILE_REQUESTED",
+            "primary_blocker_code": None,
+            "primary_blocker_message": (
+                "Operator stop requested; waiting for the PAPER runner to confirm STOPPED."
+            ),
+            "dashboard_status_channel_enabled": False,
+            "dashboard_status_channel_status": RUNNER_STATUS_STOPPING,
+            "dashboard_status_channel_mode": DASHBOARD_STATUS_CHANNEL_MODE,
+            "dashboard_status_channel_source": "runner_status.json",
+            "dashboard_status_channel_path": str(runner_dashboard_status_channel_path(root, session_id)),
+            "dashboard_status_channel_live_order_ready": False,
+            "dashboard_status_channel_live_order_allowed": False,
+            "dashboard_status_channel_can_live_trade": False,
+            "dashboard_status_channel_scale_up_allowed": False,
+            "operator_stop_reason": reason,
+        }
+    )
+    if _safe_local_dashboard_url(updated.get("dashboard_status_channel_url")) is None:
+        updated["dashboard_status_channel_url"] = None
+    for flag in LIVE_FALSE_FLAGS:
+        updated[flag] = False
+    updated["order_endpoint_called"] = False
+    updated["status_hash"] = upbit_paper_long_runner_status_hash(updated)
+    try:
+        _write_runner_status(status_path, updated)
+    except RuntimeError:
+        return None
+    return updated
+
+
 def start_runner_dashboard_status_channel(
     root: Path,
     session_id: str = DEFAULT_SESSION_ID,
@@ -578,17 +652,7 @@ def start_runner_dashboard_status_channel(
         stop_path = runner_stop_file_path(root, session_id)
         while not getattr(server, "dashboard_channel_stop", False):
             if stop_path.exists():
-                durable_atomic_write_json(
-                    report_path,
-                    _dashboard_status_channel_report_payload(
-                        root=root,
-                        session_id=session_id,
-                        url=url,
-                        status="STOPPING",
-                        blocker_code=None,
-                        blocker_message="Operator stop requested; local runner status channel is shutting down.",
-                    ),
-                )
+                _write_dashboard_status_channel_stopping_report(root, session_id)
                 setattr(server, "dashboard_channel_stop", True)
                 try:
                     server.shutdown()
@@ -645,7 +709,7 @@ def start_runner_dashboard_status_channel(
                         break
                     if payload.get("stop_requested") is True:
                         break
-                    time.sleep(1.0)
+                    time.sleep(DEFAULT_DASHBOARD_STATUS_CHANNEL_STOP_POLL_SECONDS)
 
             def do_GET(self) -> None:
                 path = urlparse(self.path).path
@@ -1255,6 +1319,20 @@ def request_upbit_paper_runner_stop(
             durable_atomic_write_json(stop_path, stop_signal)
             report["stop_file_written"] = True
             report["stop_request_status"] = "STOP_REQUESTED"
+            _write_dashboard_status_channel_stopping_report(
+                root,
+                session_id,
+                blocker_message="Operator stop requested; dashboard should show STOPPING immediately.",
+            )
+            stopping_status = _write_runner_status_stop_requested(
+                root,
+                session_id,
+                reason=reason,
+                generated_at_utc=generated_at,
+            )
+            if isinstance(stopping_status, dict):
+                report["runner_status_after"] = stopping_status.get("runner_status")
+                report["runner_running_after"] = stopping_status.get("running")
         except OSError as exc:
             report.update(
                 {
@@ -1279,6 +1357,12 @@ def request_upbit_paper_runner_stop(
             ):
                 report["stop_request_status"] = "STOP_CONFIRMED"
                 report["stop_confirmed"] = True
+                break
+            if (
+                isinstance(status_after, dict)
+                and status_after.get("runner_status") == RUNNER_STATUS_STOPPING
+                and wait_timeout_seconds <= 0
+            ):
                 break
             if time.monotonic() >= deadline:
                 if wait_timeout_seconds <= 0:
@@ -5356,8 +5440,8 @@ def _canonical_runner_already_running(root: Path, session_id: str = DEFAULT_SESS
 
 
 def root_upbit_paper_stop_main(root: Path = ROOT) -> int:
-    wait_timeout = _float_env("TRADER1_UPBIT_PAPER_STOP_WAIT_SECONDS", 90.0)
-    poll_interval = _float_env("TRADER1_UPBIT_PAPER_STOP_POLL_SECONDS", 1.0)
+    wait_timeout = _float_env("TRADER1_UPBIT_PAPER_STOP_WAIT_SECONDS", 0.0)
+    poll_interval = _float_env("TRADER1_UPBIT_PAPER_STOP_POLL_SECONDS", DEFAULT_DASHBOARD_STATUS_CHANNEL_STOP_POLL_SECONDS)
     report = request_upbit_paper_runner_stop(
         root=root,
         wait_timeout_seconds=wait_timeout,

@@ -11,6 +11,7 @@ from trader1.runtime.paper.upbit_paper_long_runner import (
     DashboardOpenResult,
     LOCK_BLOCKER_CODE,
     RUNNER_STATUS_RUNNING,
+    RUNNER_STATUS_STOPPING,
     RUNNER_STATUS_LOCKED,
     RUNNER_STATUS_BLOCKED,
     RUNNER_STATUS_STOPPED,
@@ -1606,12 +1607,21 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
                 )
                 stop_signal = _load_json(runner_stop_file_path(root, session_id))
                 persisted = _load_json(runner_stop_request_report_path(root, session_id))
+                status_after = _load_json(runner_status_path(root, session_id))
+                channel_after = _load_json(runner_dashboard_status_channel_path(root, session_id))
 
                 self.assertEqual(stop_report["stop_request_status"], "STOP_REQUESTED")
                 self.assertTrue(stop_report["stop_file_written"])
                 self.assertFalse(stop_report["stop_confirmed"])
+                self.assertEqual(stop_report["runner_status_after"], RUNNER_STATUS_STOPPING)
+                self.assertFalse(stop_report["runner_running_after"])
+                self.assertEqual(status_after["runner_status"], RUNNER_STATUS_STOPPING)
+                self.assertFalse(status_after["running"])
+                self.assertEqual(status_after["stop_reason"], "STOP_FILE_REQUESTED")
+                self.assertEqual(channel_after["dashboard_status_channel_status"], RUNNER_STATUS_STOPPING)
                 self.assertEqual(persisted["stop_request_hash"], stop_report["stop_request_hash"])
                 self.assertEqual(stop_signal["mode"], "PAPER")
+                self.assertEqual(validate_upbit_paper_long_runner_status_report(status_after)["status"], "PASS")
                 for field in (
                     "live_order_ready",
                     "live_order_allowed",

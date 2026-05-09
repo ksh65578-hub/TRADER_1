@@ -3503,7 +3503,7 @@ def start_root_stop_dashboard_refresh_background(stop_launcher_name: str, *, roo
 def root_stop_launcher_main(stop_launcher_name: str, *, root: Path = ROOT) -> int:
     wait_timeout = _optional_nonnegative_float_env("TRADER1_ROOT_STOP_WAIT_SECONDS")
     poll_interval = _optional_nonnegative_float_env("TRADER1_ROOT_STOP_POLL_SECONDS")
-    sync_dashboard_refresh = _optional_bool_env("TRADER1_ROOT_STOP_SYNC_DASHBOARD_REFRESH", default=False)
+    sync_dashboard_refresh = _optional_bool_env("TRADER1_ROOT_STOP_SYNC_DASHBOARD_REFRESH", default=True)
     effective_wait_timeout = 0.0 if wait_timeout is None else wait_timeout
     effective_poll_interval = 1.0 if poll_interval is None else poll_interval
     waiting_for_stop_confirmation = effective_wait_timeout > 0

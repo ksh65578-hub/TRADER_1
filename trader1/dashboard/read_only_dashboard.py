@@ -22,6 +22,7 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
 from trader1.runtime.paper.upbit_paper_long_runner import (
     DISK_PRESSURE_BLOCKER_CODE,
     RUNNER_STATUS_RUNNING,
+    RUNNER_STATUS_STOPPING,
     runner_lock_liveness_from_status_report,
     upbit_paper_long_runner_status_hash,
     validate_upbit_paper_long_runner_retention_manifest,
@@ -6526,19 +6527,24 @@ def _paper_runner_operations_status(
         runner_status_report.get("runtime_sample_history_source_consistency_blocker_code")
         or "RUNTIME_SAMPLE_HISTORY_COMPANION_MISMATCH"
     )
-    status = "RUNNING_NOW" if runner_status_report.get("running") is True else "STOPPED"
-    severity = "NORMAL" if status == "RUNNING_NOW" else "WARNING"
-    color_token = "green" if status == "RUNNING_NOW" else "yellow"
-    summary = (
-        "PAPER long runner is running; cycles, next ETA, retention, and disk pressure are visible here."
-        if status == "RUNNING_NOW"
-        else "PAPER long runner is stopped; latest cycle and retention evidence remain display-only."
-    )
-    next_action = (
-        "Keep PAPER running and watch cycle time, failures, retention, and disk pressure before any live review."
-        if status == "RUNNING_NOW"
-        else "Start PAPER again if you want continuous runtime evidence to advance."
-    )
+    if runner_state == RUNNER_STATUS_STOPPING:
+        status = "STOPPING"
+        severity = "WARNING"
+        color_token = "yellow"
+        summary = "Operator stop was requested; the PAPER runner is shutting down and live orders remain blocked."
+        next_action = "Wait for STOPPED or run the stop launcher again if the status does not confirm."
+    elif runner_status_report.get("running") is True:
+        status = "RUNNING_NOW"
+        severity = "NORMAL"
+        color_token = "green"
+        summary = "PAPER long runner is running; cycles, next ETA, retention, and disk pressure are visible here."
+        next_action = "Keep PAPER running and watch cycle time, failures, retention, and disk pressure before any live review."
+    else:
+        status = "STOPPED"
+        severity = "WARNING"
+        color_token = "yellow"
+        summary = "PAPER long runner is stopped; latest cycle and retention evidence remain display-only."
+        next_action = "Start PAPER again if you want continuous runtime evidence to advance."
 
     if unsafe_permission:
         status = "ERROR"
@@ -6619,7 +6625,7 @@ def _paper_runner_operations_status(
         summary = (
             "PAPER runner is collecting source-bound candidate samples; live orders remain blocked until sample and robustness gates pass."
             if status == "RUNNING_NOW"
-            else "PAPER runner stopped with source-bound candidate samples still below the minimum; live orders remain blocked."
+            else "PAPER runner is not collecting new samples right now; source-bound candidate samples remain below the minimum and live orders remain blocked."
         )
     if status in {"RUNNING_NOW", "STOPPED"} and scope_sample_deficit > 0 and isinstance(scope_next_action, str):
         next_action = scope_next_action.strip() or next_action
@@ -11510,10 +11516,10 @@ def _operation_status(
                 "live_orders_blocked": live_orders_blocked,
                 **runner_runtime_fields,
             }
-        if runner_source_loaded and runner_status in {"RUNNING_NOW", "STOPPED", "STALE", "BLOCKED", "ERROR"}:
+        if runner_source_loaded and runner_status in {"RUNNING_NOW", "STOPPING", "STOPPED", "STALE", "BLOCKED", "ERROR"}:
             runner_active = runner_status == "RUNNING_NOW" and runner_state == "RUNNING"
             runner_blocked = runner_status in {"BLOCKED", "ERROR"}
-            runner_current = runner_status in {"RUNNING_NOW", "STOPPED"}
+            runner_current = runner_status in {"RUNNING_NOW", "STOPPING", "STOPPED"}
             heartbeat_current = heartbeat_status == "PASS" and heartbeat_freshness == "PASS"
             portfolio_verified = portfolio_status == "VERIFIED"
             if runner_blocked:
@@ -19544,7 +19550,7 @@ def build_read_only_dashboard_shell(
     )
     runner_status_current_for_dashboard = (
         runner_operations_status.get("source") == "runner_status.json"
-        and runner_operations_status.get("status") in {"RUNNING_NOW", "STOPPED"}
+        and runner_operations_status.get("status") in {"RUNNING_NOW", "STOPPING", "STOPPED"}
         and isinstance(runner_operations_status.get("primary_blocker_code"), str)
         and bool(str(runner_operations_status.get("primary_blocker_code")).strip())
     )
@@ -19691,6 +19697,8 @@ def build_read_only_dashboard_shell(
         primary_status_text = f"{mode} STOP REQUESTED - READ ONLY, LIVE ORDERS BLOCKED"
     elif stop_status_for_primary == "STOPPED" and runner_state_for_primary != "RUNNING":
         primary_status_text = f"{mode} STOPPED BY OPERATOR - READ ONLY, LIVE ORDERS BLOCKED"
+    elif runner_primary_status == "STOPPING" or runner_state_for_primary == "STOPPING":
+        primary_status_text = f"{mode} STOPPING - READ ONLY, LIVE ORDERS BLOCKED"
     elif runner_primary_status == "STALE" and runner_state_for_primary in {"RUNNING", "STOPPED", "BLOCKED"}:
         primary_status_text = f"PAPER STALE - LAST RUNNER {runner_state_for_primary} - LIVE ORDERS BLOCKED"
     elif runner_primary_status == "RUNNING_NOW" or runner_state_for_primary == "RUNNING":
@@ -26152,6 +26160,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             "STUB_ESTIMATE_ONLY",
             "NOT_LONG_RUN_EVIDENCE",
             "ACTUAL_LONG_RUN_MISSING",
+            "STOPPING",
             "STOPPED",
         }:
             return "warn"
@@ -26198,6 +26207,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             "STUB_ESTIMATE_ONLY": "Stub estimate only",
             "NOT_LONG_RUN_EVIDENCE": "Not long-run evidence",
             "ACTUAL_LONG_RUN_MISSING": "Long-run evidence missing",
+            "STOPPING": "Stopping",
             "STOPPED": "Stopped",
             "FAIL": "Failed",
             "ERROR": "Error",
@@ -28679,6 +28689,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     runner_quick_status = (
         "Running"
         if runner_status_raw == "RUNNING_NOW" and paper_runner_operations.get("running") is True
+        else "Stopping"
+        if runner_status_raw == "STOPPING"
         else "Stopped"
         if runner_status_raw == "STOPPED"
         else "Blocked"
@@ -29052,6 +29064,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     details { background: white; border: 1px solid #d7dce2; border-radius: 8px; padding: 12px; }
     details.detail-drawer { border-color: #c8d1dc; background: #ffffff; }
     details.detail-drawer > summary { font-size: 16px; }
+    details.inline-detail { margin-top: 10px; padding: 10px 12px; background: rgba(255,255,255,.72); border-color: rgba(0,0,0,.08); }
     summary { cursor: pointer; font-weight: 700; }
     .table-wrap { width: 100%; max-width: 100%; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 860px; }
@@ -29496,23 +29509,25 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <p class="live-blocker-note">""" + safe_text(residual_blocker_note) + """</p>
         <p class="live-blocker-note"><strong>Handoff:</strong> """ + safe_text(handoff_summary) + """</p>
         <p class="live-blocker-note">""" + safe_text(handoff_primary_next_action) + """</p>
-        """ + residual_execution_guide_html + """
-        """ + residual_evidence_progress_html + """
-        """ + residual_completion_acceptance_html + """
-        """ + residual_reconciliation_review_html + """
-        """ + residual_reconciliation_intake_html + """
-        """ + residual_manifest_preflight_html + """
-        """ + residual_template_packet_html + """
-        """ + residual_security_quarantine_html + """
-        """ + residual_review_queue_html + """
         <section class="live-blocker-groups" aria-label="operator handoff packet counts">
           <div class="live-blocker-group"><strong>Packets</strong><span>""" + safe_text(handoff_packet_count) + """ total</span></div>
           <div class="live-blocker-group"><strong>Blocked</strong><span>""" + safe_text(blocked_handoff_count) + """ blocked</span></div>
           <div class="live-blocker-group"><strong>Ready</strong><span>""" + safe_text(handoff_ready_count) + """ ready</span></div>
         </section>
-        <p class="source-line">Next Actions</p>
-        <ol class="next-action-list" aria-label="residual blocker next actions">""" + residual_next_action_html + """</ol>
-        """ + residual_priority_note_html + """
+        <details class="inline-detail" data-detail-key="first-screen-next-actions">
+          <summary>Show detailed Next Actions</summary>
+          <ol class="next-action-list" aria-label="residual blocker next actions">""" + residual_next_action_html + """</ol>
+          """ + residual_priority_note_html + """
+          """ + residual_execution_guide_html + """
+          """ + residual_evidence_progress_html + """
+          """ + residual_completion_acceptance_html + """
+          """ + residual_reconciliation_review_html + """
+          """ + residual_reconciliation_intake_html + """
+          """ + residual_manifest_preflight_html + """
+          """ + residual_template_packet_html + """
+          """ + residual_security_quarantine_html + """
+          """ + residual_review_queue_html + """
+        </details>
         <p class="live-blocker-note">""" + safe_text(residual_action_plan.get("other_blocker_summary", f"Other blocked evidence/policy: {residual_other_count}")) + """</p>
         <p class="source-line">Raw blocker: """ + safe_text(blocker) + """</p>
         <p class="next">""" + safe_text(next_action) + """</p>

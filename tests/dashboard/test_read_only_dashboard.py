@@ -102,6 +102,7 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
 from trader1.runtime.paper.upbit_paper_long_runner import (
     DISK_PRESSURE_BLOCKER_CODE,
     RUNNER_STATUS_RUNNING,
+    RUNNER_STATUS_STOPPING,
     UPBIT_PAPER_LONG_RUNNER_RETENTION_SCHEMA_ID,
     UPBIT_PAPER_LONG_RUNNER_STATUS_SCHEMA_ID,
     build_runner_status_report,
@@ -1153,6 +1154,7 @@ def build_dashboard_with_runner_operations(
     *,
     blocked=False,
     stopped=False,
+    stopping=False,
     stale=False,
     root_stop_request_report=None,
     profitability_maturity_rollup_report=None,
@@ -1160,6 +1162,8 @@ def build_dashboard_with_runner_operations(
     session_id = (
         "test_read_only_dashboard_runner_ops_stopped"
         if stopped
+        else "test_read_only_dashboard_runner_ops_stopping"
+        if stopping
         else "test_read_only_dashboard_runner_ops_blocked"
         if blocked
         else "test_read_only_dashboard_runner_ops"
@@ -1177,12 +1181,23 @@ def build_dashboard_with_runner_operations(
                 "primary_blocker_message": "PAPER runner stopped after the configured bounded collection window.",
             }
         )
+    if stopping:
+        runner_status.update(
+            {
+                "runner_status": RUNNER_STATUS_STOPPING,
+                "running": False,
+                "next_cycle_eta": None,
+                "stop_reason": "STOP_FILE_REQUESTED",
+                "primary_blocker_code": None,
+                "primary_blocker_message": "Operator stop requested; waiting for the PAPER runner to confirm STOPPED.",
+            }
+        )
     if stale:
         stale_time = (datetime.now(timezone.utc) - timedelta(hours=2)).replace(microsecond=0).isoformat().replace("+00:00", "Z")
         runner_status["generated_at_utc"] = stale_time
         runner_status["updated_at_utc"] = stale_time
         runner_status["last_cycle_time"] = stale_time
-    if stopped or stale:
+    if stopped or stopping or stale:
         runner_status["status_hash"] = upbit_paper_long_runner_status_hash(runner_status)
     return build_read_only_dashboard_shell(
         exchange="UPBIT",
@@ -2687,6 +2702,34 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("UPBIT PAPER stop was requested.", html)
         self.assertIn("Stop request was sent", html)
         self.assertFalse(dashboard["live_order_allowed"])
+
+    def test_dashboard_shows_runner_stopping_without_running_claim(self):
+        dashboard = build_dashboard_with_runner_operations(stopping=True)
+        result = validate_read_only_dashboard_shell(dashboard)
+        html = render_dashboard_html(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(dashboard["primary_status_text"], "PAPER STOPPING - READ ONLY, LIVE ORDERS BLOCKED")
+        operation = dashboard["operation_status"]
+        self.assertEqual(operation["source"], "runner_status.json")
+        self.assertEqual(operation["runner_status"], RUNNER_STATUS_STOPPING)
+        self.assertFalse(operation["running"])
+        runner = dashboard["paper_runner_operations_status"]
+        self.assertEqual(runner["status"], "STOPPING")
+        self.assertEqual(runner["runner_status"], RUNNER_STATUS_STOPPING)
+        self.assertFalse(runner["running"])
+        self.assertEqual(runner["severity"], "WARNING")
+        self.assertEqual(runner["color_token"], "yellow")
+        self.assertIn("shutting down", runner["one_line_summary"])
+        self.assertIn("Wait for STOPPED", runner["next_operator_action"])
+        self.assertFalse(runner["live_order_ready"])
+        self.assertFalse(runner["live_order_allowed"])
+        self.assertFalse(runner["can_live_trade"])
+        self.assertFalse(runner["scale_up_allowed"])
+        self.assertIn("PAPER STOPPING - READ ONLY, LIVE ORDERS BLOCKED", html)
+        self.assertIn("Stopping", html)
+        self.assertIn('data-detail-key="first-screen-next-actions"', html)
+        self.assertIn('data-detail-key="main-detail-drawer"', html)
 
     def test_dashboard_surfaces_paper_scope_continuity_status(self):
         session_id = "test_read_only_dashboard_runner_scope_continuity"
