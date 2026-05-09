@@ -566,6 +566,46 @@ def _runner_status_source_age_seconds(status: dict[str, Any], source_path: Path)
         return None
 
 
+def _dashboard_next_cycle_channel_fields(status: dict[str, Any], *, running: bool) -> dict[str, Any]:
+    raw_next_eta = status.get("next_cycle_eta")
+    now = datetime.now(timezone.utc)
+    parsed_next_eta = _parse_utc(raw_next_eta)
+    interval_seconds = _float_value(status.get("cycle_interval_seconds"), 0.0)
+    if not running:
+        return {
+            "next_cycle_eta": raw_next_eta,
+            "next_cycle_eta_display": raw_next_eta or "not scheduled",
+            "next_cycle_eta_status": "NOT_RUNNING",
+            "seconds_until_next_cycle": None,
+            "cycle_in_progress": False,
+        }
+    if parsed_next_eta is None:
+        return {
+            "next_cycle_eta": raw_next_eta,
+            "next_cycle_eta_display": "current cycle running",
+            "next_cycle_eta_status": "CURRENT_CYCLE_RUNNING",
+            "seconds_until_next_cycle": None,
+            "cycle_in_progress": True,
+        }
+    seconds_until_next = int((parsed_next_eta.astimezone(timezone.utc) - now).total_seconds())
+    if seconds_until_next < 0:
+        return {
+            "next_cycle_eta": raw_next_eta,
+            "next_cycle_eta_display": "current cycle running; next ETA updates after cycle completes",
+            "next_cycle_eta_status": "CURRENT_CYCLE_RUNNING",
+            "seconds_until_next_cycle": None,
+            "cycle_in_progress": True,
+            "next_cycle_eta_overdue_seconds": abs(seconds_until_next),
+        }
+    return {
+        "next_cycle_eta": raw_next_eta,
+        "next_cycle_eta_display": raw_next_eta,
+        "next_cycle_eta_status": "SCHEDULED" if interval_seconds > 0 else "NO_INTERVAL",
+        "seconds_until_next_cycle": seconds_until_next,
+        "cycle_in_progress": False,
+    }
+
+
 def _dashboard_status_channel_payload(root: Path, session_id: str = DEFAULT_SESSION_ID) -> dict[str, Any]:
     source_path = runner_status_path(root, session_id)
     stop_path = runner_stop_file_path(root, session_id)
@@ -590,6 +630,7 @@ def _dashboard_status_channel_payload(root: Path, session_id: str = DEFAULT_SESS
         channel_status = "RUNNING"
     else:
         channel_status = raw_runner_status
+    next_cycle_fields = _dashboard_next_cycle_channel_fields(status, running=running)
     payload = {
         "schema_id": DASHBOARD_STATUS_CHANNEL_PAYLOAD_SCHEMA_ID,
         "generated_at_utc": utc_now(),
@@ -616,7 +657,7 @@ def _dashboard_status_channel_payload(root: Path, session_id: str = DEFAULT_SESS
         "current_position_count": _int_value(status.get("current_position_count"), 0),
         "last_decision": status.get("last_decision"),
         "last_cycle_time": status.get("last_cycle_time"),
-        "next_cycle_eta": status.get("next_cycle_eta"),
+        **next_cycle_fields,
         "stop_reason": status.get("stop_reason"),
         "primary_blocker_code": status.get("primary_blocker_code"),
         "primary_blocker_message": status.get("primary_blocker_message"),
@@ -857,7 +898,7 @@ def start_runner_dashboard_status_channel(
                 path = urlparse(self.path).path
                 if path in {"/", "/index.html"}:
                     self._send_dashboard_html()
-                elif path == "/api/runner-status":
+                elif path in {"/api/runner-status", "/runner_status.json"}:
                     self._send_json(_dashboard_status_channel_payload(channel_root, channel_session_id))
                 elif path == "/events":
                     self._send_events()
