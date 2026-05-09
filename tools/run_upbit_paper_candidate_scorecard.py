@@ -29,7 +29,11 @@ from trader1.adapters.upbit.market_data import (
     fetch_upbit_public_ticker_snapshot_read_only,
     rank_upbit_krw_symbols_by_public_ticker,
 )
-from trader1.research.profitability.convergence_memory import write_upbit_paper_convergence_memory_artifacts
+from trader1.research.profitability.convergence_memory import (
+    optimizer_memory_state_from_scorecard,
+    strategy_performance_memory_from_scorecard,
+    write_upbit_paper_convergence_memory_artifacts,
+)
 from trader1.research.profitability.overfit_diagnostic import (
     DEFAULT_MIN_REQUIRED_SAMPLE_COUNT,
     overfit_diagnostic_from_upbit_paper_runtime,
@@ -37,6 +41,10 @@ from trader1.research.profitability.overfit_diagnostic import (
     robustness_inputs_from_overfit_diagnostic,
     write_overfit_diagnostic_report_snapshot,
     write_overfit_diagnostic_report,
+)
+from trader1.research.profitability.strategy_mutation_compiler import (
+    StrategyMutationCompiler,
+    write_strategy_mutation_compiler_report,
 )
 from trader1.research.replay.replay_runner import (
     build_public_replay_fetch_failure_report,
@@ -1515,6 +1523,140 @@ def _build_and_write_alternative_review_scorecard(
         "replay_strategy_exit_policy_sample_count": int(review_scorecard["replay_strategy_exit_policy_sample_count"]),
         "replay_profit_factor": _safe_float(review_scorecard["replay_profit_factor"]),
         "replay_performance_scope": str(review_scorecard["replay_performance_scope"]),
+        "scorecard": review_scorecard,
+        "overfit_diagnostic": diagnostic,
+    }
+
+
+def _replay_source_artifact_id(replay_report: dict[str, Any] | None) -> str | None:
+    if not isinstance(replay_report, dict):
+        return None
+    replay_id = str(replay_report.get("replay_id") or "")
+    replay_hash = str(replay_report.get("report_hash") or "")
+    if not replay_id or len(replay_hash) != 64:
+        return None
+    return f"public_replay_robustness:{replay_id}:{replay_hash.upper()}"
+
+
+def _mutation_replay_delta(replay_report: dict[str, Any] | None, scorecard: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "execution_cost_delta_bps": (
+            _safe_float(replay_report.get("replay_execution_cost_delta_bps"))
+            if isinstance(replay_report, dict)
+            else _safe_float(scorecard.get("execution_cost_delta_bps"))
+        ),
+        "replay_execution_cost_status": (
+            replay_report.get("replay_execution_cost_status")
+            if isinstance(replay_report, dict)
+            else scorecard.get("execution_cost_comparison_status")
+        ),
+    }
+
+
+def _mutation_exit_policy_mismatch(replay_report: dict[str, Any] | None, scorecard: dict[str, Any]) -> dict[str, Any]:
+    replay_mismatch = _safe_int((replay_report or {}).get("replay_strategy_exit_policy_mismatch_count"))
+    scorecard_mismatch = _safe_int(scorecard.get("strategy_exit_policy_mismatch_count"))
+    return {
+        "mismatch_detected": replay_mismatch > 0 or scorecard_mismatch > 0,
+        "replay_strategy_exit_policy_mismatch_count": replay_mismatch,
+        "scorecard_strategy_exit_policy_mismatch_count": scorecard_mismatch,
+    }
+
+
+def _mutation_realized_vs_expected(replay_report: dict[str, Any] | None, scorecard: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "realized_vs_expected_edge_bps": (
+            _safe_float(replay_report.get("replay_realized_vs_expected_edge_bps"))
+            if isinstance(replay_report, dict)
+            else _safe_float(scorecard.get("realized_vs_expected_edge_bps"), -999.0)
+        ),
+        "realized_vs_expected_edge_status": (
+            replay_report.get("replay_realized_vs_expected_edge_status")
+            if isinstance(replay_report, dict)
+            else scorecard.get("realized_vs_expected_edge_status")
+        ),
+    }
+
+
+def _build_and_write_strategy_mutation_report(
+    *,
+    root: Path,
+    session_id: str,
+    candidate_scorecard: dict[str, Any],
+    overfit_diagnostic: dict[str, Any],
+    convergence_memory: dict[str, Any],
+    replay_robustness_report: dict[str, Any] | None,
+    alternative_replay_context: dict[str, Any],
+    alternative_review_scorecard_context: dict[str, Any],
+) -> dict[str, Any]:
+    mutation_scorecard = candidate_scorecard
+    mutation_diagnostic = overfit_diagnostic
+    mutation_replay = replay_robustness_report
+    mutation_source = "CURRENT_SCORECARD"
+    strategy_memory = convergence_memory.get("strategy_performance_memory")
+    optimizer_memory = convergence_memory.get("optimizer_memory_state")
+
+    alternative_scorecard = alternative_review_scorecard_context.get("scorecard")
+    alternative_diagnostic = alternative_review_scorecard_context.get("overfit_diagnostic")
+    alternative_replay = alternative_replay_context.get("report")
+    if (
+        alternative_replay_context.get("status") == "PASS"
+        and alternative_review_scorecard_context.get("status") == "PASS"
+        and isinstance(alternative_scorecard, dict)
+        and isinstance(alternative_diagnostic, dict)
+        and isinstance(alternative_replay, dict)
+    ):
+        mutation_scorecard = alternative_scorecard
+        mutation_diagnostic = alternative_diagnostic
+        mutation_replay = alternative_replay
+        mutation_source = "ROBUST_ALTERNATIVE_REPLAY"
+        replay_source_id = _replay_source_artifact_id(alternative_replay)
+        extra_source_ids = [replay_source_id] if replay_source_id else []
+        strategy_memory = strategy_performance_memory_from_scorecard(
+            mutation_scorecard,
+            extra_source_modes=["REPLAY"],
+            extra_source_artifact_ids=extra_source_ids,
+        )
+        optimizer_memory = optimizer_memory_state_from_scorecard(
+            mutation_scorecard,
+            extra_source_modes=["REPLAY"],
+            extra_source_artifact_ids=extra_source_ids,
+        )
+
+    report = StrategyMutationCompiler().compile(
+        candidate_scorecard=mutation_scorecard,
+        overfit_diagnostic=mutation_diagnostic,
+        convergence_memory=strategy_memory if isinstance(strategy_memory, dict) else None,
+        optimizer_memory=optimizer_memory if isinstance(optimizer_memory, dict) else None,
+        replay_closed_trade_evidence=mutation_replay if isinstance(mutation_replay, dict) else None,
+        execution_delta=_mutation_replay_delta(mutation_replay, mutation_scorecard),
+        exit_policy_mismatch=_mutation_exit_policy_mismatch(mutation_replay, mutation_scorecard),
+        realized_vs_expected_edge=_mutation_realized_vs_expected(mutation_replay, mutation_scorecard),
+    )
+    path = write_strategy_mutation_compiler_report(root=root, report=report)
+    spec = (
+        report.get("mutated_paper_candidate_spec")
+        if isinstance(report.get("mutated_paper_candidate_spec"), dict)
+        else None
+    )
+    budget = report.get("mutation_budget_state") if isinstance(report.get("mutation_budget_state"), dict) else {}
+    return {
+        "status": str(report.get("compile_status") or "BLOCKED"),
+        "blocker_code": report.get("primary_blocker_code"),
+        "path": _relative_path(path, root),
+        "candidate_id": report.get("candidate_id"),
+        "source": mutation_source,
+        "mutation_reason_code": report.get("mutation_reason_code"),
+        "mutation_id": spec.get("mutation_id") if spec else None,
+        "mutated_paper_candidate_spec_id": spec.get("spec_id") if spec else None,
+        "mutation_spec_hash": spec.get("spec_hash") if spec else None,
+        "mutated_parameter_hash": spec.get("parameter_hash") if spec else None,
+        "exploration_budget_id": budget.get("exploration_budget_id"),
+        "ranking_eligible": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
     }
 
 
@@ -1796,6 +1938,16 @@ def build_current_upbit_paper_candidate_scorecard(
         extra_source_artifact_ids=paper_shadow_binding["extra_source_artifact_ids"],
         profit_cycle_dependency_statuses=paper_shadow_binding["profit_cycle_dependency_statuses"],
     )
+    strategy_mutation_context = _build_and_write_strategy_mutation_report(
+        root=root,
+        session_id=session_id,
+        candidate_scorecard=scorecard,
+        overfit_diagnostic=diagnostic,
+        convergence_memory=convergence_memory,
+        replay_robustness_report=replay_robustness_report,
+        alternative_replay_context=alternative_replay_context,
+        alternative_review_scorecard_context=alternative_review_scorecard_context,
+    )
     return {
         "status": "PASS",
         "message": "Upbit PAPER candidate scorecard, non-live convergence memory, and profit convergence cycle report were written from ledger-bound runtime samples and overfit diagnostics",
@@ -2037,6 +2189,20 @@ def build_current_upbit_paper_candidate_scorecard(
         "profit_convergence_cycle_blocker_codes": [
             blocker["code"] for blocker in convergence_memory["profit_convergence_cycle_report"]["blockers"]
         ],
+        "strategy_mutation_compiler_status": strategy_mutation_context["status"],
+        "strategy_mutation_compiler_blocker_code": strategy_mutation_context["blocker_code"],
+        "strategy_mutation_compiler_path": strategy_mutation_context["path"],
+        "strategy_mutation_compiler_candidate_id": strategy_mutation_context["candidate_id"],
+        "strategy_mutation_compiler_source": strategy_mutation_context["source"],
+        "strategy_mutation_reason_code": strategy_mutation_context["mutation_reason_code"],
+        "strategy_mutation_id": strategy_mutation_context["mutation_id"],
+        "strategy_mutated_paper_candidate_spec_id": strategy_mutation_context[
+            "mutated_paper_candidate_spec_id"
+        ],
+        "strategy_mutation_spec_hash": strategy_mutation_context["mutation_spec_hash"],
+        "strategy_mutated_parameter_hash": strategy_mutation_context["mutated_parameter_hash"],
+        "strategy_mutation_exploration_budget_id": strategy_mutation_context["exploration_budget_id"],
+        "strategy_mutation_ranking_eligible": strategy_mutation_context["ranking_eligible"],
         "invalid_runtime_source_count": history["invalid_source_count"],
         "credential_load_attempted": False,
         "private_endpoint_called": False,
