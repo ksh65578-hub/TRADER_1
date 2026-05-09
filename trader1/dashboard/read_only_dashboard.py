@@ -6376,6 +6376,8 @@ def _paper_runner_operations_status(
         "stop_method": "STOP_UPBIT_PAPER.py_OR_STOP_FILE_OR_CTRL_C",
         "stop_launcher_path": "STOP_UPBIT_PAPER.py",
         "stop_file_path": "NOT_LOADED",
+        "background_runner_policy": "BACKGROUND_RUNNER_STATUS_DASHBOARD",
+        "operator_console_auto_closes": True,
         "console_lifecycle_policy": "BACKGROUND_RUNNER_STATUS_DASHBOARD",
         "console_close_does_not_stop_runner": True,
         "dashboard_close_does_not_stop_runner": True,
@@ -6654,6 +6656,10 @@ def _paper_runner_operations_status(
             ),
             "stop_launcher_path": str(runner_status_report.get("stop_launcher_path") or "STOP_UPBIT_PAPER.py"),
             "stop_file_path": str(runner_status_report.get("stop_file_path") or "NOT_LOADED"),
+            "background_runner_policy": str(
+                runner_status_report.get("background_runner_policy") or "BACKGROUND_RUNNER_STATUS_DASHBOARD"
+            ),
+            "operator_console_auto_closes": runner_status_report.get("operator_console_auto_closes") is not False,
             "console_lifecycle_policy": str(
                 runner_status_report.get("console_lifecycle_policy") or "BACKGROUND_RUNNER_STATUS_DASHBOARD"
             ),
@@ -26430,6 +26436,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<div><dt>Persistent runtime</dt><dd class=\"pill {status_class(shadow_persistent.get('status'))}\">{safe_text(shadow_persistent_status_display)}</dd></div>"
         f"<div><dt>PAPER loop</dt><dd class=\"pill {status_class(paper_persistent_loop.get('status'))}\">{safe_text(paper_persistent_loop_status_display)}</dd></div>"
         f"<div><dt>PAPER runner</dt><dd class=\"pill {status_class(paper_runner_operations.get('status'))}\">{safe_text(paper_runner_status_display)}</dd></div>"
+        f"<div><dt>Execution mode</dt><dd>Background runner active<br>Launch console closes automatically={safe_text(paper_runner_operations.get('operator_console_auto_closes', True))}</dd></div>"
         f"<div><dt>Runner control</dt><dd>{safe_text(paper_runner_operations.get('console_lifecycle_policy', 'BACKGROUND_RUNNER_STATUS_DASHBOARD'))}<br>"
         f"stop={safe_text(paper_runner_operations.get('stop_launcher_path', 'STOP_UPBIT_PAPER.py'))}</dd></div>"
         f"<div><dt>Runner cycles</dt><dd>{safe_text(paper_runner_operations.get('completed_cycle_count', 0))} ok / {safe_text(paper_runner_operations.get('failed_cycle_count', 0))} fail</dd></div>"

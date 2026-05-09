@@ -35,6 +35,7 @@ from trader1.runtime.paper.upbit_paper_long_runner import (
     runner_lock_path,
     runner_log_path,
     runner_retention_manifest_path,
+    runner_background_launch_report_path,
     runner_start_reconciliation_path,
     runner_status_path,
     runner_stop_file_path,
@@ -1673,6 +1674,55 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertFalse(observed["stop_file_exists_at_runner_call"])
             self.assertFalse(stop_path.exists())
             self.assertTrue(runner_start_reconciliation_path(root).exists())
+
+    def test_root_operator_background_launch_returns_without_foreground_runner(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "UPBIT_PAPER.py").write_text(
+                "from trader1.runtime.paper.upbit_paper_long_runner import root_upbit_paper_long_runner_main\n"
+                "raise SystemExit(root_upbit_paper_long_runner_main())\n",
+                encoding="utf-8",
+            )
+            popen_calls: list[dict] = []
+
+            class FakeProcess:
+                pid = 424242
+
+            def fake_popen(command, **kwargs):
+                popen_calls.append({"command": command, "kwargs": kwargs})
+                return FakeProcess()
+
+            with patch.dict(
+                os.environ,
+                {
+                    "TRADER1_UPBIT_PAPER_SAFE_CHECK_ONLY": "false",
+                    "TRADER1_UPBIT_PAPER_BACKGROUND_LAUNCH": "true",
+                    "TRADER1_UPBIT_PAPER_REFRESH_DASHBOARD": "false",
+                    "TRADER1_UPBIT_PAPER_OPEN_DASHBOARD": "false",
+                    "TRADER1_UPBIT_PAPER_HOLD_ON_EXIT": "false",
+                },
+            ), patch.object(long_runner.subprocess, "Popen", side_effect=fake_popen), patch.object(
+                long_runner,
+                "run_upbit_paper_long_running_runner",
+                side_effect=AssertionError("foreground runner must not run in operator background launch"),
+            ):
+                exit_code = long_runner.root_upbit_paper_long_runner_main(root)
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(len(popen_calls), 1)
+            self.assertEqual(popen_calls[0]["kwargs"]["cwd"], str(root))
+            self.assertEqual(popen_calls[0]["kwargs"]["env"]["TRADER1_UPBIT_PAPER_FOREGROUND_RUNNER"], "1")
+            self.assertEqual(popen_calls[0]["kwargs"]["env"]["TRADER1_UPBIT_PAPER_OPEN_DASHBOARD"], "0")
+            report = _load_json(runner_background_launch_report_path(root))
+            self.assertEqual(report["background_launch_status"], "STARTED")
+            self.assertTrue(report["background_runner_started"])
+            self.assertTrue(report["operator_console_auto_closes"])
+            self.assertTrue(report["console_close_does_not_stop_runner"])
+            self.assertEqual(report["runner_pid"], 424242)
+            self.assertFalse(report["live_order_allowed"])
+            self.assertFalse(report["can_live_trade"])
 
     def test_root_operator_duplicate_start_does_not_clear_active_stop_request(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
