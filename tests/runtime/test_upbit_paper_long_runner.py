@@ -41,6 +41,7 @@ from trader1.runtime.paper.upbit_paper_long_runner import (
     runner_retention_manifest_path,
     runner_background_launch_report_path,
     runner_start_reconciliation_path,
+    _root_stop_request_report_path,
     runner_status_path,
     runner_stop_file_path,
     runner_stop_request_report_path,
@@ -1560,12 +1561,50 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
     def test_stop_file_before_first_cycle_exits_cleanly_without_cycle_claim(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            stop_path = runner_stop_file_path(root, "stop_session")
+            session_id = "stop_session"
+            stop_path = runner_stop_file_path(root, session_id)
             stop_path.parent.mkdir(parents=True, exist_ok=True)
             stop_path.write_text(f"stop requested at {utc_now()} by test pid {os.getpid()}\n", encoding="utf-8")
+            root_stop_report_path = _root_stop_request_report_path(root, session_id)
+            root_stop_report_path.parent.mkdir(parents=True, exist_ok=True)
+            root_stop_report_path.write_text(
+                json.dumps(
+                    {
+                        "schema_id": "trader1.root_stop_request_report.v1",
+                        "generated_at_utc": utc_now(),
+                        "project_id": "TRADER_1",
+                        "stop_launcher_name": "STOP_UPBIT_PAPER",
+                        "target_launcher_name": "UPBIT_PAPER",
+                        "exchange": "UPBIT",
+                        "market_type": "KRW_SPOT",
+                        "mode": "PAPER",
+                        "session_id": session_id,
+                        "stop_request_status": "STOP_REQUESTED",
+                        "stop_request_method": "UPBIT_PAPER_STOP_FILE",
+                        "stop_confirmed": False,
+                        "stop_result_summary": "UPBIT PAPER stop was requested.",
+                        "runner_status_path": str(runner_status_path(root, session_id)),
+                        "runner_status_after": RUNNER_STATUS_STOPPING,
+                        "runner_running_after": False,
+                        "dashboard_refresh_requested": True,
+                        "dashboard_should_show_stopped": False,
+                        "live_order_ready": False,
+                        "live_order_allowed": False,
+                        "can_live_trade": False,
+                        "scale_up_allowed": False,
+                        "order_adapter_called": False,
+                        "private_endpoint_called": False,
+                        "credential_load_attempted": False,
+                        "live_key_loaded": False,
+                        "order_endpoint_called": False,
+                    },
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
             report = run_upbit_paper_long_running_runner(
                 root=root,
-                session_id="stop_session",
+                session_id=session_id,
                 runner_id="stop-runner",
                 cycle_interval_seconds=0,
                 max_cycles=None,
@@ -1577,6 +1616,25 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertEqual(report["stop_reason"], "STOP_FILE")
             self.assertEqual(report["completed_cycle_count"], 0)
             self.assertEqual(validate_upbit_paper_long_runner_status_report(report)["status"], "PASS")
+            confirmed_stop_report = _load_json(root_stop_report_path)
+            self.assertEqual(confirmed_stop_report["stop_request_status"], "STOP_CONFIRMED")
+            self.assertTrue(confirmed_stop_report["stop_confirmed"])
+            self.assertTrue(confirmed_stop_report["dashboard_should_show_stopped"])
+            self.assertEqual(confirmed_stop_report["runner_status_after"], RUNNER_STATUS_STOPPED)
+            self.assertFalse(confirmed_stop_report["runner_running_after"])
+            self.assertEqual(len(confirmed_stop_report["stop_request_hash"]), 64)
+            for field in (
+                "live_order_ready",
+                "live_order_allowed",
+                "can_live_trade",
+                "scale_up_allowed",
+                "order_adapter_called",
+                "private_endpoint_called",
+                "credential_load_attempted",
+                "live_key_loaded",
+                "order_endpoint_called",
+            ):
+                self.assertFalse(confirmed_stop_report[field], field)
 
     def test_operator_stop_request_writes_paper_only_stop_signal_for_active_runner(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
@@ -2657,6 +2715,52 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertFalse(stopped_payload["running"])
             self.assertEqual(stopped_payload["stop_reason"], "STOP_FILE")
 
+    def test_dashboard_status_channel_reports_stopped_when_stop_file_remains(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "dashboard_channel_stopped_stop_file_session"
+            status = build_runner_status_report(
+                root=root,
+                runner_id="runner-channel-stopped-test",
+                session_id=session_id,
+                runner_status=RUNNER_STATUS_STOPPED,
+                started_at_utc=utc_now(),
+                completed_cycle_count=3,
+                failed_cycle_count=0,
+                cycle_interval_seconds=30,
+                stop_reason="STOP_FILE",
+            )
+            status_path = runner_status_path(root, session_id)
+            status_path.parent.mkdir(parents=True, exist_ok=True)
+            status_path.write_text(json.dumps(status), encoding="utf-8")
+            runner_stop_file_path(root, session_id).write_text(
+                json.dumps(
+                    {
+                        "mode": "PAPER",
+                        "requested_at_utc": utc_now(),
+                        "live_order_ready": False,
+                        "live_order_allowed": False,
+                        "can_live_trade": False,
+                        "scale_up_allowed": False,
+                    },
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+
+            payload = _dashboard_status_channel_payload(root, session_id)
+
+            self.assertEqual(payload["runner_status"], RUNNER_STATUS_STOPPED)
+            self.assertEqual(payload["channel_status"], RUNNER_STATUS_STOPPED)
+            self.assertTrue(payload["stop_requested"])
+            self.assertTrue(payload["stop_confirmed"])
+            self.assertFalse(payload["stop_signal_active"])
+            self.assertFalse(payload["running"])
+            self.assertFalse(payload["live_order_ready"])
+            self.assertFalse(payload["live_order_allowed"])
+            self.assertFalse(payload["can_live_trade"])
+            self.assertFalse(payload["scale_up_allowed"])
+
     def test_runner_dashboard_status_channel_stop_signal_is_immediate_and_paper_only(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -2695,6 +2799,8 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
                     encoding="utf-8",
                 )
                 stop_payload = _dashboard_status_channel_payload(root, session_id)
+                with urllib.request.urlopen(handle.url + "api/runner-status", timeout=5) as response:
+                    http_stop_payload = json.loads(response.read().decode("utf-8"))
                 deadline = time.time() + 2.0
                 channel_report = {}
                 while time.time() < deadline:
@@ -2708,7 +2814,10 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
 
             self.assertEqual(stop_payload["runner_status"], "STOPPING")
             self.assertEqual(stop_payload["channel_status"], "STOPPING")
+            self.assertEqual(http_stop_payload["runner_status"], "STOPPING")
+            self.assertEqual(http_stop_payload["channel_status"], "STOPPING")
             self.assertTrue(stop_payload["stop_requested"])
+            self.assertTrue(stop_payload["stop_signal_active"])
             self.assertTrue(stop_payload["dashboard_shutdown_expected"])
             self.assertEqual(channel_report.get("dashboard_status_channel_status"), "STOPPING")
             self.assertFalse(stop_payload["live_order_ready"])

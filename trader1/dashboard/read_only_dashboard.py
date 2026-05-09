@@ -19693,17 +19693,22 @@ def build_read_only_dashboard_shell(
     runner_state_for_primary = str(runner_operations_status.get("runner_status") or "NOT_LOADED")
     profile_primary_status = str(paper_runtime_evidence_collection_profile_status.get("status") or "NOT_LOADED")
     stop_status_for_primary = str(operator_stop_status.get("status") or "NOT_REQUESTED")
-    if stop_status_for_primary == "STOP_REQUESTED":
-        primary_status_text = f"{mode} STOP REQUESTED - READ ONLY, LIVE ORDERS BLOCKED"
-    elif stop_status_for_primary == "STOPPED" and runner_state_for_primary != "RUNNING":
-        primary_status_text = f"{mode} STOPPED BY OPERATOR - READ ONLY, LIVE ORDERS BLOCKED"
-    elif runner_primary_status == "STOPPING" or runner_state_for_primary == "STOPPING":
+    runner_is_stopping = runner_primary_status == "STOPPING" or runner_state_for_primary == "STOPPING"
+    runner_is_stopped = runner_primary_status == "STOPPED" or runner_state_for_primary == "STOPPED"
+    runner_is_running = runner_primary_status == "RUNNING_NOW" or runner_state_for_primary == "RUNNING"
+    if runner_is_stopping:
         primary_status_text = f"{mode} STOPPING - READ ONLY, LIVE ORDERS BLOCKED"
+    elif stop_status_for_primary == "STOPPED" and not runner_is_running:
+        primary_status_text = f"{mode} STOPPED BY OPERATOR - READ ONLY, LIVE ORDERS BLOCKED"
+    elif stop_status_for_primary == "STOP_REQUESTED" and runner_is_stopped:
+        primary_status_text = f"{mode} STOPPED BY OPERATOR - READ ONLY, LIVE ORDERS BLOCKED"
+    elif stop_status_for_primary == "STOP_REQUESTED":
+        primary_status_text = f"{mode} STOP REQUESTED - READ ONLY, LIVE ORDERS BLOCKED"
     elif runner_primary_status == "STALE" and runner_state_for_primary in {"RUNNING", "STOPPED", "BLOCKED"}:
         primary_status_text = f"PAPER STALE - LAST RUNNER {runner_state_for_primary} - LIVE ORDERS BLOCKED"
-    elif runner_primary_status == "RUNNING_NOW" or runner_state_for_primary == "RUNNING":
+    elif runner_is_running:
         primary_status_text = "PAPER RUNNING - READ ONLY, LIVE ORDERS BLOCKED"
-    elif runner_primary_status == "STOPPED" or runner_state_for_primary == "STOPPED":
+    elif runner_is_stopped:
         primary_status_text = "PAPER STOPPED - READ ONLY, LIVE ORDERS BLOCKED"
     elif runner_primary_status in {"BLOCKED", "ERROR"} or runner_state_for_primary == "BLOCKED":
         primary_status_text = "PAPER BLOCKED - READ ONLY, LIVE ORDERS BLOCKED"
@@ -19711,7 +19716,9 @@ def build_read_only_dashboard_shell(
         primary_status_text = "PAPER PROFILE CURRENT - RUNNER NOT PROVEN - LIVE ORDERS BLOCKED"
     else:
         primary_status_text = "PAPER STATUS NOT LOADED - READ ONLY, LIVE ORDERS BLOCKED"
-    if stop_status_for_primary in {"STOP_REQUESTED", "STOPPED"}:
+    if runner_is_stopping:
+        next_action_value = runner_operations_status.get("next_operator_action")
+    elif stop_status_for_primary in {"STOP_REQUESTED", "STOPPED"}:
         next_action_value = operator_stop_status.get("next_operator_action")
     elif reconciliation_blocks_operator_action:
         next_action_value = reconciliation_recovery_summary.get("next_operator_action")
@@ -29124,26 +29131,31 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         var channelFresh = channelAgeSeconds !== null && channelAgeSeconds <= 10;
         if (channelFresh && runnerChannelLastPayload) {
           var drift = runnerChannelLastPayload.live_flag_drift_detected === true;
-          var stopping = runnerChannelLastPayload.stop_requested === true || runnerChannelLastPayload.runner_status === "STOPPING";
+          var stopped = runnerChannelLastPayload.runner_status === "STOPPED";
+          var stopping = !stopped && (runnerChannelLastPayload.stop_requested === true || runnerChannelLastPayload.runner_status === "STOPPING");
           if (ageNode) {
             ageNode.textContent = "channel " + formatAge(channelAgeSeconds);
           }
           if (pill) {
             pill.textContent = drift
               ? "Runner drift blocked"
+              : stopped
+              ? "Runner stopped"
               : stopping
               ? "Stop requested"
               : "Runner channel live";
-            pill.className = drift ? "pill danger" : stopping ? "pill warn" : "pill ok";
+            pill.className = drift ? "pill danger" : stopped || stopping ? "pill warn" : "pill ok";
           }
           if (warning) {
             warning.textContent = drift
               ? "Runner channel detected live/scale flag drift. PAPER remains fail-closed and live orders stay blocked."
+              : stopped
+              ? "PAPER runner is stopped. This tab is no longer an active process view after disconnect; start PAPER again to resume."
               : stopping
               ? "Stop requested. The local runner status channel is shutting down; this page is no longer an active process view after disconnect."
               : "Live runner channel is fresh. Static dashboard file age is fallback only and does not mark a connected runner stale.";
           }
-          box.className = drift || stopping ? "freshness-strip freshness-stale" : "freshness-strip freshness-fresh";
+          box.className = drift || stopped || stopping ? "freshness-strip freshness-stale" : "freshness-strip freshness-fresh";
           return;
         }
         var ageSeconds = Number.isFinite(generatedAt) ? Math.max(0, Math.floor((Date.now() - generatedAt) / 1000)) : staleAfter + 1;
@@ -29175,10 +29187,13 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         runnerChannelLastSeenAtMs = Date.now();
         runnerChannelLastPayload = payload;
         var drift = payload.live_flag_drift_detected === true;
-        var stopping = payload.stop_requested === true || payload.runner_status === "STOPPING";
+        var stopped = payload.runner_status === "STOPPED";
+        var stopping = !stopped && (payload.stop_requested === true || payload.runner_status === "STOPPING");
         var running = payload.running === true && payload.runner_status === "RUNNING";
         var state = drift
           ? "LIVE FLAG DRIFT BLOCKED"
+          : stopped
+          ? "PAPER runner stopped"
           : stopping
           ? "Stop requested; runner channel is shutting down"
           : running
@@ -29190,13 +29205,15 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         setRunnerChannelText("[data-runner-channel-next]", payload.next_cycle_eta || "not scheduled");
         var message = drift
           ? "Read-only dashboard detected live/scale flag drift in runner status and keeps live orders blocked."
+          : stopped
+          ? "PAPER runner confirmed stopped. Start PAPER again only when you want to resume non-live collection."
           : stopping
           ? "Operator stop was requested. This live process view will disconnect when the PAPER runner status channel shuts down."
           : "Dashboard is attached to the local read-only runner status channel. Orders, private endpoints, credentials, and LIVE_READY remain blocked.";
         setRunnerChannelText("[data-runner-channel-message]", message);
         var box = document.querySelector("[data-dashboard-freshness]");
         if (box) {
-          box.className = drift || stopping ? "freshness-strip freshness-stale" : "freshness-strip freshness-fresh";
+          box.className = drift || stopped || stopping ? "freshness-strip freshness-stale" : "freshness-strip freshness-fresh";
           updateDashboardFreshness();
         }
       }
@@ -29218,10 +29235,13 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             events.onerror = function () {
               var stoppedAfterRequest = runnerChannelLastPayload && (
                 runnerChannelLastPayload.stop_requested === true || runnerChannelLastPayload.runner_status === "STOPPING"
+                || runnerChannelLastPayload.runner_status === "STOPPED"
               );
               setRunnerChannelText(
                 "[data-runner-channel-state]",
-                stoppedAfterRequest
+                runnerChannelLastPayload && runnerChannelLastPayload.runner_status === "STOPPED"
+                  ? "PAPER runner stopped; runner status channel disconnected"
+                  : stoppedAfterRequest
                   ? "Runner status channel shut down after stop request"
                   : "Runner status channel disconnected; showing last received status"
               );

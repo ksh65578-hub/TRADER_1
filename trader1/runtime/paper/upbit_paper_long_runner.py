@@ -164,7 +164,7 @@ DASHBOARD_STATUS_CHANNEL_HOST = "127.0.0.1"
 DASHBOARD_STATUS_CHANNEL_MODE = "LOCAL_READ_ONLY_HTTP_SSE"
 DASHBOARD_STATUS_CHANNEL_SCHEMA_ID = "trader1.dashboard_status_channel.v1"
 DASHBOARD_STATUS_CHANNEL_PAYLOAD_SCHEMA_ID = "trader1.dashboard_status_channel_payload.v1"
-DEFAULT_DASHBOARD_STATUS_CHANNEL_SHUTDOWN_GRACE_SECONDS = 0.0
+DEFAULT_DASHBOARD_STATUS_CHANNEL_SHUTDOWN_GRACE_SECONDS = 1.0
 DEFAULT_DASHBOARD_STATUS_CHANNEL_STOP_POLL_SECONDS = 0.25
 
 LIVE_FALSE_FLAGS = (
@@ -292,6 +292,83 @@ def upbit_paper_operator_stop_request_hash(report: dict[str, Any]) -> str:
     payload = dict(report)
     payload.pop("stop_request_hash", None)
     return _json_hash(payload)
+
+
+def _root_stop_request_report_path(root: Path, session_id: str = DEFAULT_SESSION_ID) -> Path:
+    return runner_runtime_base(root, session_id) / "launcher" / "root_stop_request_report.json"
+
+
+def _root_stop_request_report_hash(report: dict[str, Any]) -> str:
+    payload = dict(report)
+    payload.pop("stop_request_hash", None)
+    body = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(body.encode("utf-8")).hexdigest().upper()
+
+
+def _confirm_operator_stop_reports_from_final_status(
+    root: Path,
+    session_id: str,
+    final_status: dict[str, Any],
+) -> None:
+    if final_status.get("runner_status") != RUNNER_STATUS_STOPPED or final_status.get("stop_reason") != "STOP_FILE":
+        return
+    generated_at = utc_now()
+    runner_report_path = runner_stop_request_report_path(root, session_id)
+    runner_report = _read_json(runner_report_path)
+    if isinstance(runner_report, dict) and runner_report.get("stop_request_status") == "STOP_REQUESTED":
+        updated_runner_report = dict(runner_report)
+        updated_runner_report.update(
+            {
+                "updated_at_utc": generated_at,
+                "stop_request_status": "STOP_CONFIRMED",
+                "stop_confirmed": True,
+                "runner_status_after": RUNNER_STATUS_STOPPED,
+                "runner_running_after": False,
+                "primary_blocker_code": None,
+                "primary_blocker_message": None,
+            }
+        )
+        for flag in LIVE_FALSE_FLAGS:
+            updated_runner_report[flag] = False
+        updated_runner_report["order_endpoint_called"] = False
+        updated_runner_report["stop_request_hash"] = upbit_paper_operator_stop_request_hash(updated_runner_report)
+        durable_atomic_write_json(runner_report_path, updated_runner_report)
+
+    root_report_path = _root_stop_request_report_path(root, session_id)
+    root_report = _read_json(root_report_path)
+    if not isinstance(root_report, dict):
+        return
+    scope_matches = (
+        root_report.get("target_launcher_name") == "UPBIT_PAPER"
+        and root_report.get("exchange") == "UPBIT"
+        and root_report.get("market_type") == "KRW_SPOT"
+        and root_report.get("mode") == "PAPER"
+        and root_report.get("session_id") == session_id
+    )
+    if not scope_matches or root_report.get("stop_request_status") != "STOP_REQUESTED":
+        return
+    updated_root_report = dict(root_report)
+    updated_root_report.update(
+        {
+            "updated_at_utc": generated_at,
+            "stop_request_status": "STOP_CONFIRMED",
+            "stop_confirmed": True,
+            "stop_result_summary": "UPBIT PAPER runner stopped by operator stop launcher.",
+            "runner_status_after": RUNNER_STATUS_STOPPED,
+            "runner_running_after": False,
+            "dashboard_refresh_requested": True,
+            "dashboard_refresh_status": "PASS",
+            "dashboard_refresh_deferred": False,
+            "dashboard_should_show_stopped": True,
+            "primary_blocker_code": None,
+            "primary_blocker_message": None,
+        }
+    )
+    for flag in LIVE_FALSE_FLAGS:
+        updated_root_report[flag] = False
+    updated_root_report["order_endpoint_called"] = False
+    updated_root_report["stop_request_hash"] = _root_stop_request_report_hash(updated_root_report)
+    durable_atomic_write_json(root_report_path, updated_root_report)
 
 
 def upbit_paper_background_launch_hash(report: dict[str, Any]) -> str:
@@ -461,9 +538,11 @@ def _dashboard_status_channel_payload(root: Path, session_id: str = DEFAULT_SESS
     source_age_seconds = _runner_status_source_age_seconds(status, source_path)
     raw_runner_status = str(status.get("runner_status") or "NOT_LOADED")
     raw_running = status.get("running") is True and raw_runner_status == RUNNER_STATUS_RUNNING
-    running = raw_running and not stop_requested
-    effective_runner_status = "STOPPING" if stop_requested else raw_runner_status
-    if stop_requested:
+    stop_confirmed = raw_runner_status == RUNNER_STATUS_STOPPED
+    stop_signal_active = stop_requested and not stop_confirmed
+    running = raw_running and not stop_signal_active
+    effective_runner_status = RUNNER_STATUS_STOPPING if stop_signal_active else raw_runner_status
+    if stop_signal_active:
         channel_status = "STOPPING"
     elif running:
         channel_status = "RUNNING"
@@ -514,7 +593,9 @@ def _dashboard_status_channel_payload(root: Path, session_id: str = DEFAULT_SESS
         "stop_launcher_path": str(root / "STOP_UPBIT_PAPER.py"),
         "stop_file_path": str(stop_path),
         "stop_requested": stop_requested,
-        "dashboard_shutdown_expected": stop_requested,
+        "stop_confirmed": stop_confirmed,
+        "stop_signal_active": stop_signal_active,
+        "dashboard_shutdown_expected": stop_requested and not running,
         "live_flag_drift_detected": bool(drift_fields),
         "live_flag_drift_fields": drift_fields,
         "live_order_ready": False,
@@ -652,13 +733,9 @@ def start_runner_dashboard_status_channel(
         stop_path = runner_stop_file_path(root, session_id)
         while not getattr(server, "dashboard_channel_stop", False):
             if stop_path.exists():
-                _write_dashboard_status_channel_stopping_report(root, session_id)
-                setattr(server, "dashboard_channel_stop", True)
-                try:
-                    server.shutdown()
-                except OSError:
-                    pass
-                return
+                if not getattr(server, "dashboard_channel_stop_signal_seen", False):
+                    _write_dashboard_status_channel_stopping_report(root, session_id)
+                    setattr(server, "dashboard_channel_stop_signal_seen", True)
             time.sleep(DEFAULT_DASHBOARD_STATUS_CHANNEL_STOP_POLL_SECONDS)
 
     def handler_factory() -> type[BaseHTTPRequestHandler]:
@@ -706,8 +783,6 @@ def start_runner_dashboard_status_channel(
                         self.wfile.write(body.encode("utf-8"))
                         self.wfile.flush()
                     except (BrokenPipeError, ConnectionResetError, OSError):
-                        break
-                    if payload.get("stop_requested") is True:
                         break
                     time.sleep(DEFAULT_DASHBOARD_STATUS_CHANNEL_STOP_POLL_SECONDS)
 
@@ -792,8 +867,6 @@ def stop_runner_dashboard_status_channel(
 ) -> None:
     if handle is None:
         return
-    if grace_seconds > 0:
-        time.sleep(grace_seconds)
     try:
         durable_atomic_write_json(
             handle.report_path,
@@ -804,6 +877,8 @@ def stop_runner_dashboard_status_channel(
                 status=final_status,
             ),
         )
+        if grace_seconds > 0:
+            time.sleep(grace_seconds)
     finally:
         try:
             setattr(handle.server, "dashboard_channel_stop", True)
@@ -4745,7 +4820,7 @@ def run_upbit_paper_long_running_runner(
     emit_console_status: bool = False,
     dashboard_open_result: DashboardOpenResult | None = None,
     dashboard_status_channel_enabled: bool = False,
-    dashboard_status_channel_shutdown_grace_seconds: float = 0.0,
+    dashboard_status_channel_shutdown_grace_seconds: float = DEFAULT_DASHBOARD_STATUS_CHANNEL_SHUTDOWN_GRACE_SECONDS,
     retention_max_active_artifacts_per_group: int = DEFAULT_RETENTION_MAX_ACTIVE_ARTIFACTS_PER_GROUP,
     retention_max_uncompacted_archive_batches: int = DEFAULT_RETENTION_MAX_UNCOMPACTED_ARCHIVE_BATCHES,
     retention_log_max_bytes: int = DEFAULT_RUNNER_LOG_MAX_BYTES,
@@ -4850,6 +4925,7 @@ def run_upbit_paper_long_running_runner(
                     dashboard_open_result=dashboard_open_result,
                 )
                 _write_runner_status(status_path, final)
+                _confirm_operator_stop_reports_from_final_status(root, session_id, final)
                 _refresh_dashboard_after_runner_status(root, session_id, refresh_dashboard=refresh_dashboard)
                 if emit_console_status:
                     _emit_console_status(final)
@@ -4870,6 +4946,7 @@ def run_upbit_paper_long_running_runner(
                     dashboard_open_result=dashboard_open_result,
                 )
                 _write_runner_status(status_path, final)
+                _confirm_operator_stop_reports_from_final_status(root, session_id, final)
                 _refresh_dashboard_after_runner_status(root, session_id, refresh_dashboard=refresh_dashboard)
                 if emit_console_status:
                     _emit_console_status(final)
@@ -5215,6 +5292,15 @@ def run_upbit_paper_long_running_runner(
                     "at": utc_now(),
                 },
             )
+            post_cycle_next_eta_text = None
+            if cycle_interval_seconds:
+                post_cycle_next_eta = datetime.now(timezone.utc).timestamp() + cycle_interval_seconds
+                post_cycle_next_eta_text = (
+                    datetime.fromtimestamp(post_cycle_next_eta, tz=timezone.utc)
+                    .replace(microsecond=0)
+                    .isoformat()
+                    .replace("+00:00", "Z")
+                )
             post_cycle_running = build_runner_status_report(
                 root=root,
                 runner_id=runner_id,
@@ -5225,7 +5311,7 @@ def run_upbit_paper_long_running_runner(
                 failed_cycle_count=failed,
                 cycle_interval_seconds=cycle_interval_seconds,
                 loop_report=last_loop_report,
-                next_cycle_eta=utc_now(),
+                next_cycle_eta=post_cycle_next_eta_text,
                 dashboard_open_result=dashboard_open_result,
             )
             _write_runner_status(status_path, post_cycle_running)
