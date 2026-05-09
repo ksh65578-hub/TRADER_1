@@ -535,11 +535,13 @@ def _build_bounded_public_discovery_runtime_cycle(
     session_id: str,
     symbol_limit: int,
     timeout_seconds: float,
+    min_review_ready_candidate_count: int = 1,
     market_symbols_fetcher: Callable[..., dict[str, Any]] | None = None,
     public_ticker_fetcher: Callable[..., dict[str, Any]] | None = None,
     public_candle_fetcher: Callable[..., dict[str, Any]] | None = None,
 ) -> tuple[dict[str, Any] | None, dict[str, Any]]:
     safe_limit = max(1, min(int(symbol_limit), DEFAULT_DISCOVERY_EVALUATION_LIMIT))
+    safe_min_review_ready = max(1, min(int(min_review_ready_candidate_count), 12))
     discovery_fetcher = market_symbols_fetcher or fetch_upbit_krw_market_symbols_read_only
     ticker_fetcher = public_ticker_fetcher or fetch_upbit_public_ticker_snapshot_read_only
     symbol_report = discovery_fetcher(session_id=session_id, timeout_seconds=timeout_seconds)
@@ -650,7 +652,7 @@ def _build_bounded_public_discovery_runtime_cycle(
     )
 
     if (
-        discovery_diagnostics["paper_entry_review_candidate_count"] == 0
+        discovery_diagnostics["paper_entry_review_candidate_count"] < safe_min_review_ready
         and max_expanded_symbol_count > attempted_symbol_count
     ):
         adaptive_expansion_attempted = True
@@ -697,7 +699,10 @@ def _build_bounded_public_discovery_runtime_cycle(
         message=(
             "bounded public candidate discovery runtime cycle built from read-only public KRW market and candle data"
             if not discovery_diagnostics["adaptive_expansion_attempted"]
-            else "bounded public candidate discovery expanded once after the initial public KRW set produced no entry-review candidate"
+            else (
+                "bounded public candidate discovery expanded once after the initial public KRW set "
+                "produced too few entry-review candidates"
+            )
         ),
         symbol_count=len(collection_reports),
         ranked_symbol_count=int(ranking.get("ranked_symbol_count") or 0),
@@ -1702,6 +1707,7 @@ def build_current_upbit_paper_candidate_scorecard(
             session_id=session_id,
             symbol_limit=candidate_discovery_symbol_limit,
             timeout_seconds=candidate_discovery_timeout_seconds,
+            min_review_ready_candidate_count=min_candidate_review_pool,
             market_symbols_fetcher=market_symbols_fetcher,
             public_ticker_fetcher=public_ticker_fetcher,
             public_candle_fetcher=public_candle_fetcher,
