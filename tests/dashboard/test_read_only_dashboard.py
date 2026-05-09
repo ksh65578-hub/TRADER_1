@@ -9218,7 +9218,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(positions["can_live_trade"])
         self.assertFalse(positions["scale_up_allowed"])
 
-    def test_current_truth_refresh_display_survives_blocked_continuous_writer_preflight(self):
+    def test_current_truth_refresh_stays_unverified_when_continuous_writer_unavailable(self):
         session_id = "test_read_only_dashboard_current_truth_refresh_writer_blocked"
         snapshot = build_paper_portfolio_snapshot_from_fill(
             exchange="UPBIT",
@@ -9270,14 +9270,17 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "PASS", result.message)
         portfolio = dashboard["portfolio_snapshot"]
-        self.assertEqual(portfolio["source"], "paper_current_truth_refresh_report.json")
-        self.assertEqual(portfolio["status"], "VERIFIED")
-        self.assertEqual(portfolio["audited_writer_lifecycle_status"], "SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER")
+        self.assertEqual(portfolio["source"], "audited_current_evidence_snapshot.json")
+        self.assertEqual(portfolio["status"], "UNVERIFIED")
+        self.assertEqual(portfolio["blocking_reason"], "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED")
+        self.assertEqual(portfolio["cash"]["value_display"], "UNVERIFIED")
+        self.assertEqual(portfolio["equity"]["value_display"], "UNVERIFIED")
+        self.assertEqual(portfolio["audited_writer_lifecycle_status"], "AUDITED_WRITER_INPUTS_BLOCKED")
         self.assertEqual(
             portfolio["audited_writer_blocker_decision_status"],
-            "SUMMARY_LEDGER_DISPLAY_ONLY_NO_AUDITED_WRITER",
+            "BLOCKED_INPUTS",
         )
-        self.assertEqual(portfolio["audited_writer_blocker_truth_class"], "SUMMARY_LEDGER_DISPLAY_ONLY")
+        self.assertEqual(portfolio["audited_writer_blocker_truth_class"], "CONFIGURED_PAPER_BASELINE_ONLY")
         self.assertFalse(portfolio["audited_writer_blocker_allows_single_run_paper_display"])
         self.assertFalse(portfolio["live_order_allowed"])
 

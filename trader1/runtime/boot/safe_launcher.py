@@ -2667,7 +2667,7 @@ def build_launcher_dashboard_artifacts(
     current_truth_portfolio_snapshot = (
         audited_paper_portfolio_snapshot
         if _audited_portfolio_binds_current_rollup(audited_paper_portfolio_snapshot, paper_ledger_rollup_report)
-        else paper_portfolio
+        else None
     )
     if (
         isinstance(current_truth_portfolio_snapshot, dict)
