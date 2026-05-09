@@ -17709,6 +17709,102 @@ def _residual_operator_reconciliation_submission_review_queue_summary(
     }
 
 
+def _operator_stop_status_summary(
+    report: dict[str, Any] | None,
+    *,
+    exchange: str,
+    market_type: str,
+    mode: str,
+    session_id: str,
+) -> dict[str, Any]:
+    base = {
+        "title": "Operator Stop",
+        "status": "NOT_REQUESTED",
+        "severity": "NORMAL",
+        "color_token": "green",
+        "source": "root_stop_request_report.json",
+        "stop_launcher_name": None,
+        "target_launcher_name": None,
+        "stop_request_status": "NOT_REQUESTED",
+        "stop_confirmed": False,
+        "dashboard_should_show_stopped": False,
+        "dashboard_refresh_requested": False,
+        "one_line_summary": "No operator stop request is loaded for this launcher scope.",
+        "next_operator_action": "Use the matching STOP launcher when you want to stop the background runner.",
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    if not isinstance(report, dict):
+        return base
+    unsafe = any(
+        report.get(field) is not False
+        for field in (
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "scale_up_allowed",
+            "order_adapter_called",
+            "private_endpoint_called",
+            "credential_load_attempted",
+            "live_key_loaded",
+            "order_endpoint_called",
+        )
+    )
+    scope_matches = (
+        report.get("exchange") == exchange
+        and report.get("market_type") == market_type
+        and report.get("mode") == mode
+        and report.get("session_id") == session_id
+    )
+    if unsafe or not scope_matches:
+        base.update(
+            {
+                "status": "BLOCKED",
+                "severity": "ERROR",
+                "color_token": "red",
+                "stop_launcher_name": report.get("stop_launcher_name"),
+                "target_launcher_name": report.get("target_launcher_name"),
+                "stop_request_status": str(report.get("stop_request_status") or "BLOCKED"),
+                "one_line_summary": "Operator stop report is unsafe or scoped to another launcher; dashboard blocked it.",
+                "next_operator_action": "Regenerate the stop report with live flags false for this exact scope.",
+            }
+        )
+        return base
+    status = str(report.get("stop_request_status") or "UNKNOWN")
+    confirmed = report.get("stop_confirmed") is True
+    stopped_statuses = {"STOP_CONFIRMED", "NO_RUNNING_RUNNER"}
+    base.update(
+        {
+            "status": "STOPPED" if confirmed and status in stopped_statuses else status,
+            "severity": "WARNING" if confirmed else "ERROR",
+            "color_token": "yellow" if confirmed else "red",
+            "stop_launcher_name": report.get("stop_launcher_name"),
+            "target_launcher_name": report.get("target_launcher_name"),
+            "stop_request_status": status,
+            "stop_confirmed": confirmed,
+            "dashboard_should_show_stopped": report.get("dashboard_should_show_stopped") is True,
+            "dashboard_refresh_requested": report.get("dashboard_refresh_requested") is True,
+            "generated_at_utc": report.get("generated_at_utc"),
+            "runner_status_after": report.get("runner_status_after"),
+            "runner_running_after": report.get("runner_running_after"),
+            "one_line_summary": str(
+                report.get("stop_result_summary")
+                or "Operator stop launcher completed; live orders remain blocked."
+            ),
+            "next_operator_action": (
+                "Start the launcher again only when you want to resume non-live collection."
+                if confirmed
+                else "Wait for stop confirmation or inspect the stop request blocker."
+            ),
+        }
+    )
+    return base
+
+
 def build_read_only_dashboard_shell(
     *,
     exchange: str,
@@ -17719,6 +17815,7 @@ def build_read_only_dashboard_shell(
     heartbeat: dict[str, Any] | None,
     startup_probe: dict[str, Any] | None,
     stability_history: dict[str, Any] | None = None,
+    root_stop_request_report: dict[str, Any] | None = None,
     paper_operation_gate_report: dict[str, Any] | None = None,
     paper_exposure_quality_report: dict[str, Any] | None = None,
     reconciliation_report: dict[str, Any] | None = None,
@@ -17783,6 +17880,7 @@ def build_read_only_dashboard_shell(
         "summary": "system/runtime/upbit/krw_spot/paper/summary.json",
         "heartbeat": "system/runtime/upbit/krw_spot/paper/heartbeat.json",
         "startup_probe": "system/runtime/upbit/krw_spot/paper/startup_probe.json",
+        "root_stop_request_report": f"system/runtime/{exchange.lower()}/{market_type.lower()}/{mode.lower()}/{session_id}/launcher/root_stop_request_report.json",
         "shadow_runtime_writer": f"system/runtime/{exchange.lower()}/{market_type.lower()}/shadow/{session_id}/shadow_observation/shadow_observation_runtime_artifact_writer_report.json",
         "shadow_runtime_harness": f"system/runtime/{exchange.lower()}/{market_type.lower()}/shadow/{session_id}/actual_runtime_harness_report.json",
         "paper_shadow_harness_binding": f"system/runtime/{exchange.lower()}/{market_type.lower()}/shadow/{session_id}/paper_shadow_harness_binding_report.json",
@@ -19568,6 +19666,13 @@ def build_read_only_dashboard_shell(
         residual_operator_evidence_progress,
         reconciliation_recovery_summary,
     )
+    operator_stop_status = _operator_stop_status_summary(
+        root_stop_request_report,
+        exchange=exchange,
+        market_type=market_type,
+        mode=mode,
+        session_id=session_id,
+    )
 
     engine = summary.get("engine", {}) if isinstance(summary, dict) else {}
     startup_status = summary.get("startup", {}) if isinstance(summary, dict) else {}
@@ -19576,7 +19681,10 @@ def build_read_only_dashboard_shell(
     runner_primary_status = str(runner_operations_status.get("status") or "NOT_LOADED")
     runner_state_for_primary = str(runner_operations_status.get("runner_status") or "NOT_LOADED")
     profile_primary_status = str(paper_runtime_evidence_collection_profile_status.get("status") or "NOT_LOADED")
-    if runner_primary_status == "STALE" and runner_state_for_primary in {"RUNNING", "STOPPED", "BLOCKED"}:
+    stop_status_for_primary = str(operator_stop_status.get("status") or "NOT_REQUESTED")
+    if stop_status_for_primary == "STOPPED" and runner_state_for_primary != "RUNNING":
+        primary_status_text = f"{mode} STOPPED BY OPERATOR - READ ONLY, LIVE ORDERS BLOCKED"
+    elif runner_primary_status == "STALE" and runner_state_for_primary in {"RUNNING", "STOPPED", "BLOCKED"}:
         primary_status_text = f"PAPER STALE - LAST RUNNER {runner_state_for_primary} - LIVE ORDERS BLOCKED"
     elif runner_primary_status == "RUNNING_NOW" or runner_state_for_primary == "RUNNING":
         primary_status_text = "PAPER RUNNING - READ ONLY, LIVE ORDERS BLOCKED"
@@ -19588,7 +19696,9 @@ def build_read_only_dashboard_shell(
         primary_status_text = "PAPER PROFILE CURRENT - RUNNER NOT PROVEN - LIVE ORDERS BLOCKED"
     else:
         primary_status_text = "PAPER STATUS NOT LOADED - READ ONLY, LIVE ORDERS BLOCKED"
-    if reconciliation_blocks_operator_action:
+    if stop_status_for_primary == "STOPPED" and runner_state_for_primary != "RUNNING":
+        next_action_value = operator_stop_status.get("next_operator_action")
+    elif reconciliation_blocks_operator_action:
         next_action_value = reconciliation_recovery_summary.get("next_operator_action")
     elif runner_primary_status == "NOT_LOADED" and profile_primary_status == "PASS":
         next_action_value = (
@@ -19635,6 +19745,7 @@ def build_read_only_dashboard_shell(
             "scale_up_allowed": False,
         },
         "operation_status": operation_status,
+        "operator_stop_status": operator_stop_status,
         "reconciliation_recovery_summary": reconciliation_recovery_summary,
         "stability_trends": stability_trends,
         "long_run_operator_summary": long_run_operator_summary,
@@ -19724,6 +19835,19 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "runtime_quality_feedback_count",
                 "selected_candidate_recent_failure_feedback_kind",
                 "primary_blocker_code",
+                "one_line_summary",
+                "next_operator_action",
+            )
+        )
+    operator_stop = shell.get("operator_stop_status", {})
+    if isinstance(operator_stop, dict):
+        values.extend(
+            str(operator_stop.get(key, ""))
+            for key in (
+                "status",
+                "stop_request_status",
+                "stop_launcher_name",
+                "target_launcher_name",
                 "one_line_summary",
                 "next_operator_action",
             )
@@ -26296,6 +26420,11 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         if isinstance(shell.get("paper_runner_operations_status"), dict)
         else {}
     )
+    operator_stop_status = (
+        shell.get("operator_stop_status", {})
+        if isinstance(shell.get("operator_stop_status"), dict)
+        else {}
+    )
     paper_runner_status_display = str(paper_runner_operations.get("status", "NOT_LOADED")).replace("_", " ").title()
     paper_runner_retention_display = str(
         paper_runner_operations.get("artifact_retention_status", "NOT_LOADED")
@@ -26439,6 +26568,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<div><dt>Execution mode</dt><dd>Background runner active<br>Launch console closes automatically={safe_text(paper_runner_operations.get('operator_console_auto_closes', True))}</dd></div>"
         f"<div><dt>Runner control</dt><dd>{safe_text(paper_runner_operations.get('console_lifecycle_policy', 'BACKGROUND_RUNNER_STATUS_DASHBOARD'))}<br>"
         f"stop={safe_text(paper_runner_operations.get('stop_launcher_path', 'STOP_UPBIT_PAPER.py'))}</dd></div>"
+        f"<div><dt>Stop status</dt><dd class=\"pill {status_class(operator_stop_status.get('status'))}\">{safe_text(operator_stop_status.get('status', 'NOT_REQUESTED'))}</dd></div>"
+        f"<div><dt>Stop launcher</dt><dd>{safe_text(operator_stop_status.get('stop_launcher_name') or paper_runner_operations.get('stop_launcher_path', 'STOP_UPBIT_PAPER.py'))}<br>"
+        f"{safe_text(operator_stop_status.get('one_line_summary', 'No operator stop request is loaded.'))}</dd></div>"
         f"<div><dt>Runner cycles</dt><dd>{safe_text(paper_runner_operations.get('completed_cycle_count', 0))} ok / {safe_text(paper_runner_operations.get('failed_cycle_count', 0))} fail</dd></div>"
         f"<div><dt>Next cycle</dt><dd>{safe_text(paper_runner_operations.get('next_cycle_eta') or 'not scheduled')}</dd></div>"
         f"<div><dt>Evidence refresh</dt><dd class=\"pill {status_class(paper_runner_operations.get('profitability_evidence_refresh_status'))}\">{safe_text(paper_runner_evidence_display)}</dd></div>"

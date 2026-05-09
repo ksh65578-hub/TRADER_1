@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 from trader1.runtime.boot.launcher_guard import ALLOWED_ROOT_CONTROL_LAUNCHERS, ALLOWED_ROOT_LAUNCHERS, inspect_root_launchers
-from trader1.runtime.boot.safe_launcher import build_launcher_report, validate_launcher_report
+from trader1.runtime.boot.safe_launcher import ROOT_STOP_LAUNCHER_TARGETS, build_launcher_report, validate_launcher_report
 from trader1.validation.mvp0_validators import run_validators
 
 
@@ -32,7 +32,17 @@ class RootLauncherGuardTest(unittest.TestCase):
         result = inspect_root_launchers(Path(__file__).resolve().parents[2], require_exact_four=True)
         self.assertEqual(result.status, "PASS")
         self.assertEqual(set(result.root_launchers_found), ALLOWED_ROOT_LAUNCHERS)
-        self.assertIn("STOP_UPBIT_PAPER.py", [finding.path for finding in result.findings if finding.allowed])
+        allowed_control_paths = {finding.path for finding in result.findings if finding.allowed and finding.logical_name in ALLOWED_ROOT_CONTROL_LAUNCHERS}
+        self.assertEqual(
+            allowed_control_paths,
+            {
+                "STOP_UPBIT_PAPER.py",
+                "STOP_UPBIT_LIVE.py",
+                "STOP_BINANCE_PAPER.py",
+                "STOP_BINANCE_LIVE.py",
+                "STOP_TRADER_1.py",
+            },
+        )
 
     def test_current_repo_root_launchers_expose_operator_entrypoints(self):
         root = Path(__file__).resolve().parents[2]
@@ -50,8 +60,12 @@ class RootLauncherGuardTest(unittest.TestCase):
                 (root / f"{launcher}.py").write_text(SAFE_LAUNCHER, encoding="utf-8")
             for launcher in ALLOWED_ROOT_CONTROL_LAUNCHERS:
                 (root / f"{launcher}.py").write_text(
-                    "from trader1.runtime.paper.upbit_paper_long_runner import root_upbit_paper_stop_main\n"
-                    "raise SystemExit(root_upbit_paper_stop_main())\n",
+                    "from trader1.runtime.boot.safe_launcher import root_stop_launcher_main\n"
+                    "MARKET_TYPE = 'SPOT'\n"
+                    "MARKET_TYPE_OPTIONS = ('SPOT', 'FUTURES_USDT_M')\n"
+                    "FUTURES_USDT_M_STATUS = 'BLOCKED_NOT_IMPLEMENTED'\n"
+                    f"LAUNCHER_NAME = '{launcher}'\n"
+                    "raise SystemExit(root_stop_launcher_main(LAUNCHER_NAME))\n",
                     encoding="utf-8",
                 )
             result = inspect_root_launchers(root, require_exact_four=True)
@@ -121,6 +135,12 @@ class RootLauncherGuardTest(unittest.TestCase):
             self.assertFalse(report["live_order_allowed"])
             self.assertFalse(report["can_live_trade"])
             self.assertTrue(report["live_path_hard_blocked"])
+
+    def test_stop_launcher_targets_cover_every_root_launcher_and_all_control(self):
+        covered_targets = {target for targets in ROOT_STOP_LAUNCHER_TARGETS.values() for target in targets}
+        self.assertEqual(covered_targets, ALLOWED_ROOT_LAUNCHERS)
+        self.assertEqual(set(ROOT_STOP_LAUNCHER_TARGETS), ALLOWED_ROOT_CONTROL_LAUNCHERS)
+        self.assertEqual(set(ROOT_STOP_LAUNCHER_TARGETS["STOP_TRADER_1"]), ALLOWED_ROOT_LAUNCHERS)
 
 
 if __name__ == "__main__":

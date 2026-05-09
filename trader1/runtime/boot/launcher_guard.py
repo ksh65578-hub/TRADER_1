@@ -13,7 +13,15 @@ ALLOWED_ROOT_LAUNCHERS = frozenset(
         "BINANCE_LIVE",
     }
 )
-ALLOWED_ROOT_CONTROL_LAUNCHERS = frozenset({"STOP_UPBIT_PAPER"})
+ALLOWED_ROOT_CONTROL_LAUNCHERS = frozenset(
+    {
+        "STOP_UPBIT_PAPER",
+        "STOP_UPBIT_LIVE",
+        "STOP_BINANCE_PAPER",
+        "STOP_BINANCE_LIVE",
+        "STOP_TRADER_1",
+    }
+)
 
 LAUNCHER_EXTENSIONS = frozenset({".py", ".ps1", ".bat", ".cmd", ".sh"})
 LAUNCHER_NAME_MARKERS = frozenset(

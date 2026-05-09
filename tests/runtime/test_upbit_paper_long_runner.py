@@ -1589,6 +1589,10 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertTrue(stop_report["stop_confirmed"])
             self.assertTrue(stop_report["stop_file_cleared_as_stale"])
             self.assertFalse(stop_path.exists())
+            status = _load_json(runner_status_path(root, session_id))
+            self.assertEqual(status["runner_status"], RUNNER_STATUS_STOPPED)
+            self.assertFalse(status["running"])
+            self.assertEqual(status["stop_reason"], "NO_RUNNING_RUNNER")
             self.assertFalse(stop_report["live_order_allowed"])
 
     def test_operator_start_reconciliation_clears_stale_stop_file_before_start(self):

@@ -13,6 +13,7 @@ from trader1.dashboard.read_only_dashboard import (
     build_read_only_dashboard_shell,
     dashboard_shell_hash,
     render_dashboard_html,
+    utc_now,
     validate_dashboard_visual_layout_contract,
     validate_read_only_dashboard_shell,
 )
@@ -1153,6 +1154,7 @@ def build_dashboard_with_runner_operations(
     blocked=False,
     stopped=False,
     stale=False,
+    root_stop_request_report=None,
     profitability_maturity_rollup_report=None,
 ):
     session_id = (
@@ -1190,6 +1192,7 @@ def build_dashboard_with_runner_operations(
         summary=summary,
         heartbeat=heartbeat,
         startup_probe=startup_probe,
+        root_stop_request_report=root_stop_request_report,
         upbit_paper_long_runner_status_report=runner_status,
         upbit_paper_long_runner_retention_manifest=runner_retention_manifest_fixture(
             session_id=session_id,
@@ -2596,6 +2599,49 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn('data-ticker-field="trade_price"', html)
         self.assertIn("querySelectorAll('[data-public-ticker-symbol=", html)
         self.assertIn("wss://api.upbit.com/websocket/v1", html)
+
+    def test_dashboard_shows_operator_stop_launcher_confirmed_status(self):
+        session_id = "test_read_only_dashboard_runner_ops_stopped"
+        stop_report = {
+            "schema_id": "trader1.root_stop_request_report.v1",
+            "generated_at_utc": utc_now(),
+            "project_id": "TRADER_1",
+            "stop_launcher_name": "STOP_UPBIT_PAPER",
+            "target_launcher_name": "UPBIT_PAPER",
+            "exchange": "UPBIT",
+            "market_type": "KRW_SPOT",
+            "mode": "PAPER",
+            "session_id": session_id,
+            "stop_request_status": "STOP_CONFIRMED",
+            "stop_request_method": "UPBIT_PAPER_STOP_FILE",
+            "stop_confirmed": True,
+            "stop_result_summary": "UPBIT PAPER runner stopped by operator stop launcher.",
+            "runner_status_after": "STOPPED",
+            "runner_running_after": False,
+            "dashboard_refresh_requested": True,
+            "dashboard_should_show_stopped": True,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+            "order_adapter_called": False,
+            "private_endpoint_called": False,
+            "credential_load_attempted": False,
+            "live_key_loaded": False,
+            "order_endpoint_called": False,
+        }
+        dashboard = build_dashboard_with_runner_operations(stopped=True, root_stop_request_report=stop_report)
+        result = validate_read_only_dashboard_shell(dashboard)
+        html = render_dashboard_html(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(dashboard["primary_status_text"], "PAPER STOPPED BY OPERATOR - READ ONLY, LIVE ORDERS BLOCKED")
+        self.assertEqual(dashboard["operator_stop_status"]["status"], "STOPPED")
+        self.assertTrue(dashboard["operator_stop_status"]["stop_confirmed"])
+        self.assertIn("Stop status", html)
+        self.assertIn("STOP_UPBIT_PAPER", html)
+        self.assertIn("UPBIT PAPER runner stopped by operator stop launcher.", html)
+        self.assertFalse(dashboard["live_order_allowed"])
 
     def test_dashboard_surfaces_paper_scope_continuity_status(self):
         session_id = "test_read_only_dashboard_runner_scope_continuity"
