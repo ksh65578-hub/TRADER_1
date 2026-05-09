@@ -5330,6 +5330,7 @@ def run_upbit_paper_long_running_runner(
                     dashboard_open_result=dashboard_open_result,
                 )
                 _write_runner_status(status_path, final)
+                _confirm_operator_stop_reports_from_final_status(root, session_id, final)
                 _refresh_dashboard_after_runner_status(root, session_id, refresh_dashboard=refresh_dashboard)
                 if emit_console_status:
                     _emit_console_status(final)
