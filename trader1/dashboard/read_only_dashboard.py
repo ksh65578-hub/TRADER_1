@@ -17783,7 +17783,33 @@ def _operator_stop_status_summary(
     status = str(report.get("stop_request_status") or "UNKNOWN")
     confirmed = report.get("stop_confirmed") is True
     stopped_statuses = {"STOP_CONFIRMED", "NO_RUNNING_RUNNER"}
+    superseded = status == "SUPERSEDED_BY_OPERATOR_START"
     requested = status == "STOP_REQUESTED"
+    if superseded:
+        base.update(
+            {
+                "status": "NOT_REQUESTED",
+                "severity": "NORMAL",
+                "color_token": "green",
+                "stop_launcher_name": report.get("stop_launcher_name"),
+                "target_launcher_name": report.get("target_launcher_name"),
+                "stop_request_status": status,
+                "stop_confirmed": False,
+                "dashboard_should_show_stopped": False,
+                "dashboard_refresh_requested": report.get("dashboard_refresh_requested") is True,
+                "dashboard_refresh_status": str(report.get("dashboard_refresh_status") or "UNKNOWN"),
+                "dashboard_refresh_deferred": report.get("dashboard_refresh_deferred") is True,
+                "generated_at_utc": report.get("generated_at_utc"),
+                "runner_status_after": report.get("runner_status_after"),
+                "runner_running_after": report.get("runner_running_after"),
+                "one_line_summary": str(
+                    report.get("stop_result_summary")
+                    or "Previous stop request was superseded by a later PAPER start."
+                ),
+                "next_operator_action": "Use the matching STOP launcher when you want to stop the background runner.",
+            }
+        )
+        return base
     base.update(
         {
             "status": "STOPPED" if confirmed and status in stopped_statuses else "STOP_REQUESTED" if requested else status,
