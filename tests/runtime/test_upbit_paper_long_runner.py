@@ -3245,6 +3245,63 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertEqual(len(opened), 1)
             self.assertNotEqual(opened[0], "http://127.0.0.1:12345/")
 
+    def test_runner_dashboard_opener_uses_pid_bound_channel_before_status_refresh(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "pid_bound_dashboard_channel_session"
+            path = runner_dashboard_path(root, session_id)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("<!doctype html><title>TRADER_1</title>", encoding="utf-8")
+            status_path = runner_status_path(root, session_id)
+            status_path.parent.mkdir(parents=True, exist_ok=True)
+            status_path.write_text(
+                json.dumps(
+                    {
+                        "runner_id": "upbit-paper-runner-old-111",
+                        "runner_lock_pid": 111,
+                        "runner_status": RUNNER_STATUS_RUNNING,
+                        "running": True,
+                        "dashboard_status_channel_enabled": True,
+                        "dashboard_status_channel_url": "http://127.0.0.1:12345/",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            runner_dashboard_status_channel_path(root, session_id).parent.mkdir(parents=True, exist_ok=True)
+            runner_dashboard_status_channel_path(root, session_id).write_text(
+                json.dumps(
+                    {
+                        "schema_id": "trader1.dashboard_status_channel.v1",
+                        "exchange": "UPBIT",
+                        "market_type": "KRW_SPOT",
+                        "mode": "PAPER",
+                        "session_id": session_id,
+                        "dashboard_status_channel_status": RUNNER_STATUS_RUNNING,
+                        "dashboard_status_channel_url": "http://127.0.0.1:23456/",
+                        "dashboard_status_channel_runner_pid": 222,
+                        "live_order_ready": False,
+                        "live_order_allowed": False,
+                        "can_live_trade": False,
+                        "scale_up_allowed": False,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            opened: list[str] = []
+
+            result = open_runner_dashboard_result(
+                root,
+                session_id,
+                opener=lambda uri: opened.append(uri) is None or True,
+                expected_runner_pid=222,
+                channel_probe=lambda _url: True,
+            )
+
+        self.assertTrue(result.attempted)
+        self.assertTrue(result.opened)
+        self.assertEqual(result.method, "local_status_channel")
+        self.assertEqual(opened, ["http://127.0.0.1:23456/"])
+
     def test_runner_dashboard_status_channel_serves_read_only_runner_status(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -3291,6 +3348,7 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
 
             channel_report = _load_json(runner_dashboard_status_channel_path(root, session_id))
             self.assertEqual(channel_report["dashboard_status_channel_status"], "STOPPED")
+            self.assertEqual(channel_report["dashboard_status_channel_runner_pid"], os.getpid())
             self.assertEqual(payload["schema_id"], "trader1.dashboard_status_channel_payload.v1")
             self.assertEqual(alias_payload["schema_id"], "trader1.dashboard_status_channel_payload.v1")
             self.assertEqual(alias_payload["runner_status"], RUNNER_STATUS_RUNNING)
