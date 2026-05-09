@@ -21,9 +21,12 @@ from pathlib import Path
 from typing import Any, Callable
 
 from trader1.research.profitability.candidate_scorecard import (
+    candidate_generation_report_from_upbit_paper_runtime_cycle,
     candidate_scorecard_from_upbit_paper_runtime_cycle,
     performance_inputs_from_runtime_sample_history,
     safe_candidate_scorecard_filename,
+    validate_candidate_generation_report,
+    write_upbit_paper_candidate_generation_report,
     write_upbit_paper_candidate_scorecard,
 )
 from trader1.research.profitability.overfit_diagnostic import (
@@ -703,6 +706,10 @@ def paper_candidate_scorecard_snapshot_path(
 ) -> Path:
     filename = f"{safe_candidate_scorecard_filename(candidate_id)}.candidate_scorecard.json"
     return runner_runtime_base(root, session_id) / "profitability" / "candidate_scorecards" / filename
+
+
+def paper_candidate_generation_report_path(root: Path, session_id: str = DEFAULT_SESSION_ID) -> Path:
+    return runner_runtime_base(root, session_id) / "profitability" / "candidate_generation_report.json"
 
 
 def paper_overfit_diagnostic_path(root: Path, session_id: str = DEFAULT_SESSION_ID) -> Path:
@@ -1542,9 +1549,47 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
             "scale_up_allowed": False,
         }
 
+    candidate_generation_report = candidate_generation_report_from_upbit_paper_runtime_cycle(
+        runtime,
+        candidate_scorecard=scorecard,
+    )
+    generation_status, generation_message, generation_blocker = validate_candidate_generation_report(
+        candidate_generation_report,
+        candidate_scorecard=scorecard,
+    )
+    if generation_status != "PASS":
+        return {
+            "status": NON_LIVE_PROFITABILITY_REFRESH_BLOCKED,
+            "blocker_code": generation_blocker or "CANDIDATE_GENERATION_CONTRACT_FAILED",
+            "message": generation_message,
+            "candidate_generation_status": candidate_generation_report.get("generation_status"),
+            "candidate_generation_primary_blocker_code": candidate_generation_report.get("primary_blocker_code"),
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
     history_path = write_upbit_paper_runtime_sample_history(root=root, history=history)
     diagnostic_path = write_overfit_diagnostic_report(root=root, report=diagnostic)
     scorecard_path = write_upbit_paper_candidate_scorecard(root=root, scorecard=scorecard)
+    candidate_generation_path = write_upbit_paper_candidate_generation_report(
+        root=root,
+        report=candidate_generation_report,
+    )
+    candidate_generation_fields = {
+        "candidate_generation_report_path": _relative_runtime_path(candidate_generation_path, root),
+        "candidate_generation_status": candidate_generation_report.get("generation_status"),
+        "candidate_generation_primary_blocker_code": candidate_generation_report.get("primary_blocker_code"),
+        "candidate_generation_alternative_candidate_count": candidate_generation_report.get(
+            "alternative_candidate_count"
+        ),
+        "candidate_generation_best_alternative_candidate_id": candidate_generation_report.get(
+            "best_alternative_candidate_id"
+        ),
+        "candidate_generation_best_alternative_symbol": candidate_generation_report.get("best_alternative_symbol"),
+        "candidate_generation_next_action": candidate_generation_report.get("next_action"),
+    }
     scorecard_candidate_id = str(scorecard.get("candidate_id") or "")
     scorecard_snapshot_path = paper_candidate_scorecard_snapshot_path(root, session_id, scorecard_candidate_id)
 
@@ -1561,6 +1606,7 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
             "candidate_scorecard_candidate_id": scorecard_candidate_id,
             "candidate_scorecard_snapshot_path": _relative_runtime_path(scorecard_snapshot_path, root),
             "candidate_scorecard_snapshot_status": "PASS",
+            **candidate_generation_fields,
             **_paper_scope_progress_fields(history=history, evidence=None),
             "live_order_ready": False,
             "live_order_allowed": False,
@@ -1673,6 +1719,7 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
         "candidate_scorecard_candidate_id": scorecard_candidate_id,
         "candidate_scorecard_snapshot_path": _relative_runtime_path(scorecard_snapshot_path, root),
         "candidate_scorecard_snapshot_status": "PASS",
+        **candidate_generation_fields,
         "paper_shadow_evidence_path": _relative_runtime_path(evidence_path, root),
         "paper_shadow_binding_path": _relative_runtime_path(paper_shadow_harness_binding_path(root, session_id), root),
         "orchestration_path": _relative_runtime_path(orchestration_path, root),

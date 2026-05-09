@@ -507,6 +507,37 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
 
         self.assertIsNone(selected)
 
+    def test_profitability_refresh_materializes_candidate_generation_before_shadow_blocker(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+        from trader1.research.profitability.candidate_scorecard import validate_candidate_generation_report
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "mvp1_upbit_paper_launcher"
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="candidate-generation-materialization",
+                requested_cycle_count=1,
+            )
+            self.assertEqual(loop["loop_status"], "PASS")
+
+            refresh = long_runner.refresh_non_live_profitability_evidence_from_runtime(root, session_id)
+            generation_path = long_runner.paper_candidate_generation_report_path(root, session_id)
+            generation_path_exists = generation_path.exists()
+            generation_path_relative = str(generation_path.relative_to(root)).replace("\\", "/")
+            generation_report = _load_json(generation_path)
+
+        self.assertEqual(refresh["status"], long_runner.NON_LIVE_PROFITABILITY_REFRESH_BLOCKED)
+        self.assertEqual(refresh["blocker_code"], "PAPER_SHADOW_RUNTIME_ARTIFACT_MISSING")
+        self.assertTrue(generation_path_exists)
+        self.assertEqual(refresh["candidate_generation_report_path"], generation_path_relative)
+        self.assertNotEqual(refresh["candidate_generation_status"], "MISSING")
+        self.assertEqual(validate_candidate_generation_report(generation_report)[0], "PASS")
+        self.assertFalse(generation_report["live_order_ready"])
+        self.assertFalse(generation_report["live_order_allowed"])
+        self.assertFalse(generation_report["can_live_trade"])
+        self.assertFalse(generation_report["scale_up_allowed"])
+
     def test_paper_scope_progress_prefers_candidate_scope_over_general_evidence_count(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
 
