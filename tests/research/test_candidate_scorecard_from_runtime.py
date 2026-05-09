@@ -417,6 +417,39 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertFalse(scorecard["can_live_trade"])
         self.assertFalse(scorecard["scale_up_allowed"])
 
+    def test_requested_scope_candidate_no_trade_scores_fail_closed_without_promotion(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-scope-no-trade-binding")
+        focus_candidate = next(
+            candidate
+            for candidate in runtime["strategy_candidates"]
+            if candidate["decision"] == "NO_TRADE"
+            and candidate["live_order_ready"] is False
+            and candidate["live_order_allowed"] is False
+            and candidate["can_live_trade"] is False
+            and candidate["scale_up_allowed"] is False
+        )
+
+        with self.assertRaises(ValueError):
+            candidate_scorecard_from_upbit_paper_runtime_cycle(
+                runtime,
+                candidate_id=focus_candidate["candidate_id"],
+            )
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            candidate_id=focus_candidate["candidate_id"],
+            allow_non_entry_review_candidate=True,
+        )
+
+        self.assertEqual(scorecard["candidate_id"], focus_candidate["candidate_id"])
+        self.assertEqual(scorecard["symbol"], focus_candidate["symbol"])
+        self.assertFalse(scorecard["ranking_eligible"])
+        self.assertIn(focus_candidate["no_trade_reason"], {blocker["code"] for blocker in scorecard["blockers"]})
+        self.assertFalse(scorecard["live_order_ready"])
+        self.assertFalse(scorecard["live_order_allowed"])
+        self.assertFalse(scorecard["can_live_trade"])
+        self.assertFalse(scorecard["scale_up_allowed"])
+
     def test_multisymbol_runtime_persists_rotation_context_without_live_permission(self):
         market_data_universe = [
             build_upbit_public_candle_fixture(

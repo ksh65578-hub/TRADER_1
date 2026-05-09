@@ -275,11 +275,30 @@ def _profitability_sample_rank_key(index: int, sample: dict[str, Any]) -> tuple[
     )
 
 
-def _select_profitability_evidence_sample(samples: list[dict[str, Any]]) -> dict[str, Any] | None:
+def _select_profitability_evidence_sample(
+    samples: list[dict[str, Any]],
+    *,
+    active_scope: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
     """Prefer actionable non-live entry-review evidence over a later passive no-trade sample."""
     valid_samples = [sample for sample in samples if isinstance(sample, dict)]
     if not valid_samples:
         return None
+    if isinstance(active_scope, dict):
+        active_candidate_id = str(active_scope.get("candidate_id") or "")
+        active_cycle_hash = str(active_scope.get("latest_runtime_cycle_hash") or "")
+        active_cycle_id = str(active_scope.get("latest_cycle_id") or "")
+        for sample in reversed(valid_samples):
+            if not _profitability_sample_usable(sample):
+                continue
+            if active_candidate_id and str(sample.get("scorecard_candidate_id") or "") != active_candidate_id:
+                continue
+            sample_hash = str(sample.get("source_runtime_cycle_hash") or "")
+            sample_path = str(sample.get("source_runtime_cycle_path") or "")
+            if (active_cycle_hash and sample_hash == active_cycle_hash) or (
+                active_cycle_id and active_cycle_id in sample_path
+            ):
+                return sample
     ranked = [
         (index, sample)
         for index, sample in enumerate(valid_samples)
@@ -288,6 +307,15 @@ def _select_profitability_evidence_sample(samples: list[dict[str, Any]]) -> dict
     if not ranked:
         return None
     return max(ranked, key=lambda item: _profitability_sample_rank_key(item[0], item[1]))[1]
+
+
+def _scorecard_candidate_id_from_runtime_sample(sample: dict[str, Any]) -> str | None:
+    if sample.get("scorecard_candidate_identity_binding_status") != "BOUND":
+        return None
+    if sample.get("scorecard_candidate_live_flags_clear") is False:
+        return None
+    candidate_id = str(sample.get("scorecard_candidate_id") or "")
+    return candidate_id or None
 
 
 def _runner_start_reconciliation_hash(report: dict[str, Any]) -> str:
@@ -1147,7 +1175,11 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
             "scale_up_allowed": False,
         }
 
-    selected_sample = _select_profitability_evidence_sample(history["samples"])
+    active_scope = history.get("active_candidate_scope")
+    selected_sample = _select_profitability_evidence_sample(
+        history["samples"],
+        active_scope=active_scope if isinstance(active_scope, dict) else None,
+    )
     if not isinstance(selected_sample, dict):
         return {
             "status": NON_LIVE_PROFITABILITY_REFRESH_BLOCKED,
@@ -1196,7 +1228,12 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
             "scale_up_allowed": False,
         }
 
-    base_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+    scorecard_sample_candidate_id = _scorecard_candidate_id_from_runtime_sample(selected_sample)
+    base_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+        runtime,
+        candidate_id=scorecard_sample_candidate_id,
+        allow_non_entry_review_candidate=scorecard_sample_candidate_id is not None,
+    )
     diagnostic = overfit_diagnostic_from_upbit_paper_runtime(
         candidate_scorecard=base_scorecard,
         runtime_sample_history=history,
@@ -1223,6 +1260,8 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
     )
     scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
         runtime,
+        candidate_id=scorecard_sample_candidate_id,
+        allow_non_entry_review_candidate=scorecard_sample_candidate_id is not None,
         robustness_statuses=robustness_statuses,
         robustness_source_evidence_ids=robustness_source_ids,
         performance_statuses=performance_statuses,
