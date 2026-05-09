@@ -2699,6 +2699,51 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("UPBIT PAPER runner stopped by operator stop launcher.", html)
         self.assertFalse(dashboard["live_order_allowed"])
 
+    def test_dashboard_running_next_action_ignores_stale_stop_confirmed_report(self):
+        session_id = "test_read_only_dashboard_runner_ops"
+        stop_report = {
+            "schema_id": "trader1.root_stop_request_report.v1",
+            "generated_at_utc": utc_now(),
+            "project_id": "TRADER_1",
+            "stop_launcher_name": "STOP_UPBIT_PAPER",
+            "target_launcher_name": "UPBIT_PAPER",
+            "exchange": "UPBIT",
+            "market_type": "KRW_SPOT",
+            "mode": "PAPER",
+            "session_id": session_id,
+            "stop_request_status": "STOP_CONFIRMED",
+            "stop_request_method": "UPBIT_PAPER_STOP_FILE",
+            "stop_confirmed": True,
+            "stop_result_summary": "UPBIT PAPER runner stopped by operator stop launcher.",
+            "runner_status_after": "STOPPED",
+            "runner_running_after": False,
+            "dashboard_refresh_requested": True,
+            "dashboard_should_show_stopped": True,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+            "order_adapter_called": False,
+            "private_endpoint_called": False,
+            "credential_load_attempted": False,
+            "live_key_loaded": False,
+            "order_endpoint_called": False,
+        }
+        dashboard = build_dashboard_with_runner_operations(root_stop_request_report=stop_report)
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(dashboard["primary_status_text"], "PAPER RUNNING - READ ONLY, LIVE ORDERS BLOCKED")
+        self.assertEqual(dashboard["operator_stop_status"]["status"], "STOPPED")
+        self.assertEqual(
+            dashboard["next_action"],
+            "Collect 27 more PAPER samples for the same candidate/strategy/parameter scope.",
+        )
+        self.assertFalse(dashboard["live_order_ready"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["can_live_trade"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
     def test_dashboard_shows_operator_stop_launcher_requested_status_as_in_progress(self):
         session_id = "test_read_only_dashboard_runner_ops"
         stop_report = {

@@ -1221,7 +1221,7 @@ def _supersede_operator_stop_reports_for_start(
     runner_report = _read_json(runner_report_path)
     if isinstance(runner_report, dict):
         result["runner_stop_request_status_before"] = runner_report.get("stop_request_status")
-        if runner_report.get("stop_request_status") == "STOP_REQUESTED":
+        if runner_report.get("stop_request_status") in {"STOP_REQUESTED", "STOP_CONFIRMED"}:
             updated_runner_report = dict(runner_report)
             updated_runner_report.update(
                 {
@@ -1257,7 +1257,7 @@ def _supersede_operator_stop_reports_for_start(
             and root_report.get("mode") == "PAPER"
             and root_report.get("session_id") == session_id
         )
-        if scope_matches and root_report.get("stop_request_status") == "STOP_REQUESTED":
+        if scope_matches and root_report.get("stop_request_status") in {"STOP_REQUESTED", "STOP_CONFIRMED"}:
             updated_root_report = dict(root_report)
             updated_root_report.update(
                 {

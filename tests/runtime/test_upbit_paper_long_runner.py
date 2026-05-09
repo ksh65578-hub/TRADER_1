@@ -2004,6 +2004,103 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             ):
                 self.assertFalse(reconciliation[field], field)
 
+    def test_operator_start_reconciliation_supersedes_confirmed_stop_reports(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "restart_supersedes_confirmed_stop_session"
+            runner_stop_request_report_path(root, session_id).parent.mkdir(parents=True, exist_ok=True)
+            runner_stop_request_report_path(root, session_id).write_text(
+                json.dumps(
+                    {
+                        "schema_id": "trader1.upbit_paper_operator_stop_request.v1",
+                        "generated_at_utc": utc_now(),
+                        "exchange": "UPBIT",
+                        "market_type": "KRW_SPOT",
+                        "mode": "PAPER",
+                        "session_id": session_id,
+                        "stop_request_status": "STOP_CONFIRMED",
+                        "stop_confirmed": True,
+                        "runner_status_after": RUNNER_STATUS_STOPPED,
+                        "runner_running_after": False,
+                        "live_order_ready": False,
+                        "live_order_allowed": False,
+                        "can_live_trade": False,
+                        "scale_up_allowed": False,
+                        "order_adapter_called": False,
+                        "private_endpoint_called": False,
+                        "credential_load_attempted": False,
+                        "live_key_loaded": False,
+                        "order_endpoint_called": False,
+                    },
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+            root_stop_path = _root_stop_request_report_path(root, session_id)
+            root_stop_path.parent.mkdir(parents=True, exist_ok=True)
+            root_stop_path.write_text(
+                json.dumps(
+                    {
+                        "schema_id": "trader1.root_stop_request_report.v1",
+                        "generated_at_utc": utc_now(),
+                        "project_id": "TRADER_1",
+                        "stop_launcher_name": "STOP_UPBIT_PAPER",
+                        "target_launcher_name": "UPBIT_PAPER",
+                        "exchange": "UPBIT",
+                        "market_type": "KRW_SPOT",
+                        "mode": "PAPER",
+                        "session_id": session_id,
+                        "stop_request_status": "STOP_CONFIRMED",
+                        "stop_confirmed": True,
+                        "stop_result_summary": "UPBIT PAPER runner stopped by operator stop launcher.",
+                        "runner_status_after": RUNNER_STATUS_STOPPED,
+                        "runner_running_after": False,
+                        "dashboard_should_show_stopped": True,
+                        "dashboard_refresh_requested": True,
+                        "live_order_ready": False,
+                        "live_order_allowed": False,
+                        "can_live_trade": False,
+                        "scale_up_allowed": False,
+                        "order_adapter_called": False,
+                        "private_endpoint_called": False,
+                        "credential_load_attempted": False,
+                        "live_key_loaded": False,
+                        "order_endpoint_called": False,
+                    },
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+
+            reconciliation = clear_runner_stop_file_for_operator_start(
+                root,
+                session_id,
+                reason="TEST_OPERATOR_RESTART_AFTER_CONFIRMED_STOP",
+            )
+
+            self.assertEqual(reconciliation["status"], "PASS")
+            self.assertTrue(reconciliation["operator_stop_request_superseded"])
+            self.assertEqual(reconciliation["runner_stop_request_status_before"], "STOP_CONFIRMED")
+            self.assertEqual(reconciliation["root_stop_request_status_before"], "STOP_CONFIRMED")
+            self.assertEqual(
+                _load_json(runner_stop_request_report_path(root, session_id))["stop_request_status"],
+                "SUPERSEDED_BY_OPERATOR_START",
+            )
+            root_report_after = _load_json(root_stop_path)
+            self.assertEqual(root_report_after["stop_request_status"], "SUPERSEDED_BY_OPERATOR_START")
+            self.assertFalse(root_report_after["dashboard_should_show_stopped"])
+            for field in (
+                "live_order_ready",
+                "live_order_allowed",
+                "can_live_trade",
+                "scale_up_allowed",
+                "order_adapter_called",
+                "private_endpoint_called",
+                "credential_load_attempted",
+                "live_key_loaded",
+            ):
+                self.assertFalse(reconciliation[field], field)
+
     def test_root_operator_start_clears_stale_stop_file_before_runner_call(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
 
