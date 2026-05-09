@@ -206,6 +206,7 @@ from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
     upbit_paper_runtime_sample_hash,
     upbit_paper_runtime_sample_history_hash,
     validate_upbit_paper_runtime_sample_history,
+    validate_upbit_paper_runtime_sample_history_sources,
     write_upbit_paper_runtime_sample_history,
 )
 from trader1.runtime.paper.upbit_paper_stale_loop_reconciliation import (
@@ -20277,6 +20278,130 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
                                     errors.append(
                                         f"rollup runtime linkage symbol scorecard candidate has forbidden true field: {field}"
                                     )
+
+    sample_history_evidence = rollup.get("runtime_sample_history_evidence", {})
+    if not isinstance(sample_history_evidence, dict):
+        errors.append("rollup runtime_sample_history_evidence must be an object")
+    else:
+        for field in (
+            "credential_load_attempted",
+            "private_endpoint_called",
+            "order_endpoint_called",
+            "order_adapter_called",
+            "live_key_loaded",
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "scale_up_allowed",
+        ):
+            if _live_flag_is_true(sample_history_evidence.get(field)):
+                errors.append(f"rollup runtime sample history evidence has forbidden true field: {field}")
+        sample_history_status = sample_history_evidence.get("status")
+        if sample_history_status not in {"PASS", "BLOCKED", "MISSING"}:
+            errors.append("rollup runtime sample history evidence has unsupported status")
+        if rollup.get("paper_scorecard_input_allowed") is True and sample_history_status != "PASS":
+            errors.append("rollup allows PAPER scorecard input while runtime sample history evidence is blocked")
+        if sample_history_status == "PASS":
+            if sample_history_evidence.get("validation_status") != "PASS":
+                errors.append("rollup runtime sample history PASS requires source validation PASS")
+            if sample_history_evidence.get("validation_blocker_code") is not None:
+                errors.append("rollup runtime sample history PASS must not carry a validation blocker")
+            if sample_history_evidence.get("primary_blocker_code") != "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING":
+                errors.append("rollup runtime sample history PASS must preserve the long-run blocker")
+            if int(sample_history_evidence.get("accepted_cycle_sample_count", 0) or 0) < 1:
+                errors.append("rollup runtime sample history PASS requires at least one accepted PAPER cycle sample")
+        elif sample_history_status in {"BLOCKED", "MISSING"} and not sample_history_evidence.get("primary_blocker_code"):
+            errors.append("rollup blocked runtime sample history requires a primary blocker code")
+        if sample_history_evidence.get("long_run_evidence_eligible") is not False:
+            errors.append("rollup runtime sample history cannot claim long-run evidence eligibility")
+
+        sample_history_path_text = sample_history_evidence.get("source_artifact_path")
+        sample_history_report = None
+        if not isinstance(sample_history_path_text, str) or not sample_history_path_text:
+            errors.append("rollup runtime sample history source path must be a non-empty string")
+        else:
+            sample_history_path = Path(sample_history_path_text)
+            if sample_history_path.is_absolute():
+                errors.append("rollup runtime sample history source path must be repo-relative")
+            else:
+                resolved_sample_history_path = (ROOT / sample_history_path).resolve()
+                root = ROOT.resolve()
+                if resolved_sample_history_path != root and root not in resolved_sample_history_path.parents:
+                    errors.append("rollup runtime sample history source path escapes repository root")
+                elif not resolved_sample_history_path.is_file():
+                    if sample_history_status != "MISSING":
+                        errors.append("rollup runtime sample history source artifact is missing")
+                else:
+                    try:
+                        sample_history_report = load_json(resolved_sample_history_path)
+                    except Exception as exc:
+                        errors.append(f"rollup runtime sample history source artifact could not be read: {exc}")
+                        sample_history_report = None
+
+        if isinstance(sample_history_report, dict):
+            source_result = validate_upbit_paper_runtime_sample_history_sources(
+                root=ROOT,
+                history=sample_history_report,
+            )
+            if sample_history_evidence.get("validation_status") != source_result.status:
+                errors.append("rollup runtime sample history validation status does not match source artifact")
+            if sample_history_evidence.get("validation_blocker_code") != source_result.blocker_code:
+                errors.append("rollup runtime sample history validation blocker does not match source artifact")
+            if sample_history_status == "PASS" and source_result.status != "PASS":
+                errors.append("rollup runtime sample history claims PASS while source validation is not PASS")
+
+            active_scope = sample_history_report.get("active_candidate_scope")
+            active_scope = active_scope if isinstance(active_scope, dict) else {}
+            source_hashes = sample_history_report.get("source_runtime_cycle_hashes")
+            source_hashes = source_hashes if isinstance(source_hashes, list) else []
+            field_pairs = (
+                ("accepted_cycle_sample_count", "accepted_cycle_sample_count"),
+                ("active_candidate_scope_sample_count", "active_candidate_scope_sample_count"),
+                ("active_candidate_scope_sample_deficit", "active_candidate_scope_sample_deficit"),
+                ("source_loop_report_count", "source_loop_report_count"),
+                ("accepted_loop_report_count", "accepted_loop_report_count"),
+                ("invalid_source_count", "invalid_source_count"),
+                ("unique_runtime_cycle_hash_count", "unique_runtime_cycle_hash_count"),
+                ("duplicate_cycle_hash_count", "duplicate_cycle_hash_count"),
+                ("history_hash", "history_hash"),
+            )
+            for evidence_field, history_field in field_pairs:
+                if sample_history_evidence.get(evidence_field) != sample_history_report.get(history_field):
+                    errors.append(f"rollup runtime sample history {evidence_field} does not match source artifact")
+            if sample_history_evidence.get("runtime_sample_status") != sample_history_report.get("runtime_sample_status"):
+                errors.append("rollup runtime sample history status does not match source artifact")
+            if sample_history_evidence.get("active_candidate_scope_candidate_id") != active_scope.get("candidate_id"):
+                errors.append("rollup runtime sample history active candidate id does not match source artifact")
+            if sample_history_evidence.get("source_runtime_cycle_hash_count") != len(source_hashes):
+                errors.append("rollup runtime sample history source hash count does not match source artifact")
+            for field in (
+                "credential_load_attempted",
+                "private_endpoint_called",
+                "order_endpoint_called",
+                "order_adapter_called",
+                "live_key_loaded",
+                "live_order_ready",
+                "live_order_allowed",
+                "can_live_trade",
+                "scale_up_allowed",
+            ):
+                if _live_flag_is_true(sample_history_report.get(field)):
+                    errors.append(f"rollup runtime sample history source artifact has forbidden true field: {field}")
+
+            if runtime_linkage.get("status") == "PASS":
+                source_cycle_hash = runtime_linkage.get("source_runtime_cycle_hash")
+                if source_cycle_hash not in source_hashes:
+                    errors.append("rollup runtime linkage source cycle hash is not present in runtime sample history")
+                scorecard_cycle_hash = runtime_linkage.get("candidate_scorecard_source_runtime_cycle_hash")
+                if scorecard_cycle_hash not in source_hashes:
+                    errors.append("rollup candidate scorecard source hash is not present in runtime sample history")
+                if (
+                    sample_history_evidence.get("scorecard_candidate_identity_alignment_status")
+                    == "BOUND_TO_RUNTIME_SAMPLE"
+                    and sample_history_evidence.get("scorecard_runtime_sample_candidate_id")
+                    != runtime_linkage.get("candidate_scorecard_candidate_id")
+                ):
+                    errors.append("rollup runtime sample history scorecard candidate binding mismatch")
 
     promotion_thresholds = rollup.get("promotion_threshold_evidence", {})
     if not isinstance(promotion_thresholds, dict):
