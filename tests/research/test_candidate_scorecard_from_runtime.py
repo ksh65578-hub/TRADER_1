@@ -1506,8 +1506,86 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertEqual(statuses["regime_outcome_status"], "PASS")
         self.assertEqual(regimes["DOWNTREND"]["trade_count"], 0)
         self.assertFalse(regimes["DOWNTREND"]["trade_allowed"])
+        self.assertEqual(regimes["DOWNTREND"]["primary_blocker_code"], "REGIME_MISMATCH")
         self.assertEqual(regimes["RISK_OFF"]["trade_count"], 0)
         self.assertFalse(regimes["RISK_OFF"]["trade_allowed"])
+
+    def test_runtime_performance_inputs_use_candidate_regime_for_multi_symbol_history(self):
+        downtrend_btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="DOWNTREND",
+        )
+        uptrend_sahara = build_upbit_public_candle_fixture(
+            symbol="KRW-SAHARA",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        mark_price = downtrend_btc["candles"][-1]["close"]
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.005",
+            fill_price=mark_price,
+            mark_price=mark_price,
+            fee_amount="2.5",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-scorecard-multisymbol-regime",
+            source_paper_ledger_head_hash="C" * 64,
+        )
+        runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="scorecard-regime-outcome-multisymbol-candidate-regime",
+            symbol="KRW-BTC",
+            market_data_universe=[downtrend_btc, uptrend_sahara],
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+        )
+        target_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+        target_candidate = next(
+            candidate
+            for candidate in runtime["strategy_candidates"]
+            if candidate["candidate_id"] == target_scorecard["candidate_id"]
+        )
+
+        self.assertEqual(runtime["feature_snapshot"]["market_state"], "DOWNTREND")
+        self.assertEqual(target_scorecard["candidate_id"], "KRW-SAHARA-pullback-trend-long")
+        self.assertEqual(target_candidate["market_state"], "UPTREND")
+        self.assertTrue(target_candidate["strategy_regime_allowed"])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            runtime_dir = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp4_upbit_paper_runtime"
+            runtime_dir.mkdir(parents=True)
+            runtime_path = runtime_dir / f"{runtime['cycle_id']}.runtime_cycle.json"
+            runtime_path.write_text(json.dumps(runtime, sort_keys=True), encoding="utf-8")
+            history = {
+                "history_id": "candidate-multisymbol-regime-outcome-history",
+                "history_hash": "E" * 64,
+                "samples": [
+                    {
+                        "source_runtime_cycle_path": runtime_path.relative_to(root).as_posix(),
+                        "source_runtime_cycle_hash": runtime["cycle_hash"],
+                    }
+                ],
+            }
+
+            _, metrics, _ = performance_inputs_from_runtime_sample_history(
+                candidate_scorecard=target_scorecard,
+                runtime_sample_history=history,
+                root=root,
+            )
+
+        regimes = {item["regime"]: item for item in metrics["regime_outcome_counts"]}
+        self.assertEqual(metrics["regime_outcome_sample_count"], 1)
+        self.assertEqual(metrics["regime_outcome_mismatch_count"], 0)
+        self.assertEqual(regimes["UPTREND"]["sample_count"], 1)
+        self.assertEqual(regimes["DOWNTREND"]["sample_count"], 0)
+        self.assertEqual(regimes["DOWNTREND"]["primary_blocker_code"], "REGIME_MISMATCH")
 
     def test_strategy_exit_policy_mismatch_blocks_paper_ranking(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-exit-policy-mismatch")

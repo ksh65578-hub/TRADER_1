@@ -485,11 +485,9 @@ def _candidate_by_id(runtime: dict[str, Any], candidate_id: str) -> dict[str, An
     return None
 
 
-def _runtime_regime_outcome_key(runtime: dict[str, Any]) -> str:
-    features = runtime.get("feature_snapshot")
-    features = features if isinstance(features, dict) else {}
-    regime = str(runtime.get("regime") or features.get("regime") or "").upper()
-    market_state = str(features.get("market_state") or runtime.get("market_state") or regime).upper()
+def _regime_outcome_key(*, regime: Any, market_state: Any) -> str:
+    regime = str(regime or "").upper()
+    market_state = str(market_state or regime).upper()
     if market_state == "DOWNTREND":
         return "DOWNTREND"
     if market_state in {"PANIC", "DATA_BAD"} or regime == "RISK_OFF":
@@ -501,6 +499,23 @@ def _runtime_regime_outcome_key(runtime: dict[str, Any]) -> str:
     return "RISK_OFF"
 
 
+def _candidate_regime_outcome_key(*, candidate: dict[str, Any], runtime: dict[str, Any]) -> str:
+    features = runtime.get("feature_snapshot")
+    features = features if isinstance(features, dict) else {}
+    return _regime_outcome_key(
+        regime=candidate.get("regime") or runtime.get("regime") or features.get("regime"),
+        market_state=candidate.get("market_state") or features.get("market_state") or runtime.get("market_state"),
+    )
+
+
+def _default_regime_outcome_blocker(regime: str) -> str | None:
+    if regime == "DOWNTREND":
+        return "REGIME_MISMATCH"
+    if regime == "RISK_OFF":
+        return "RISK_VETO"
+    return None
+
+
 def _empty_regime_outcome_counts() -> dict[str, dict[str, Any]]:
     return {
         regime: {
@@ -510,7 +525,7 @@ def _empty_regime_outcome_counts() -> dict[str, dict[str, Any]]:
             "no_trade_count": 0,
             "mismatch_count": 0,
             "trade_allowed": regime not in SPOT_LONG_NEW_ENTRY_BLOCKED_REGIMES,
-            "primary_blocker_code": None if regime not in SPOT_LONG_NEW_ENTRY_BLOCKED_REGIMES else "RISK_VETO",
+            "primary_blocker_code": _default_regime_outcome_blocker(regime),
         }
         for regime in REGIME_OUTCOME_REGIMES
     }
@@ -693,7 +708,6 @@ def performance_inputs_from_runtime_sample_history(
         runtime = _load_valid_runtime_sample(root=root, sample=sample, candidate_scorecard=candidate_scorecard)
         if runtime is None:
             continue
-        runtime_regime = _runtime_regime_outcome_key(runtime)
         runtime_candidate = _candidate_by_id(runtime, target_candidate_id)
         portfolio = runtime.get("paper_portfolio_snapshot")
         if isinstance(portfolio, dict):
@@ -723,6 +737,7 @@ def performance_inputs_from_runtime_sample_history(
             and runtime.get("final_decision") in {"ENTER_LONG", "EXIT_POSITION", "REDUCE_POSITION"}
         )
         if isinstance(runtime_candidate, dict):
+            runtime_regime = _candidate_regime_outcome_key(candidate=runtime_candidate, runtime=runtime)
             _record_regime_outcome_sample(
                 regime_counts=regime_counts,
                 regime=runtime_regime,
