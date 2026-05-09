@@ -2937,6 +2937,21 @@ def _paper_current_truth_refresh_portfolio_snapshot(
             message="PAPER current-truth refresh is blocked and cannot serve portfolio truth.",
         )
 
+    writer_truth_blocker = _continuous_writer_truth_unavailable_blocker(
+        paper_continuous_current_evidence_writer_report
+    )
+    if writer_truth_blocker is not None:
+        return _audited_current_evidence_unverified_portfolio_snapshot(
+            exchange=exchange,
+            market_type=market_type,
+            summary=summary,
+            blocker_code=writer_truth_blocker,
+            message=(
+                "PAPER current-truth refresh is display-only but cannot verify current portfolio values because "
+                "the audited PAPER current-evidence writer is unavailable, stale, or invalid."
+            ),
+        )
+
     source_age_seconds = _snapshot_age_seconds(paper_current_truth_refresh_report.get("generated_at_utc"))
     if source_age_seconds is None:
         return _paper_current_truth_refresh_blocked_portfolio_snapshot(
@@ -3107,6 +3122,30 @@ def _paper_current_truth_refresh_portfolio_snapshot(
             "STALE" if source_stale and card_id != "configured_paper_capital" else "PASS"
         )
     return snapshot
+
+
+def _continuous_writer_truth_unavailable_blocker(report: dict[str, Any] | None) -> str | None:
+    if not isinstance(report, dict):
+        return None
+    result = validate_paper_continuous_current_evidence_writer_report(report)
+    if result.status == "FAIL":
+        return result.blocker_code or "SCHEMA_IDENTITY_MISMATCH"
+    if result.blocker_code == "LIVE_FINAL_GUARD_FAILED":
+        return "LIVE_FINAL_GUARD_FAILED"
+    if report.get("continuous_writer_status") != PAPER_CONTINUOUS_WRITER_WRITING_STATUS:
+        return str(report.get("primary_blocker_code") or "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED")
+    if report.get("writer_active_for_paper_current_truth") is not True:
+        return str(report.get("primary_blocker_code") or "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED")
+    for field in (
+        "writer_source_valid",
+        "current_snapshot_valid",
+        "portfolio_snapshot_valid",
+        "current_truth_refresh_valid",
+        "source_hash_bound",
+    ):
+        if report.get(field) is not True:
+            return str(report.get("primary_blocker_code") or "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED")
+    return None
 
 
 def _audited_current_evidence_artifact_hash(
@@ -3801,6 +3840,9 @@ def _portfolio_snapshot(
         audited_paper_portfolio_snapshot=audited_paper_portfolio_snapshot,
         paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
     )
+    writer_truth_blocker = _continuous_writer_truth_unavailable_blocker(
+        paper_continuous_current_evidence_writer_report
+    )
     if audited is not None and (
         refreshed is None
         or refreshed.get("status") != "VERIFIED"
@@ -3808,6 +3850,22 @@ def _portfolio_snapshot(
     ):
         return _attach_audited_writer_activation_preflight(
             audited,
+            reconciliation_recovery_summary,
+            paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
+        )
+    if writer_truth_blocker is not None:
+        unverified = refreshed if isinstance(refreshed, dict) else _audited_current_evidence_unverified_portfolio_snapshot(
+            exchange=exchange,
+            market_type=market_type,
+            summary=summary,
+            blocker_code=writer_truth_blocker,
+            message=(
+                "Audited PAPER current-evidence writer truth is unavailable, stale, or invalid; "
+                "portfolio values remain UNVERIFIED while PAPER sample collection can continue."
+            ),
+        )
+        return _attach_audited_writer_activation_preflight(
+            unverified,
             reconciliation_recovery_summary,
             paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
         )
@@ -6388,7 +6446,7 @@ def _paper_runner_operations_status(
     runner_fresh = _freshness_from_generated_at(runner_status_report) == "PASS"
     retention_fresh = not isinstance(retention_manifest, dict) or _freshness_from_generated_at(retention_manifest) == "PASS"
     unsafe_permission = any(
-        payload.get(field) is not False
+        payload.get(field) is True
         for payload in (runner_status_report, retention_manifest if isinstance(retention_manifest, dict) else {})
         for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
     )

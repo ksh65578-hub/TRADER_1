@@ -27,7 +27,9 @@ from trader1.runtime.paper.upbit_paper_long_runner import (
     run_upbit_paper_long_running_runner,
     runner_blocked_start_status_path,
     runner_dashboard_path,
+    runner_runtime_base,
     runner_lock_path,
+    runner_log_path,
     runner_retention_manifest_path,
     runner_start_reconciliation_path,
     runner_status_path,
@@ -1516,6 +1518,134 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertEqual(report["completed_cycle_count"], 0)
             self.assertFalse(report["live_order_allowed"])
             self.assertEqual(manifest["disk_pressure_status"], "BLOCKED")
+
+    def test_runner_continues_when_dashboard_current_writer_unavailable_without_live_drift(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "writer-unavailable-nonblocking-session"
+            stale_writer = (
+                root
+                / "system/runtime/upbit/krw_spot/paper"
+                / session_id
+                / "paper_runtime/current_evidence/paper_continuous_current_evidence_writer_report.json"
+            )
+            stale_writer.parent.mkdir(parents=True, exist_ok=True)
+            stale_writer.write_text(
+                json.dumps(
+                    {
+                        "schema_id": "trader1.paper_continuous_current_evidence_writer_report.v1",
+                        "continuous_writer_status": "INVALID",
+                        "primary_blocker_code": "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+                        "live_order_ready": False,
+                        "live_order_allowed": False,
+                        "can_live_trade": False,
+                        "scale_up_allowed": False,
+                        "order_adapter_called": False,
+                        "private_endpoint_called": False,
+                        "credential_load_attempted": False,
+                        "live_key_loaded": False,
+                    },
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+
+            with patch.object(
+                long_runner,
+                "_maybe_refresh_dashboard",
+                side_effect=RuntimeError(
+                    "read-only dashboard failed closed validation: "
+                    "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED; portfolio values remain UNVERIFIED"
+                ),
+            ):
+                report = run_upbit_paper_long_running_runner(
+                    root=root,
+                    session_id=session_id,
+                    runner_id="writer-unavailable-nonblocking-runner",
+                    cycle_interval_seconds=0,
+                    max_cycles=2,
+                    sleep_fn=lambda _seconds: None,
+                    attempt_public_symbol_discovery=False,
+                    attempt_network_market_data=False,
+                    refresh_dashboard=True,
+                    emit_console_status=False,
+                )
+
+            events = runner_log_path(root, session_id).read_text(encoding="utf-8")
+
+        self.assertEqual(report["runner_status"], RUNNER_STATUS_STOPPED)
+        self.assertEqual(report["completed_cycle_count"], 2)
+        self.assertEqual(report["failed_cycle_count"], 0)
+        self.assertEqual(report["stop_reason"], "MAX_CYCLES_REACHED")
+        self.assertIn("dashboard_refresh_writer_truth_unavailable_nonblocking", events)
+        self.assertFalse(report["live_order_ready"])
+        self.assertFalse(report["live_order_allowed"])
+        self.assertFalse(report["can_live_trade"])
+        self.assertFalse(report["scale_up_allowed"])
+
+    def test_runner_real_dashboard_refresh_continues_with_invalid_writer_artifact(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "invalid-writer-real-dashboard-session"
+            stale_writer = (
+                runner_runtime_base(root, session_id)
+                / "paper_runtime/current_evidence/paper_continuous_current_evidence_writer_report.json"
+            )
+            stale_writer.parent.mkdir(parents=True, exist_ok=True)
+            stale_writer.write_text(
+                json.dumps(
+                    {
+                        "schema_id": "trader1.paper_continuous_current_evidence_writer_report.v1",
+                        "continuous_writer_status": "INVALID",
+                        "primary_blocker_code": "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+                        "live_order_ready": False,
+                        "live_order_allowed": False,
+                        "can_live_trade": False,
+                        "scale_up_allowed": False,
+                        "order_adapter_called": False,
+                        "private_endpoint_called": False,
+                        "credential_load_attempted": False,
+                        "live_key_loaded": False,
+                    },
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+
+            report = run_upbit_paper_long_running_runner(
+                root=root,
+                session_id=session_id,
+                runner_id="invalid-writer-real-dashboard-runner",
+                cycle_interval_seconds=0,
+                max_cycles=2,
+                sleep_fn=lambda _seconds: None,
+                attempt_public_symbol_discovery=False,
+                attempt_network_market_data=False,
+                refresh_dashboard=True,
+                emit_console_status=False,
+            )
+            dashboard = _load_json(runner_runtime_base(root, session_id) / "dashboard_shell.json")
+
+        self.assertEqual(report["runner_status"], RUNNER_STATUS_STOPPED)
+        self.assertEqual(report["completed_cycle_count"], 2)
+        self.assertEqual(report["failed_cycle_count"], 0)
+        self.assertEqual(report["stop_reason"], "MAX_CYCLES_REACHED")
+        self.assertEqual(dashboard["portfolio_snapshot"]["status"], "UNVERIFIED")
+        self.assertEqual(
+            dashboard["portfolio_snapshot"]["blocking_reason"],
+            "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+        )
+        self.assertEqual(dashboard["operation_status"]["portfolio_status"], "UNVERIFIED")
+        runner_status = dashboard["paper_runner_operations_status"]
+        self.assertNotIn("attempted live", json.dumps(runner_status).lower())
+        self.assertFalse(report["live_order_ready"])
+        self.assertFalse(report["live_order_allowed"])
+        self.assertFalse(report["can_live_trade"])
+        self.assertFalse(report["scale_up_allowed"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["can_live_trade"])
 
     def test_runner_dashboard_opener_is_read_only_file_uri(self):
         with tempfile.TemporaryDirectory() as tmp:

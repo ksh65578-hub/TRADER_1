@@ -143,6 +143,19 @@ LIVE_FALSE_FLAGS = (
     "live_key_loaded",
 )
 PAPER_SCOPE_FOCUS_DRIFT_FLAGS = (*LIVE_FALSE_FLAGS, "order_endpoint_called")
+DASHBOARD_REFRESH_NONBLOCKING_WRITER_MARKERS = (
+    "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+    "BLOCKED_PAPER_CURRENT_TRUTH_UNAVAILABLE",
+    "audited current-evidence writer",
+    "audited PAPER current-evidence writer",
+    "portfolio values remain UNVERIFIED",
+    "paper runner operations attempted live or scale permission",
+)
+RUNTIME_DRIFT_TRUE_FIELDS = (
+    *LIVE_FALSE_FLAGS,
+    "order_endpoint_called",
+    "can_submit_order",
+)
 
 
 @dataclass(frozen=True)
@@ -215,6 +228,62 @@ def _read_json(path: Path) -> dict[str, Any] | None:
     except (OSError, json.JSONDecodeError):
         return None
     return loaded if isinstance(loaded, dict) else None
+
+
+def _json_has_runtime_permission_drift(value: Any) -> tuple[bool, str | None]:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key in RUNTIME_DRIFT_TRUE_FIELDS and child is True:
+                return True, key
+            detected, field = _json_has_runtime_permission_drift(child)
+            if detected:
+                return True, field
+    elif isinstance(value, list):
+        for child in value:
+            detected, field = _json_has_runtime_permission_drift(child)
+            if detected:
+                return True, field
+    return False, None
+
+
+def _runtime_current_artifacts_have_permission_drift(root: Path, session_id: str) -> tuple[bool, str | None, str | None]:
+    runtime_base = runner_runtime_base(root, session_id)
+    if not runtime_base.exists():
+        return False, None, None
+    current_json_paths = [
+        runner_status_path(root, session_id),
+        runner_retention_manifest_path(root, session_id),
+        runtime_base / "dashboard_shell.json",
+        runtime_base / "paper_runtime" / "paper_runtime_truth_state_report.json",
+        runtime_base / "paper_runtime" / "upbit_paper_persistent_loop_report.json",
+        runtime_base / "paper_runtime" / "upbit_paper_repaired_current_evidence_audited_writer_report.json",
+        runtime_base / "paper_runtime" / "current_evidence" / "audited_current_evidence_snapshot.json",
+        runtime_base / "paper_runtime" / "current_evidence" / "audited_current_evidence_idempotency_manifest.json",
+        runtime_base / "paper_runtime" / "current_evidence" / "paper_current_truth_refresh_report.json",
+        runtime_base / "paper_runtime" / "current_evidence" / "paper_continuous_current_evidence_writer_report.json",
+        runtime_base / "paper_runtime" / "portfolio" / "paper_portfolio_snapshot.json",
+    ]
+    for path in current_json_paths:
+        payload = _read_json(path)
+        if payload is None:
+            continue
+        detected, field = _json_has_runtime_permission_drift(payload)
+        if detected:
+            return True, field, str(path)
+    return False, None, None
+
+
+def _dashboard_refresh_error_is_nonblocking_writer_unavailable(
+    error: BaseException,
+    *,
+    root: Path,
+    session_id: str,
+) -> bool:
+    message = str(error)
+    if not any(marker in message for marker in DASHBOARD_REFRESH_NONBLOCKING_WRITER_MARKERS):
+        return False
+    drifted, _, _ = _runtime_current_artifacts_have_permission_drift(root, session_id)
+    return not drifted
 
 
 def _int_value(value: Any, default: int = 0) -> int:
@@ -3550,27 +3619,58 @@ def run_upbit_paper_long_running_runner(
                 try:
                     _maybe_refresh_dashboard(root, session_id=session_id)
                 except Exception as exc:  # pragma: no cover - exercised by operator environments.
-                    failed += 1
-                    blocked = build_runner_status_report(
+                    if _dashboard_refresh_error_is_nonblocking_writer_unavailable(
+                        exc,
                         root=root,
-                        runner_id=runner_id,
                         session_id=session_id,
-                        runner_status=RUNNER_STATUS_BLOCKED,
-                        started_at_utc=started_at,
-                        completed_cycle_count=completed,
-                        failed_cycle_count=failed,
-                        cycle_interval_seconds=cycle_interval_seconds,
-                        loop_report=last_loop_report,
-                        primary_blocker_code="DASHBOARD_REFRESH_FAILED",
-                        primary_blocker_message=str(exc),
-                        stop_reason="DASHBOARD_REFRESH_BLOCKED",
-                        dashboard_open_result=dashboard_open_result,
-                    )
-                    _write_runner_status(status_path, blocked)
-                    _refresh_dashboard_after_runner_status(root, session_id, refresh_dashboard=refresh_dashboard)
-                    if emit_console_status:
-                        _emit_console_status(blocked)
-                    return blocked
+                    ):
+                        _append_log(
+                            root,
+                            session_id,
+                            {
+                                "event": "dashboard_refresh_writer_truth_unavailable_nonblocking",
+                                "reason": "AUDITED_CURRENT_EVIDENCE_WRITER_UNAVAILABLE",
+                                "error": str(exc),
+                                "completed_cycle_count": completed,
+                                "at": utc_now(),
+                                "live_order_ready": False,
+                                "live_order_allowed": False,
+                                "can_live_trade": False,
+                                "scale_up_allowed": False,
+                            },
+                        )
+                    else:
+                        drifted, drift_field, drift_path = _runtime_current_artifacts_have_permission_drift(
+                            root,
+                            session_id,
+                        )
+                        blocker_code = "LIVE_FINAL_GUARD_FAILED" if drifted else "DASHBOARD_REFRESH_FAILED"
+                        blocker_message = (
+                            f"Dashboard refresh detected {drift_field}=true in {drift_path}."
+                            if drifted
+                            else str(exc)
+                        )
+                        failed += 1
+                        blocked = build_runner_status_report(
+                            root=root,
+                            runner_id=runner_id,
+                            session_id=session_id,
+                            runner_status=RUNNER_STATUS_BLOCKED,
+                            started_at_utc=started_at,
+                            completed_cycle_count=completed,
+                            failed_cycle_count=failed,
+                            cycle_interval_seconds=cycle_interval_seconds,
+                            loop_report=last_loop_report,
+                            primary_blocker_code=blocker_code,
+                            primary_blocker_message=blocker_message,
+                            stop_reason="DASHBOARD_REFRESH_BLOCKED",
+                            dashboard_open_result=dashboard_open_result,
+                        )
+                        _write_runner_status(status_path, blocked)
+                        _refresh_dashboard_after_runner_status(root, session_id, refresh_dashboard=refresh_dashboard)
+                        if emit_console_status:
+                            _emit_console_status(blocked)
+                        return blocked
             if cycle_interval_seconds:
                 next_eta = datetime.now(timezone.utc).timestamp() + cycle_interval_seconds
                 next_eta_text = (

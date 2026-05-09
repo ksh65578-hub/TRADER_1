@@ -178,21 +178,26 @@ class SafeLauncherTest(unittest.TestCase):
             current_truth_refresh = load_json(dashboard_paths["paper_current_truth_refresh_report"])
             runtime_truth = load_json(dashboard_paths["paper_runtime_truth_state_report"])
             stability_history = load_json(dashboard_paths["stability_history"])
-            self.assertEqual(dashboard_shell["portfolio_snapshot"]["status"], "VERIFIED")
-            self.assertEqual(current_truth_refresh["refresh_status"], "PASS_PAPER_CURRENT_TRUTH_REFRESHED")
+            self.assertEqual(dashboard_shell["portfolio_snapshot"]["status"], "UNVERIFIED")
+            self.assertEqual(
+                dashboard_shell["portfolio_snapshot"]["blocking_reason"],
+                "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+            )
+            self.assertEqual(
+                dashboard_shell["portfolio_snapshot"]["cash"]["value_display"],
+                "UNVERIFIED",
+            )
+            self.assertEqual(current_truth_refresh["refresh_status"], "BLOCKED_PAPER_CURRENT_TRUTH_UNAVAILABLE")
+            self.assertEqual(current_truth_refresh["source_portfolio_snapshot_status"], "MISSING")
             self.assertEqual(runtime_truth["runtime_truth_status"], "MONITOR_ALIVE_ENGINE_NOT_PROVEN")
             self.assertIn("PAPER engine not proven", dashboard_shell["operation_status"]["message"])
-            self.assertEqual(
-                current_truth_refresh["source_portfolio_snapshot_hash"],
-                load_json(dashboard_paths["paper_portfolio_snapshot"])["snapshot_hash"],
-            )
             self.assertFalse(current_truth_refresh["current_evidence_write_allowed"])
             self.assertFalse(current_truth_refresh["audited_current_evidence_writer"])
             self.assertFalse(current_truth_refresh["live_order_allowed"])
             self.assertEqual(stability_history["schema_id"], "trader1.runtime_stability_history.v1")
             self.assertEqual(stability_history["sample_count"], 1)
             self.assertFalse(stability_history["live_order_allowed"])
-            self.assertIn("Simulated PAPER ledger", dashboard_shell["portfolio_snapshot"]["cash"]["detail"])
+            self.assertIn("UNVERIFIED", dashboard_shell["portfolio_snapshot"]["cash"]["detail"])
             self.assertIn("system", path.parts)
             message = launcher_status_message(report, result, path, dashboard_paths["dashboard_html"], dashboard_opened=False)
             self.assertIn("live_order_allowed=false", message)
@@ -305,13 +310,14 @@ class SafeLauncherTest(unittest.TestCase):
 
         self.assertEqual(validate_upbit_paper_persistent_loop_report(first_loop).status, "PASS")
         self.assertEqual(validate_upbit_paper_persistent_loop_report(second_loop).status, "PASS")
-        self.assertNotEqual(
-            stale_portfolio["snapshot_hash"],
-            current_truth["source_portfolio_snapshot_hash"],
-        )
-        self.assertEqual(current_truth["source_portfolio_snapshot_status"], "PASS")
-        self.assertEqual(current_truth["source_runtime_cycle_id"], latest_runtime_cycle["cycle_id"])
-        self.assertEqual(current_truth["source_paper_ledger_head_hash"], current_rollup["latest_ledger_head_hash"])
+        self.assertNotEqual(stale_portfolio["snapshot_hash"], current_truth["source_portfolio_snapshot_hash"])
+        self.assertEqual(current_truth["refresh_status"], "BLOCKED_PAPER_CURRENT_TRUTH_UNAVAILABLE")
+        self.assertEqual(current_truth["source_portfolio_snapshot_status"], "MISSING")
+        self.assertIsNone(current_truth["source_runtime_cycle_id"])
+        self.assertIsNone(current_truth["source_paper_ledger_head_hash"])
+        self.assertEqual(latest_runtime_cycle["cycle_id"], "launcher-stale-audited-portfolio-b-cycle-1")
+        self.assertEqual(current_rollup["rollup_status"], "PASS")
+        self.assertEqual(current_rollup["rollup_hash"], second_loop["paper_ledger_rollup_hash"])
         self.assertFalse(current_truth["current_evidence_write_allowed"])
         self.assertFalse(current_truth["live_order_allowed"])
         self.assertFalse(current_truth["scale_up_allowed"])
@@ -825,7 +831,9 @@ class SafeLauncherTest(unittest.TestCase):
             summary = load_json(dashboard_paths["summary"])
             portfolio = dashboard_shell["portfolio_snapshot"]
 
-            self.assertEqual(portfolio["status"], "VERIFIED")
+            self.assertEqual(portfolio["status"], "UNVERIFIED")
+            self.assertEqual(portfolio["blocking_reason"], "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED")
+            self.assertEqual(portfolio["cash"]["value_display"], "UNVERIFIED")
             self.assertEqual(summary["portfolio"]["source"], "LEDGER")
             self.assertEqual(summary["portfolio"]["freshness_status"], "PASS")
             self.assertEqual(summary["portfolio"]["open_position_count"], 1)
@@ -841,7 +849,7 @@ class SafeLauncherTest(unittest.TestCase):
             self.assertFalse(dashboard_shell["live_order_allowed"])
             self.assertFalse(dashboard_shell["can_live_trade"])
             self.assertFalse(dashboard_shell["scale_up_allowed"])
-            self.assertIn("Simulated PAPER ledger", portfolio["cash"]["detail"])
+            self.assertIn("UNVERIFIED", portfolio["cash"]["detail"])
 
     def test_launcher_dashboard_prefers_scoped_paper_ledger_rollup_portfolio(self):
         report = build_launcher_report("UPBIT_PAPER")
@@ -932,7 +940,11 @@ class SafeLauncherTest(unittest.TestCase):
             self.assertNotEqual(refreshed_rollup["generated_at_utc"], "2000-01-01T00:00:00Z")
             self.assertTrue(summary["positions"])
             self.assertEqual(summary["positions"][0]["source"], "PAPER_LEDGER_ROLLUP")
-            self.assertEqual(dashboard_shell["portfolio_snapshot"]["status"], "VERIFIED")
+            self.assertEqual(dashboard_shell["portfolio_snapshot"]["status"], "UNVERIFIED")
+            self.assertEqual(
+                dashboard_shell["portfolio_snapshot"]["blocking_reason"],
+                "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+            )
             self.assertFalse(summary["live_ready"]["live_order_allowed"])
             self.assertFalse(dashboard_shell["live_order_allowed"])
 
@@ -965,7 +977,11 @@ class SafeLauncherTest(unittest.TestCase):
             self.assertEqual(portfolio_snapshot["source"], "PAPER_LEDGER_ROLLUP")
             self.assertEqual(refreshed_rollup["rollup_status"], "PASS")
             self.assertNotEqual(refreshed_rollup["generated_at_utc"], "2000-01-01T00:00:00Z")
-            self.assertEqual(dashboard_shell["portfolio_snapshot"]["status"], "VERIFIED")
+            self.assertEqual(dashboard_shell["portfolio_snapshot"]["status"], "UNVERIFIED")
+            self.assertEqual(
+                dashboard_shell["portfolio_snapshot"]["blocking_reason"],
+                "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+            )
             self.assertFalse(summary["live_ready"]["live_order_allowed"])
             self.assertFalse(dashboard_shell["live_order_allowed"])
 

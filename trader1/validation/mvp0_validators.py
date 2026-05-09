@@ -2863,9 +2863,14 @@ def read_only_dashboard_validator() -> ValidatorResult:
             and current_truth_refresh.get("source_paper_ledger_head_hash")
             == refreshed_rollup.get("latest_ledger_head_hash")
         )
+        writer_truth_unavailable_and_unverified = (
+            current_truth_refresh.get("refresh_status") == "BLOCKED_PAPER_CURRENT_TRUTH_UNAVAILABLE"
+            and current_truth_refresh.get("source_portfolio_snapshot_status") == "MISSING"
+            and stale_dashboard.get("portfolio_snapshot", {}).get("status") == "UNVERIFIED"
+        )
         if (
             stale_portfolio.get("source") == "LEDGER" or stale_portfolio.get("freshness") == "PASS"
-        ) and not regenerated_rollup_bound:
+        ) and not regenerated_rollup_bound and not writer_truth_unavailable_and_unverified:
             return fail_result(
                 "read_only_dashboard_validator",
                 "stale paper ledger rollup was accepted as verified dashboard portfolio truth",
