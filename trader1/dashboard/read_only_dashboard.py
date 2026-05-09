@@ -19574,9 +19574,10 @@ def build_read_only_dashboard_shell(
         optimizer_feedback_report=optimizer_feedback_report,
         summary_freshness=summary_freshness,
     )
+    runner_primary_status_for_dashboard = str(runner_operations_status.get("status") or "NOT_LOADED")
     runner_status_current_for_dashboard = (
         runner_operations_status.get("source") == "runner_status.json"
-        and runner_operations_status.get("status") in {"RUNNING_NOW", "STOPPING", "STOPPED"}
+        and runner_primary_status_for_dashboard in {"RUNNING_NOW", "STOPPING", "STOPPED"}
         and isinstance(runner_operations_status.get("primary_blocker_code"), str)
         and bool(str(runner_operations_status.get("primary_blocker_code")).strip())
     )
@@ -19746,6 +19747,8 @@ def build_read_only_dashboard_shell(
         next_action_value = runner_operations_status.get("next_operator_action")
     elif stop_status_for_primary in {"STOP_REQUESTED", "STOPPED"}:
         next_action_value = operator_stop_status.get("next_operator_action")
+    elif runner_is_running:
+        next_action_value = runner_operations_status.get("next_operator_action")
     elif reconciliation_blocks_operator_action:
         next_action_value = reconciliation_recovery_summary.get("next_operator_action")
     elif runner_primary_status == "NOT_LOADED" and profile_primary_status == "PASS":
