@@ -2151,6 +2151,7 @@ class SafeLauncherTest(unittest.TestCase):
             "UPBIT_LIVE.py",
             "BINANCE_PAPER.py",
             "BINANCE_LIVE.py",
+            "STOP_UPBIT_PAPER.py",
             "TRADER_1.md",
             "AGENTS.md",
             "pyproject.toml",

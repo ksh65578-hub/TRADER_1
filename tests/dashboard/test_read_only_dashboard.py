@@ -938,7 +938,11 @@ def runner_status_fixture(session_id="test_read_only_dashboard_runner_ops", *, b
         "failed_cycle_count": 0,
         "cycle_interval_seconds": 30.0,
         "next_cycle_eta": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
-        "stop_method": "STOP_FILE_OR_CTRL_C",
+        "stop_method": "STOP_UPBIT_PAPER.py_OR_STOP_FILE_OR_CTRL_C",
+        "stop_launcher_path": "STOP_UPBIT_PAPER.py",
+        "console_lifecycle_policy": "BACKGROUND_RUNNER_STATUS_DASHBOARD",
+        "console_close_does_not_stop_runner": True,
+        "dashboard_close_does_not_stop_runner": True,
         "stop_reason": None,
         "primary_blocker_code": DISK_PRESSURE_BLOCKER_CODE if blocked else None,
         "primary_blocker_message": "Runtime disk pressure guard blocked collection." if blocked else None,
@@ -2495,6 +2499,11 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertTrue(runner["dashboard_open_attempted"])
         self.assertTrue(runner["dashboard_opened"])
         self.assertEqual(runner["dashboard_open_method"], "webbrowser.open")
+        self.assertEqual(runner["console_lifecycle_policy"], "BACKGROUND_RUNNER_STATUS_DASHBOARD")
+        self.assertTrue(runner["console_close_does_not_stop_runner"])
+        self.assertTrue(runner["dashboard_close_does_not_stop_runner"])
+        self.assertEqual(runner["stop_launcher_path"], "STOP_UPBIT_PAPER.py")
+        self.assertIn("STOP_UPBIT_PAPER.signal", runner["stop_file_path"])
         self.assertEqual(runner["runtime_artifact_count"], 4)
         self.assertEqual(runner["archived_artifact_count"], 2)
         self.assertEqual(runner["profitability_evidence_refresh_status"], "COLLECTING")
@@ -2534,6 +2543,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(source_by_id["PAPER_LONG_RUNNER_RETENTION"]["freshness_status"], "PASS")
         html = render_dashboard_html(dashboard)
         self.assertIn("PAPER runner", html)
+        self.assertIn("Runner control", html)
+        self.assertIn("STOP_UPBIT_PAPER.py", html)
+        self.assertIn("Stop signal", html)
         self.assertIn("Runner cycles", html)
         self.assertIn("Evidence refresh", html)
         self.assertIn("PAPER samples", html)

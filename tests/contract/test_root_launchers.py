@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from trader1.runtime.boot.launcher_guard import ALLOWED_ROOT_LAUNCHERS, inspect_root_launchers
+from trader1.runtime.boot.launcher_guard import ALLOWED_ROOT_CONTROL_LAUNCHERS, ALLOWED_ROOT_LAUNCHERS, inspect_root_launchers
 from trader1.runtime.boot.safe_launcher import build_launcher_report, validate_launcher_report
 from trader1.validation.mvp0_validators import run_validators
 
@@ -32,6 +32,7 @@ class RootLauncherGuardTest(unittest.TestCase):
         result = inspect_root_launchers(Path(__file__).resolve().parents[2], require_exact_four=True)
         self.assertEqual(result.status, "PASS")
         self.assertEqual(set(result.root_launchers_found), ALLOWED_ROOT_LAUNCHERS)
+        self.assertIn("STOP_UPBIT_PAPER.py", [finding.path for finding in result.findings if finding.allowed])
 
     def test_current_repo_root_launchers_expose_operator_entrypoints(self):
         root = Path(__file__).resolve().parents[2]
@@ -47,6 +48,12 @@ class RootLauncherGuardTest(unittest.TestCase):
             root = Path(tmp)
             for launcher in ALLOWED_ROOT_LAUNCHERS:
                 (root / f"{launcher}.py").write_text(SAFE_LAUNCHER, encoding="utf-8")
+            for launcher in ALLOWED_ROOT_CONTROL_LAUNCHERS:
+                (root / f"{launcher}.py").write_text(
+                    "from trader1.runtime.paper.upbit_paper_long_runner import root_upbit_paper_stop_main\n"
+                    "raise SystemExit(root_upbit_paper_stop_main())\n",
+                    encoding="utf-8",
+                )
             result = inspect_root_launchers(root, require_exact_four=True)
             self.assertEqual(result.status, "PASS")
             self.assertEqual(set(result.root_launchers_found), ALLOWED_ROOT_LAUNCHERS)
