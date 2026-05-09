@@ -227,6 +227,87 @@ class UpbitPaperRuntimeSampleHistoryTest(unittest.TestCase):
         self.assertEqual(active["sample_deficit"], 28)
         self.assertFalse(active["live_order_allowed"])
 
+    def test_active_scope_rotates_to_next_incomplete_candidate_after_floor_met(self):
+        completed_hash = "A" * 64
+        next_hash = "B" * 64
+        samples = []
+        for index in range(2):
+            samples.append(
+                {
+                    "generated_at_utc": f"2026-05-07T00:00:0{index + 1}Z",
+                    "exchange": "UPBIT",
+                    "market_type": "KRW_SPOT",
+                    "mode": "PAPER",
+                    "scorecard_symbol": "KRW-DONE",
+                    "scorecard_candidate_id": "KRW-DONE-pullback-trend-long",
+                    "scorecard_strategy_id": "trend_pullback",
+                    "scorecard_parameter_hash": completed_hash,
+                    "entry_reason_count": 1,
+                    "exit_reason_count": 0,
+                    "no_trade_reason_count": 0,
+                    "candidate_count": 3,
+                    "loop_id": f"scope-done-{index}",
+                    "cycle_id": f"cycle-done-{index}",
+                    "final_decision": "ENTER_LONG",
+                    "scorecard_candidate_decision": "PAPER_ENTRY_REVIEW",
+                    "sample_hash": str(index + 1) * 64,
+                    "source_runtime_cycle_hash": str(index + 3) * 64,
+                    "live_order_ready": False,
+                    "live_order_allowed": False,
+                    "can_live_trade": False,
+                    "scale_up_allowed": False,
+                    "scorecard_candidate_identity_binding_status": "BOUND",
+                    "scorecard_candidate_live_flags_clear": True,
+                }
+            )
+        samples.append(
+            {
+                "generated_at_utc": "2026-05-07T00:00:03Z",
+                "exchange": "UPBIT",
+                "market_type": "KRW_SPOT",
+                "mode": "PAPER",
+                "scorecard_symbol": "KRW-NEXT",
+                "scorecard_candidate_id": "KRW-NEXT-breakout-retest-long",
+                "scorecard_strategy_id": "breakout_retest",
+                "scorecard_parameter_hash": next_hash,
+                "entry_reason_count": 1,
+                "exit_reason_count": 0,
+                "no_trade_reason_count": 0,
+                "candidate_count": 3,
+                "loop_id": "scope-next-1",
+                "cycle_id": "cycle-next-1",
+                "final_decision": "NO_TRADE",
+                "scorecard_candidate_decision": "PAPER_ENTRY_REVIEW",
+                "sample_hash": "5" * 64,
+                "source_runtime_cycle_hash": "6" * 64,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+                "scorecard_candidate_identity_binding_status": "BOUND",
+                "scorecard_candidate_live_flags_clear": True,
+            }
+        )
+
+        summaries = sample_history_module._candidate_scope_sample_summaries(
+            samples,
+            min_required_sample_count=2,
+        )
+        scope_fields = sample_history_module._active_candidate_scope_fields(
+            summaries,
+            min_required_sample_count=2,
+        )
+
+        self.assertEqual(summaries[0]["candidate_id"], "KRW-DONE-pullback-trend-long")
+        self.assertEqual(summaries[0]["sample_deficit"], 0)
+        active = scope_fields["active_candidate_scope"]
+        self.assertEqual(active["candidate_id"], "KRW-NEXT-breakout-retest-long")
+        self.assertEqual(active["sample_count"], 1)
+        self.assertEqual(active["sample_deficit"], 1)
+        self.assertEqual(scope_fields["active_candidate_scope_status"], "COLLECT_PAPER_SCOPE_SAMPLES")
+        self.assertIn("Collect 1 more PAPER samples", scope_fields["active_candidate_scope_next_action"])
+        self.assertFalse(active["live_order_allowed"])
+
     def test_entry_reason_evidence_counts_blocked_candidate_entry_review(self):
         runtime_cycle = {
             "entry_reasons": [],
