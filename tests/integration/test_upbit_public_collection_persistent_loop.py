@@ -1153,7 +1153,7 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
                 root,
                 cycle_id="bounded-paper-loop-stale-ada-ledger-cycle",
                 symbol="KRW-ADA",
-                price="1000870",
+                price="50000",
                 quantity="0.007",
                 fee_amount="3",
             )
@@ -1181,6 +1181,61 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             self.assertIn("PAPER_PORTFOLIO_TRUTH_UNVERIFIED", latest["no_trade_reasons"])
             self.assertIsNone(latest["paper_fill"])
             self.assertEqual(latest["paper_ledger_events"], [])
+            self.assertFalse(loop["live_order_allowed"])
+            self.assertFalse(loop["can_live_trade"])
+            self.assertFalse(loop["scale_up_allowed"])
+
+    def test_bounded_paper_loop_repairs_legacy_altcoin_price_basis_for_verified_collection(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "mvp1_upbit_paper_launcher"
+            ada_data = build_upbit_public_candle_data_from_rest_payload(
+                payload=self._public_rest_payload_for_symbol("KRW-ADA", 405),
+                symbol="KRW-ADA",
+                session_id=session_id,
+            )
+            preflight_cycle = build_upbit_paper_runtime_cycle_report(
+                cycle_id="bounded-paper-loop-repaired-portfolio-preflight-cycle",
+                session_id=session_id,
+                symbol="KRW-ADA",
+                market_data=ada_data,
+                paper_portfolio_truth_unverified=True,
+                paper_portfolio_truth_blocker_code="MEASUREMENT_MISSING",
+                paper_portfolio_truth_message="preflight no-trade sample",
+            )
+            self.assertEqual(validate_upbit_paper_runtime_cycle_report(preflight_cycle).status, "PASS")
+            latest_path = root / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+            latest_path.parent.mkdir(parents=True, exist_ok=True)
+            latest_path.write_text(json.dumps(preflight_cycle, indent=2, sort_keys=True), encoding="utf-8")
+            self._write_paper_ledger_fill(
+                root,
+                cycle_id="bounded-paper-loop-repairable-ada-ledger-cycle",
+                symbol="KRW-ADA",
+                price="1000870",
+                quantity="0.007",
+                fee_amount="3",
+            )
+
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-repaired-portfolio-continues",
+                symbol="KRW-ADA",
+                symbol_universe=["KRW-ADA"],
+                requested_cycle_count=1,
+                market_data_universe_sequence=[[ada_data]],
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+            latest = json.loads(latest_path.read_text(encoding="utf-8"))
+
+            self.assertEqual(result.status, "PASS", result.message)
+            self.assertEqual(loop["loop_status"], "PASS")
+            self.assertEqual(loop["completed_cycle_count"], 1)
+            self.assertEqual(loop["cycle_results"][0]["paper_portfolio_truth_status"], "VERIFIED_RUNTIME_INPUT")
+            self.assertIsNone(loop["cycle_results"][0]["paper_portfolio_truth_blocker_code"])
+            self.assertEqual(loop["cycle_results"][0]["runtime_status"], "PASS")
+            self.assertEqual(loop["cycle_results"][0]["final_decision"], "HOLD_POSITION")
+            self.assertEqual(latest["paper_portfolio_truth_status"], "VERIFIED_RUNTIME_INPUT")
+            self.assertEqual(latest["final_decision"], "HOLD_POSITION")
             self.assertFalse(loop["live_order_allowed"])
             self.assertFalse(loop["can_live_trade"])
             self.assertFalse(loop["scale_up_allowed"])

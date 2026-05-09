@@ -80,12 +80,12 @@ class PaperContinuousCurrentEvidenceWriterTest(unittest.TestCase):
             market_data=market_data,
         )
 
-    def _stale_krw_ada_ledger_rollup(self) -> dict:
+    def _stale_krw_ada_ledger_rollup(self, *, average_entry_value: str = "50000") -> dict:
         ledger = deepcopy(load_json(SOURCE_LEDGER_ROLLUP_PATH))
         portfolio = deepcopy(ledger["portfolio_snapshot"])
         quantity = Decimal("0.007")
-        average_entry = Decimal("1000870")
-        mark = Decimal("1000870")
+        average_entry = Decimal(average_entry_value)
+        mark = Decimal(average_entry_value)
         fee = Decimal("3")
         cost_basis = quantity * average_entry + fee
         market_value = quantity * mark
@@ -155,6 +155,29 @@ class PaperContinuousCurrentEvidenceWriterTest(unittest.TestCase):
             source_ledger_rollup_report=self._stale_krw_ada_ledger_rollup(),
             public_market_data_collection_report=self._public_collection(close="405", symbol="KRW-ADA"),
             audited_writer_id="test-continuous-current-evidence-writer-unverified",
+        )
+        runtime_base = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / SESSION_ID
+        current_evidence = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[0])
+        portfolio = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[2])
+        refresh = build_paper_current_truth_refresh_report(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=SESSION_ID,
+            paper_portfolio_snapshot=portfolio,
+            heartbeat=None,
+            startup_probe=None,
+            generated_at_utc=writer["generated_at_utc"],
+        )
+        return writer, current_evidence, portfolio, refresh
+
+    def _repaired_altcoin_writer_bundle(self, root: Path) -> tuple[dict, dict, dict, dict]:
+        writer = build_upbit_paper_repaired_current_evidence_audited_writer_report(
+            root=root,
+            source_implementation_prep_report=load_json(SOURCE_IMPLEMENTATION_PREP_PATH),
+            source_ledger_rollup_report=self._stale_krw_ada_ledger_rollup(average_entry_value="1000870"),
+            public_market_data_collection_report=self._public_collection(close="405", symbol="KRW-ADA"),
+            audited_writer_id="test-continuous-current-evidence-writer-repaired-altcoin",
         )
         runtime_base = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / SESSION_ID
         current_evidence = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[0])
@@ -262,6 +285,38 @@ class PaperContinuousCurrentEvidenceWriterTest(unittest.TestCase):
         self.assertEqual(report["primary_blocker_code"], "PUBLIC_MARK_PRICE_BASIS_MISMATCH")
         self.assertIsNone(report["last_verified_paper_ledger_equity_krw"])
         self.assertIsNone(report["current_refreshed_paper_equity_krw"])
+        self.assertFalse(report["live_order_ready"])
+        self.assertFalse(report["live_order_allowed"])
+        self.assertFalse(report["can_live_trade"])
+        self.assertFalse(report["scale_up_allowed"])
+
+    def test_repaired_altcoin_price_basis_restores_fresh_paper_current_truth(self):
+        with TemporaryDirectory() as tmp:
+            writer, current_evidence, portfolio, refresh = self._repaired_altcoin_writer_bundle(Path(tmp))
+            report = build_paper_continuous_current_evidence_writer_report(
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id=SESSION_ID,
+                audited_writer_report=writer,
+                audited_current_evidence_snapshot=current_evidence,
+                audited_paper_portfolio_snapshot=portfolio,
+                paper_current_truth_refresh_report=refresh,
+                generated_at_utc=plus_seconds(writer["generated_at_utc"], 1),
+            )
+            result = validate_paper_continuous_current_evidence_writer_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["continuous_writer_status"], PAPER_CONTINUOUS_WRITER_WRITING_STATUS)
+        self.assertTrue(report["writer_active_for_paper_current_truth"])
+        self.assertTrue(report["current_truth_refresh_valid"])
+        self.assertEqual(refresh["refresh_status"], "PASS_PAPER_CURRENT_TRUTH_REFRESHED")
+        self.assertEqual(portfolio["positions"][0]["symbol"], "KRW-ADA")
+        self.assertEqual(portfolio["positions"][0]["average_entry_price"], "405")
+        self.assertEqual(
+            portfolio["price_basis_repair_source"],
+            "LEGACY_STATIC_FIXTURE_PRICE_BASIS_TO_UPBIT_KRW_SPOT_PUBLIC_MARK",
+        )
         self.assertFalse(report["live_order_ready"])
         self.assertFalse(report["live_order_allowed"])
         self.assertFalse(report["can_live_trade"])
