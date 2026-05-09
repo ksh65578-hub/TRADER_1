@@ -460,6 +460,17 @@ def _alternative_replay_context(
     replay_status: str | None = None,
     sample_count: int = 0,
     primary_blocker_code: str | None = None,
+    replay_closed_trade_sample_count: int = 0,
+    replay_closed_trade_status: str | None = None,
+    replay_strategy_exit_policy_sample_count: int = 0,
+    replay_strategy_exit_policy_status: str | None = None,
+    replay_strategy_exit_policy_mismatch_count: int = 0,
+    replay_profit_factor: float = 0.0,
+    replay_profit_factor_status: str | None = None,
+    replay_realized_vs_expected_edge_bps: float = 0.0,
+    replay_realized_vs_expected_edge_status: str | None = None,
+    replay_execution_cost_delta_bps: float = 0.0,
+    replay_execution_cost_status: str | None = None,
     report: dict[str, Any] | None = None,
     scorecard: dict[str, Any] | None = None,
     source_runtime_cycle_report: dict[str, Any] | None = None,
@@ -480,6 +491,17 @@ def _alternative_replay_context(
         "replay_status": replay_status,
         "sample_count": sample_count,
         "primary_blocker_code": primary_blocker_code,
+        "replay_closed_trade_sample_count": replay_closed_trade_sample_count,
+        "replay_closed_trade_status": replay_closed_trade_status or "UNTESTED",
+        "replay_strategy_exit_policy_sample_count": replay_strategy_exit_policy_sample_count,
+        "replay_strategy_exit_policy_status": replay_strategy_exit_policy_status or "UNTESTED",
+        "replay_strategy_exit_policy_mismatch_count": replay_strategy_exit_policy_mismatch_count,
+        "replay_profit_factor": replay_profit_factor,
+        "replay_profit_factor_status": replay_profit_factor_status or "UNTESTED",
+        "replay_realized_vs_expected_edge_bps": replay_realized_vs_expected_edge_bps,
+        "replay_realized_vs_expected_edge_status": replay_realized_vs_expected_edge_status or "UNTESTED",
+        "replay_execution_cost_delta_bps": replay_execution_cost_delta_bps,
+        "replay_execution_cost_status": replay_execution_cost_status or "UNTESTED",
         "report": report,
         "scorecard": scorecard,
         "source_runtime_cycle_report": source_runtime_cycle_report,
@@ -703,13 +725,69 @@ def _source_runtime_for_candidate_item(
     return None
 
 
+def _evaluation_or_report_metric(evaluation: dict[str, Any], replay_report: dict[str, Any], key: str) -> Any:
+    value = evaluation.get(key)
+    return value if value is not None else replay_report.get(key)
+
+
 def _alternative_replay_selection_priority(evaluation: dict[str, Any]) -> tuple[Any, ...]:
     diagnostic = evaluation.get("diagnostic") if isinstance(evaluation.get("diagnostic"), dict) else {}
+    replay_report = evaluation.get("report") if isinstance(evaluation.get("report"), dict) else {}
     scorecard = evaluation.get("scorecard") if isinstance(evaluation.get("scorecard"), dict) else {}
     status = str(evaluation.get("status") or "")
+    replay_status = str(evaluation.get("replay_status") or replay_report.get("replay_status") or "")
+    contract_status = str(evaluation.get("contract_status") or "")
+    closed_trade_count = _safe_int(
+        _evaluation_or_report_metric(evaluation, replay_report, "replay_closed_trade_sample_count")
+    )
+    strategy_exit_policy_count = _safe_int(
+        _evaluation_or_report_metric(evaluation, replay_report, "replay_strategy_exit_policy_sample_count")
+    )
+    strategy_exit_mismatch_count = _safe_int(
+        _evaluation_or_report_metric(evaluation, replay_report, "replay_strategy_exit_policy_mismatch_count")
+    )
+    closed_trade_status = str(
+        evaluation.get("replay_closed_trade_status") or replay_report.get("replay_closed_trade_status") or ""
+    )
+    strategy_exit_policy_status = str(
+        evaluation.get("replay_strategy_exit_policy_status")
+        or replay_report.get("replay_strategy_exit_policy_status")
+        or ""
+    )
+    profit_factor_status = str(
+        evaluation.get("replay_profit_factor_status") or replay_report.get("replay_profit_factor_status") or ""
+    )
+    realized_edge_status = str(
+        evaluation.get("replay_realized_vs_expected_edge_status")
+        or replay_report.get("replay_realized_vs_expected_edge_status")
+        or ""
+    )
+    execution_cost_status = str(
+        evaluation.get("replay_execution_cost_status") or replay_report.get("replay_execution_cost_status") or ""
+    )
     return (
         1 if diagnostic.get("robustness_eligible") is True else 0,
         1 if status == "PASS" else 0,
+        1 if replay_status == "PASS" else 0,
+        1 if contract_status == "PASS" else 0,
+        1 if closed_trade_count > 0 else 0,
+        1 if closed_trade_status == "PASS" else 0,
+        closed_trade_count,
+        1 if strategy_exit_policy_status == "PASS" else 0,
+        strategy_exit_policy_count,
+        -strategy_exit_mismatch_count,
+        1 if profit_factor_status == "PASS" else 0,
+        _safe_float(_evaluation_or_report_metric(evaluation, replay_report, "replay_profit_factor"), -999.0),
+        1 if realized_edge_status == "PASS" else 0,
+        _safe_float(
+            _evaluation_or_report_metric(evaluation, replay_report, "replay_realized_vs_expected_edge_bps"),
+            -999.0,
+        ),
+        1 if execution_cost_status == "PASS" else 0,
+        -_safe_float(
+            _evaluation_or_report_metric(evaluation, replay_report, "replay_execution_cost_delta_bps"),
+            999.0,
+        ),
         1 if diagnostic.get("oos_status") == "PASS" else 0,
         1 if diagnostic.get("walk_forward_status") == "PASS" else 0,
         1 if diagnostic.get("bootstrap_status") == "PASS" else 0,
@@ -735,6 +813,23 @@ def _public_candidate_review_evaluations(evaluations: list[dict[str, Any]]) -> l
                 "blocker_code": item.get("blocker_code"),
                 "replay_status": item.get("replay_status"),
                 "sample_count": int(item.get("sample_count") or 0),
+                "replay_closed_trade_sample_count": int(item.get("replay_closed_trade_sample_count") or 0),
+                "replay_closed_trade_status": item.get("replay_closed_trade_status"),
+                "replay_strategy_exit_policy_sample_count": int(
+                    item.get("replay_strategy_exit_policy_sample_count") or 0
+                ),
+                "replay_strategy_exit_policy_status": item.get("replay_strategy_exit_policy_status"),
+                "replay_strategy_exit_policy_mismatch_count": int(
+                    item.get("replay_strategy_exit_policy_mismatch_count") or 0
+                ),
+                "replay_profit_factor": _safe_float(item.get("replay_profit_factor")),
+                "replay_profit_factor_status": item.get("replay_profit_factor_status"),
+                "replay_realized_vs_expected_edge_bps": _safe_float(
+                    item.get("replay_realized_vs_expected_edge_bps")
+                ),
+                "replay_realized_vs_expected_edge_status": item.get("replay_realized_vs_expected_edge_status"),
+                "replay_execution_cost_delta_bps": _safe_float(item.get("replay_execution_cost_delta_bps")),
+                "replay_execution_cost_status": item.get("replay_execution_cost_status"),
                 "robustness_eligible": bool(item.get("robustness_eligible")),
                 "oos_status": item.get("oos_status"),
                 "walk_forward_status": item.get("walk_forward_status"),
@@ -910,6 +1005,24 @@ def _build_alternative_public_replay_evaluation(
         "replay_status": replay_status,
         "sample_count": int(replay_report.get("sample_count") or 0),
         "primary_blocker_code": replay_report.get("primary_blocker_code"),
+        "replay_closed_trade_sample_count": int(replay_report.get("replay_closed_trade_sample_count") or 0),
+        "replay_closed_trade_status": replay_report.get("replay_closed_trade_status") or "UNTESTED",
+        "replay_strategy_exit_policy_sample_count": int(
+            replay_report.get("replay_strategy_exit_policy_sample_count") or 0
+        ),
+        "replay_strategy_exit_policy_status": replay_report.get("replay_strategy_exit_policy_status") or "UNTESTED",
+        "replay_strategy_exit_policy_mismatch_count": int(
+            replay_report.get("replay_strategy_exit_policy_mismatch_count") or 0
+        ),
+        "replay_profit_factor": _safe_float(replay_report.get("replay_profit_factor")),
+        "replay_profit_factor_status": replay_report.get("replay_profit_factor_status") or "UNTESTED",
+        "replay_realized_vs_expected_edge_bps": _safe_float(
+            replay_report.get("replay_realized_vs_expected_edge_bps")
+        ),
+        "replay_realized_vs_expected_edge_status": replay_report.get("replay_realized_vs_expected_edge_status")
+        or "UNTESTED",
+        "replay_execution_cost_delta_bps": _safe_float(replay_report.get("replay_execution_cost_delta_bps")),
+        "replay_execution_cost_status": replay_report.get("replay_execution_cost_status") or "UNTESTED",
         "robustness_eligible": bool(diagnostic.get("robustness_eligible")) if diagnostic else False,
         "oos_status": str(diagnostic.get("oos_status") or "UNTESTED") if diagnostic else "UNTESTED",
         "walk_forward_status": str(diagnostic.get("walk_forward_status") or "UNTESTED") if diagnostic else "UNTESTED",
@@ -976,6 +1089,13 @@ def _build_and_write_alternative_public_replay(
     replay_passed = [item for item in evaluations if item.get("status") == "PASS" and isinstance(item.get("report"), dict)]
     if not replay_passed:
         first = max(evaluations, key=_alternative_replay_selection_priority)
+        first_closed_trades = int(first.get("replay_closed_trade_sample_count") or 0)
+        first_policy_samples = int(first.get("replay_strategy_exit_policy_sample_count") or 0)
+        selection_reason = (
+            "BEST_CLOSED_TRADE_REPLAY_BLOCKED"
+            if first_closed_trades > 0 or first_policy_samples > 0
+            else "NO_PUBLIC_REPLAY_PASS"
+        )
         return _alternative_replay_context(
             status="BLOCKED",
             blocker_code=str(first.get("blocker_code") or "DATA_QUALITY_INSUFFICIENT"),
@@ -988,6 +1108,21 @@ def _build_and_write_alternative_public_replay(
             replay_status=str(first.get("replay_status") or "BLOCKED"),
             sample_count=int(first.get("sample_count") or 0),
             primary_blocker_code=first.get("primary_blocker_code"),
+            replay_closed_trade_sample_count=first_closed_trades,
+            replay_closed_trade_status=str(first.get("replay_closed_trade_status") or "UNTESTED"),
+            replay_strategy_exit_policy_sample_count=first_policy_samples,
+            replay_strategy_exit_policy_status=str(first.get("replay_strategy_exit_policy_status") or "UNTESTED"),
+            replay_strategy_exit_policy_mismatch_count=int(
+                first.get("replay_strategy_exit_policy_mismatch_count") or 0
+            ),
+            replay_profit_factor=_safe_float(first.get("replay_profit_factor")),
+            replay_profit_factor_status=str(first.get("replay_profit_factor_status") or "UNTESTED"),
+            replay_realized_vs_expected_edge_bps=_safe_float(first.get("replay_realized_vs_expected_edge_bps")),
+            replay_realized_vs_expected_edge_status=str(
+                first.get("replay_realized_vs_expected_edge_status") or "UNTESTED"
+            ),
+            replay_execution_cost_delta_bps=_safe_float(first.get("replay_execution_cost_delta_bps")),
+            replay_execution_cost_status=str(first.get("replay_execution_cost_status") or "UNTESTED"),
             report=first.get("report") if isinstance(first.get("report"), dict) else None,
             scorecard=first.get("scorecard") if isinstance(first.get("scorecard"), dict) else None,
             source_runtime_cycle_report=first.get("source_runtime_cycle_report")
@@ -996,7 +1131,7 @@ def _build_and_write_alternative_public_replay(
             candidate_review_evaluations=_public_candidate_review_evaluations(evaluations),
             candidate_review_evaluated_count=len(evaluations),
             candidate_review_robust_candidate_count=0,
-            candidate_review_selection_reason="NO_PUBLIC_REPLAY_PASS",
+            candidate_review_selection_reason=selection_reason,
         )
 
     selected = max(replay_passed, key=_alternative_replay_selection_priority)
@@ -1014,6 +1149,21 @@ def _build_and_write_alternative_public_replay(
         replay_status=str(selected.get("replay_status") or "BLOCKED"),
         sample_count=int(selected.get("sample_count") or 0),
         primary_blocker_code=selected.get("primary_blocker_code"),
+        replay_closed_trade_sample_count=int(selected.get("replay_closed_trade_sample_count") or 0),
+        replay_closed_trade_status=str(selected.get("replay_closed_trade_status") or "UNTESTED"),
+        replay_strategy_exit_policy_sample_count=int(selected.get("replay_strategy_exit_policy_sample_count") or 0),
+        replay_strategy_exit_policy_status=str(selected.get("replay_strategy_exit_policy_status") or "UNTESTED"),
+        replay_strategy_exit_policy_mismatch_count=int(
+            selected.get("replay_strategy_exit_policy_mismatch_count") or 0
+        ),
+        replay_profit_factor=_safe_float(selected.get("replay_profit_factor")),
+        replay_profit_factor_status=str(selected.get("replay_profit_factor_status") or "UNTESTED"),
+        replay_realized_vs_expected_edge_bps=_safe_float(selected.get("replay_realized_vs_expected_edge_bps")),
+        replay_realized_vs_expected_edge_status=str(
+            selected.get("replay_realized_vs_expected_edge_status") or "UNTESTED"
+        ),
+        replay_execution_cost_delta_bps=_safe_float(selected.get("replay_execution_cost_delta_bps")),
+        replay_execution_cost_status=str(selected.get("replay_execution_cost_status") or "UNTESTED"),
         report=selected.get("report") if isinstance(selected.get("report"), dict) else None,
         scorecard=selected.get("scorecard") if isinstance(selected.get("scorecard"), dict) else None,
         source_runtime_cycle_report=selected.get("source_runtime_cycle_report")
@@ -1509,6 +1659,33 @@ def build_current_upbit_paper_candidate_scorecard(
         "alternative_public_replay_replay_status": alternative_replay_context["replay_status"],
         "alternative_public_replay_sample_count": alternative_replay_context["sample_count"],
         "alternative_public_replay_primary_blocker_code": alternative_replay_context["primary_blocker_code"],
+        "alternative_public_replay_closed_trade_sample_count": alternative_replay_context[
+            "replay_closed_trade_sample_count"
+        ],
+        "alternative_public_replay_closed_trade_status": alternative_replay_context["replay_closed_trade_status"],
+        "alternative_public_replay_strategy_exit_policy_sample_count": alternative_replay_context[
+            "replay_strategy_exit_policy_sample_count"
+        ],
+        "alternative_public_replay_strategy_exit_policy_status": alternative_replay_context[
+            "replay_strategy_exit_policy_status"
+        ],
+        "alternative_public_replay_strategy_exit_policy_mismatch_count": alternative_replay_context[
+            "replay_strategy_exit_policy_mismatch_count"
+        ],
+        "alternative_public_replay_profit_factor": alternative_replay_context["replay_profit_factor"],
+        "alternative_public_replay_profit_factor_status": alternative_replay_context["replay_profit_factor_status"],
+        "alternative_public_replay_realized_vs_expected_edge_bps": alternative_replay_context[
+            "replay_realized_vs_expected_edge_bps"
+        ],
+        "alternative_public_replay_realized_vs_expected_edge_status": alternative_replay_context[
+            "replay_realized_vs_expected_edge_status"
+        ],
+        "alternative_public_replay_execution_cost_delta_bps": alternative_replay_context[
+            "replay_execution_cost_delta_bps"
+        ],
+        "alternative_public_replay_execution_cost_status": alternative_replay_context[
+            "replay_execution_cost_status"
+        ],
         "alternative_public_replay_candidate_review_evaluated_count": alternative_replay_context[
             "candidate_review_evaluated_count"
         ],
