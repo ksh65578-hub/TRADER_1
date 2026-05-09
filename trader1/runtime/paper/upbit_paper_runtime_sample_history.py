@@ -307,7 +307,10 @@ def _active_candidate_scope_fields(
                 "Keep PAPER running until a source-bound candidate, strategy, and parameter scope appears."
             ),
         }
-    active = summaries[0]
+    # Use the active scope as the next collection target.  A floor-met scope
+    # remains visible in candidate_scope_sample_summaries, but it must not pin
+    # PAPER focus while other candidate scopes still need samples.
+    active = next((summary for summary in summaries if _safe_int(summary.get("sample_deficit")) > 0), summaries[0])
     return {
         "candidate_scope_sample_summary_count": len(summaries),
         "candidate_scope_sample_summaries": summaries,
