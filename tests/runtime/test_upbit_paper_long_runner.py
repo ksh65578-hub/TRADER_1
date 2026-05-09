@@ -271,6 +271,71 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
         self.assertFalse(selected["live_order_allowed"])
         self.assertFalse(materialized["live_order_allowed"])
 
+    def test_runner_status_uses_source_derived_history_when_companion_is_stale(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+        from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
+            build_upbit_paper_runtime_sample_history,
+            validate_upbit_paper_runtime_sample_history_sources,
+            write_upbit_paper_runtime_sample_history,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "mvp1_upbit_paper_launcher"
+            first_loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="source-derived-history-status-a",
+                requested_cycle_count=1,
+            )
+            self.assertEqual(first_loop["loop_status"], "PASS")
+            stale_history = build_upbit_paper_runtime_sample_history(root=root, session_id=session_id)
+            self.assertEqual(
+                validate_upbit_paper_runtime_sample_history_sources(root=root, history=stale_history).status,
+                "PASS",
+            )
+            focus = stale_history["active_candidate_scope"]
+            self.assertIsInstance(focus, dict)
+            write_upbit_paper_runtime_sample_history(root=root, history=stale_history)
+
+            second_loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="source-derived-history-status-b",
+                requested_cycle_count=1,
+                paper_scope_focus=focus,
+            )
+            self.assertEqual(second_loop["loop_status"], "PASS")
+
+            report = long_runner.build_runner_status_report(
+                root=root,
+                runner_id="source-derived-history-status-runner",
+                session_id=session_id,
+                runner_status=RUNNER_STATUS_STOPPED,
+                started_at_utc=utc_now(),
+                completed_cycle_count=2,
+                failed_cycle_count=0,
+                cycle_interval_seconds=0,
+                loop_report=second_loop,
+                stop_reason="TEST",
+            )
+
+        self.assertEqual(report["runtime_sample_history_status"], "PASS")
+        self.assertEqual(report["runtime_sample_history_effective_source"], "RUNTIME_SOURCE_DERIVED_SAMPLE_HISTORY")
+        self.assertEqual(report["runtime_sample_history_source_consistency_status"], "PASS")
+        self.assertIn(
+            "COMPANION_HISTORY_HASH_MISMATCH_SOURCE_REFRESH_USED",
+            report["runtime_sample_history_source_consistency_issues"],
+        )
+        self.assertEqual(report["runtime_sample_history_companion_accepted_cycle_sample_count"], 1)
+        self.assertEqual(report["runtime_sample_history_companion_active_sample_count"], 1)
+        self.assertEqual(report["runtime_sample_count"], 2)
+        self.assertEqual(report["paper_scope_candidate_id"], focus["candidate_id"])
+        self.assertEqual(report["paper_scope_sample_count"], 2)
+        self.assertFalse(report["live_order_ready"])
+        self.assertFalse(report["live_order_allowed"])
+        self.assertFalse(report["can_live_trade"])
+        self.assertFalse(report["scale_up_allowed"])
+        self.assertNotEqual(long_runner.validate_upbit_paper_long_runner_status_report(report)["status"], "FAIL")
+
     def test_profitability_sample_selection_prefers_entry_review_over_later_no_trade(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
 

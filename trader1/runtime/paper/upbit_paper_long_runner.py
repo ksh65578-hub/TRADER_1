@@ -880,18 +880,95 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
     overfit_path = paper_overfit_diagnostic_path(root, session_id)
     evidence_path = paper_shadow_evidence_accumulation_path(root, session_id)
 
-    history = _read_json(history_path)
+    companion_history = _read_json(history_path)
     scorecard = _read_json(scorecard_path)
     overfit = _read_json(overfit_path)
     evidence = _read_json(evidence_path)
 
-    if isinstance(history, dict):
-        history_result = validate_upbit_paper_runtime_sample_history_sources(root=root, history=history)
+    source_history: dict[str, Any] | None = None
+    source_history_status = "NOT_LOADED"
+    source_history_blocker: str | None = "RUNTIME_SAMPLE_HISTORY_SOURCE_BUILD_MISSING"
+    source_history_message = "Runtime sample history has not been built from source cycle artifacts."
+    try:
+        candidate_source_history = build_upbit_paper_runtime_sample_history(root=root, session_id=session_id)
+        source_history_result = validate_upbit_paper_runtime_sample_history_sources(
+            root=root,
+            history=candidate_source_history,
+        )
+        source_history_status = _result_status(source_history_result)
+        source_history_blocker = _result_blocker_code(source_history_result)
+        source_history_message = str(getattr(source_history_result, "message", "") or "")
+        if source_history_status == "PASS":
+            source_history = candidate_source_history
+    except Exception as exc:  # pragma: no cover - runtime artifact discovery must fail closed.
+        source_history_status = "BLOCKED"
+        source_history_blocker = "RUNTIME_SAMPLE_HISTORY_SOURCE_BUILD_FAILED"
+        source_history_message = str(exc)
+
+    companion_generated_at = None
+    companion_accepted_count = 0
+    companion_active_candidate_id = None
+    companion_active_sample_count = 0
+    companion_history_hash = None
+    companion_issues: list[str] = []
+    if isinstance(companion_history, dict):
+        companion_result = validate_upbit_paper_runtime_sample_history_sources(root=root, history=companion_history)
+        companion_status = _result_status(companion_result)
+        companion_blocker = _result_blocker_code(companion_result)
+        companion_generated_at = companion_history.get("generated_at_utc")
+        companion_accepted_count = int(companion_history.get("accepted_cycle_sample_count") or 0)
+        companion_active = companion_history.get("active_candidate_scope")
+        companion_active_candidate_id = (
+            str(companion_active.get("candidate_id"))
+            if isinstance(companion_active, dict) and companion_active.get("candidate_id")
+            else None
+        )
+        companion_active_sample_count = int(companion_history.get("active_candidate_scope_sample_count") or 0)
+        companion_history_hash = companion_history.get("history_hash")
+        if companion_status != "PASS":
+            companion_issues.append(f"COMPANION_{companion_status}:{companion_blocker or 'UNKNOWN'}")
+    else:
+        companion_status = "NOT_LOADED"
+        companion_blocker = "RUNTIME_SAMPLE_HISTORY_COMPANION_MISSING"
+        companion_issues.append("COMPANION_NOT_LOADED")
+
+    history = source_history if isinstance(source_history, dict) else companion_history
+    consistency_issues = list(companion_issues)
+    if isinstance(source_history, dict) and isinstance(companion_history, dict):
+        if companion_history_hash != source_history.get("history_hash"):
+            consistency_issues.append("COMPANION_HISTORY_HASH_MISMATCH_SOURCE_REFRESH_USED")
+        if companion_accepted_count != int(source_history.get("accepted_cycle_sample_count") or 0):
+            consistency_issues.append("COMPANION_ACCEPTED_SAMPLE_COUNT_MISMATCH_SOURCE_REFRESH_USED")
+        source_active = source_history.get("active_candidate_scope")
+        source_active_candidate_id = (
+            str(source_active.get("candidate_id"))
+            if isinstance(source_active, dict) and source_active.get("candidate_id")
+            else None
+        )
+        if companion_active_candidate_id != source_active_candidate_id:
+            consistency_issues.append("COMPANION_ACTIVE_CANDIDATE_MISMATCH_SOURCE_REFRESH_USED")
+        if companion_active_sample_count != int(source_history.get("active_candidate_scope_sample_count") or 0):
+            consistency_issues.append("COMPANION_ACTIVE_SAMPLE_COUNT_MISMATCH_SOURCE_REFRESH_USED")
+
+    if isinstance(source_history, dict):
+        history_status = "PASS"
+        history_blocker = None
+        history_effective_source = "RUNTIME_SOURCE_DERIVED_SAMPLE_HISTORY"
+        consistency_status = "PASS"
+        consistency_blocker = None
+    elif isinstance(companion_history, dict):
+        history_result = validate_upbit_paper_runtime_sample_history_sources(root=root, history=companion_history)
         history_status = _result_status(history_result)
         history_blocker = _result_blocker_code(history_result)
+        history_effective_source = "COMPANION_SAMPLE_HISTORY_ARTIFACT"
+        consistency_status = "BLOCKED" if source_history_status not in {"NOT_LOADED", "PASS"} else companion_status
+        consistency_blocker = source_history_blocker or companion_blocker
     else:
         history_status = "NOT_LOADED"
         history_blocker = "RUNTIME_SAMPLE_HISTORY_MISSING"
+        history_effective_source = "NOT_LOADED"
+        consistency_status = "NOT_LOADED"
+        consistency_blocker = history_blocker
 
     scorecard_errors = _candidate_scorecard_contract_errors(scorecard) if isinstance(scorecard, dict) else []
     if not isinstance(scorecard, dict):
@@ -960,6 +1037,20 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
         "profitability_evidence_primary_blocker_code": blocker,
         "runtime_sample_history_path": str(history_path),
         "runtime_sample_history_status": history_status,
+        "runtime_sample_history_effective_source": history_effective_source,
+        "runtime_sample_history_source_status": source_history_status,
+        "runtime_sample_history_source_blocker_code": source_history_blocker,
+        "runtime_sample_history_source_message": source_history_message,
+        "runtime_sample_history_source_consistency_status": consistency_status,
+        "runtime_sample_history_source_consistency_issues": sorted(set(consistency_issues)),
+        "runtime_sample_history_source_consistency_blocker_code": consistency_blocker,
+        "runtime_sample_history_companion_path": str(history_path),
+        "runtime_sample_history_companion_status": companion_status,
+        "runtime_sample_history_companion_blocker_code": companion_blocker,
+        "runtime_sample_history_companion_generated_at_utc": companion_generated_at,
+        "runtime_sample_history_companion_accepted_cycle_sample_count": companion_accepted_count,
+        "runtime_sample_history_companion_active_candidate_id": companion_active_candidate_id,
+        "runtime_sample_history_companion_active_sample_count": companion_active_sample_count,
         "runtime_sample_count": int(history.get("accepted_cycle_sample_count") or 0) if isinstance(history, dict) else 0,
         "runtime_sample_invalid_source_count": int(history.get("invalid_source_count") or 0) if isinstance(history, dict) else 0,
         **_paper_scope_progress_fields(
