@@ -2165,6 +2165,118 @@ def _strategy_mutation_public_review_fields(context: dict[str, Any] | None = Non
     }
 
 
+def _strategy_mutation_compiler_artifact_fields(
+    *,
+    root: Path,
+    session_id: str,
+    active_candidate_id: str | None,
+) -> dict[str, Any]:
+    base = _strategy_mutation_public_review_fields(
+        {
+            "status": "NOT_RUN",
+            "blocker_code": None,
+            "candidate_id": active_candidate_id,
+            "source": "NO_CURRENT_MUTATION_REPORT",
+        }
+    )
+    base.update(
+        {
+            "strategy_mutation_compiler_report_current": False,
+            "strategy_mutation_compiler_report_ignored_candidate_id": None,
+            "strategy_mutation_compiler_message": (
+                "No current mutation compiler report has been written for this PAPER candidate yet."
+            ),
+        }
+    )
+    try:
+        from trader1.research.profitability.strategy_mutation_compiler import (
+            strategy_mutation_compiler_report_path,
+            validate_strategy_mutation_compiler_report,
+        )
+    except Exception as exc:
+        base.update(
+            {
+                "strategy_mutation_compiler_status": "BLOCKED",
+                "strategy_mutation_compiler_blocker_code": "STRATEGY_MUTATION_COMPILER_UNAVAILABLE",
+                "strategy_mutation_compiler_source": "MUTATION_COMPILER_IMPORT_FAILED",
+                "strategy_mutation_compiler_message": str(exc),
+            }
+        )
+        return base
+
+    path = strategy_mutation_compiler_report_path(root=root, session_id=session_id)
+    base["strategy_mutation_compiler_path"] = _relative_runtime_path(path, root)
+    if not path.exists():
+        return base
+    try:
+        report = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        base.update(
+            {
+                "strategy_mutation_compiler_status": "BLOCKED",
+                "strategy_mutation_compiler_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+                "strategy_mutation_compiler_source": "MUTATION_REPORT_UNREADABLE",
+                "strategy_mutation_compiler_message": str(exc),
+            }
+        )
+        return base
+
+    status, message, blocker_code = validate_strategy_mutation_compiler_report(report)
+    report_candidate_id = report.get("candidate_id") if isinstance(report, dict) else None
+    if status != "PASS":
+        base.update(
+            {
+                "strategy_mutation_compiler_status": "BLOCKED",
+                "strategy_mutation_compiler_blocker_code": blocker_code or "SCHEMA_IDENTITY_MISMATCH",
+                "strategy_mutation_compiler_candidate_id": active_candidate_id or report_candidate_id,
+                "strategy_mutation_compiler_source": "MUTATION_REPORT_INVALID",
+                "strategy_mutation_compiler_message": message,
+            }
+        )
+        return base
+
+    if active_candidate_id and report_candidate_id and str(report_candidate_id) != str(active_candidate_id):
+        base.update(
+            {
+                "strategy_mutation_compiler_report_ignored_candidate_id": str(report_candidate_id),
+                "strategy_mutation_compiler_source": "STALE_MUTATION_REPORT_IGNORED",
+                "strategy_mutation_compiler_message": (
+                    "Existing mutation report belongs to a different PAPER candidate and is ignored for current "
+                    "runner status."
+                ),
+            }
+        )
+        return base
+
+    spec = report.get("mutated_paper_candidate_spec") if isinstance(report, dict) else None
+    budget = report.get("mutation_budget_state") if isinstance(report, dict) else None
+    base.update(
+        _strategy_mutation_public_review_fields(
+            {
+                "status": str(report.get("compile_status") or "BLOCKED"),
+                "blocker_code": report.get("primary_blocker_code"),
+                "path": _relative_runtime_path(path, root),
+                "candidate_id": report_candidate_id or active_candidate_id,
+                "source": "CURRENT_MUTATION_REPORT",
+                "mutation_reason_code": report.get("mutation_reason_code"),
+                "mutation_id": spec.get("mutation_id") if isinstance(spec, dict) else None,
+                "mutated_paper_candidate_spec_id": spec.get("spec_id") if isinstance(spec, dict) else None,
+                "mutation_spec_hash": spec.get("spec_hash") if isinstance(spec, dict) else None,
+                "mutated_parameter_hash": spec.get("parameter_hash") if isinstance(spec, dict) else None,
+                "exploration_budget_id": budget.get("exploration_budget_id") if isinstance(budget, dict) else None,
+            }
+        )
+    )
+    base.update(
+        {
+            "strategy_mutation_compiler_report_current": True,
+            "strategy_mutation_compiler_report_ignored_candidate_id": None,
+            "strategy_mutation_compiler_message": message,
+        }
+    )
+    return base
+
+
 def _candidate_generation_public_review_blocked_fields(
     *,
     discovery_status: str = "NOT_REQUESTED",
@@ -3041,6 +3153,16 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
     else:
         refresh_status = NON_LIVE_PROFITABILITY_REFRESH_NOT_RUN
 
+    paper_scope_fields = _paper_scope_progress_fields(
+        history=history if isinstance(history, dict) else None,
+        evidence=evidence if isinstance(evidence, dict) else None,
+    )
+    strategy_mutation_fields = _strategy_mutation_compiler_artifact_fields(
+        root=root,
+        session_id=session_id,
+        active_candidate_id=paper_scope_fields.get("paper_scope_candidate_id"),
+    )
+
     return {
         "profitability_evidence_refresh_status": refresh_status,
         "profitability_evidence_primary_blocker_code": blocker,
@@ -3063,10 +3185,8 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
         "runtime_sample_history_companion_active_sample_count": companion_active_sample_count,
         "runtime_sample_count": int(history.get("accepted_cycle_sample_count") or 0) if isinstance(history, dict) else 0,
         "runtime_sample_invalid_source_count": int(history.get("invalid_source_count") or 0) if isinstance(history, dict) else 0,
-        **_paper_scope_progress_fields(
-            history=history if isinstance(history, dict) else None,
-            evidence=evidence if isinstance(evidence, dict) else None,
-        ),
+        **paper_scope_fields,
+        **strategy_mutation_fields,
         "candidate_scorecard_path": str(scorecard_path),
         "candidate_scorecard_status": scorecard_status,
         "candidate_scorecard_ranking_eligible": (
@@ -4658,6 +4778,47 @@ def validate_upbit_paper_long_runner_status_report(report: dict[str, Any]) -> di
     for field in ("paper_scope_continuity_requested", "paper_scope_continuity_selected"):
         if not isinstance(report.get(field), bool):
             return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SCOPE_CONTINUITY_INVALID", "field": field}
+    mutation_status_fields = (
+        "strategy_mutation_compiler_status",
+        "strategy_mutation_compiler_blocker_code",
+        "strategy_mutation_compiler_path",
+        "strategy_mutation_compiler_candidate_id",
+        "strategy_mutation_compiler_source",
+        "strategy_mutation_reason_code",
+        "strategy_mutation_id",
+        "strategy_mutated_paper_candidate_spec_id",
+        "strategy_mutation_spec_hash",
+        "strategy_mutated_parameter_hash",
+        "strategy_mutation_exploration_budget_id",
+        "strategy_mutation_ranking_eligible",
+        "strategy_mutation_compiler_report_current",
+        "strategy_mutation_compiler_report_ignored_candidate_id",
+        "strategy_mutation_compiler_message",
+    )
+    if any(field in report for field in mutation_status_fields):
+        missing_mutation_fields = [field for field in mutation_status_fields if field not in report]
+        if missing_mutation_fields:
+            return {
+                "status": "FAIL",
+                "blocker_code": "RUNNER_STATUS_MUTATION_FIELDS_INCOMPLETE",
+                "missing_fields": missing_mutation_fields,
+            }
+        if report.get("strategy_mutation_compiler_status") not in {"NOT_RUN", "PASS", "BLOCKED", "FAIL"}:
+            return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_MUTATION_STATUS_INVALID"}
+        if report.get("strategy_mutation_ranking_eligible") is not False:
+            return {"status": "BLOCKED", "blocker_code": "RUNNER_STATUS_MUTATION_RANKING_ENABLED"}
+        if not isinstance(report.get("strategy_mutation_compiler_report_current"), bool):
+            return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_MUTATION_CURRENT_FLAG_INVALID"}
+        if not isinstance(report.get("strategy_mutation_compiler_message"), str) or not report[
+            "strategy_mutation_compiler_message"
+        ]:
+            return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_MUTATION_MESSAGE_INVALID"}
+        if report.get("strategy_mutation_compiler_report_current") is True:
+            mutation_candidate_id = report.get("strategy_mutation_compiler_candidate_id")
+            if not mutation_candidate_id:
+                return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_MUTATION_CURRENT_CANDIDATE_MISSING"}
+            if report.get("paper_scope_candidate_id") and mutation_candidate_id != report.get("paper_scope_candidate_id"):
+                return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_MUTATION_CANDIDATE_MISMATCH"}
     symbol_scorecards_top = report.get("symbol_evidence_scorecards_top")
     if not isinstance(symbol_scorecards_top, list):
         return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SYMBOL_SCORECARDS_INVALID"}
