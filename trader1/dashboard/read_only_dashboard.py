@@ -17777,17 +17777,20 @@ def _operator_stop_status_summary(
     status = str(report.get("stop_request_status") or "UNKNOWN")
     confirmed = report.get("stop_confirmed") is True
     stopped_statuses = {"STOP_CONFIRMED", "NO_RUNNING_RUNNER"}
+    requested = status == "STOP_REQUESTED"
     base.update(
         {
-            "status": "STOPPED" if confirmed and status in stopped_statuses else status,
-            "severity": "WARNING" if confirmed else "ERROR",
-            "color_token": "yellow" if confirmed else "red",
+            "status": "STOPPED" if confirmed and status in stopped_statuses else "STOP_REQUESTED" if requested else status,
+            "severity": "WARNING" if confirmed or requested else "ERROR",
+            "color_token": "yellow" if confirmed or requested else "red",
             "stop_launcher_name": report.get("stop_launcher_name"),
             "target_launcher_name": report.get("target_launcher_name"),
             "stop_request_status": status,
             "stop_confirmed": confirmed,
             "dashboard_should_show_stopped": report.get("dashboard_should_show_stopped") is True,
             "dashboard_refresh_requested": report.get("dashboard_refresh_requested") is True,
+            "dashboard_refresh_status": str(report.get("dashboard_refresh_status") or "UNKNOWN"),
+            "dashboard_refresh_deferred": report.get("dashboard_refresh_deferred") is True,
             "generated_at_utc": report.get("generated_at_utc"),
             "runner_status_after": report.get("runner_status_after"),
             "runner_running_after": report.get("runner_running_after"),
@@ -17798,6 +17801,8 @@ def _operator_stop_status_summary(
             "next_operator_action": (
                 "Start the launcher again only when you want to resume non-live collection."
                 if confirmed
+                else "Stop request was sent; the dashboard will switch to stopped after the runner confirms."
+                if requested
                 else "Wait for stop confirmation or inspect the stop request blocker."
             ),
         }
@@ -19682,7 +19687,9 @@ def build_read_only_dashboard_shell(
     runner_state_for_primary = str(runner_operations_status.get("runner_status") or "NOT_LOADED")
     profile_primary_status = str(paper_runtime_evidence_collection_profile_status.get("status") or "NOT_LOADED")
     stop_status_for_primary = str(operator_stop_status.get("status") or "NOT_REQUESTED")
-    if stop_status_for_primary == "STOPPED" and runner_state_for_primary != "RUNNING":
+    if stop_status_for_primary == "STOP_REQUESTED":
+        primary_status_text = f"{mode} STOP REQUESTED - READ ONLY, LIVE ORDERS BLOCKED"
+    elif stop_status_for_primary == "STOPPED" and runner_state_for_primary != "RUNNING":
         primary_status_text = f"{mode} STOPPED BY OPERATOR - READ ONLY, LIVE ORDERS BLOCKED"
     elif runner_primary_status == "STALE" and runner_state_for_primary in {"RUNNING", "STOPPED", "BLOCKED"}:
         primary_status_text = f"PAPER STALE - LAST RUNNER {runner_state_for_primary} - LIVE ORDERS BLOCKED"
@@ -19696,7 +19703,7 @@ def build_read_only_dashboard_shell(
         primary_status_text = "PAPER PROFILE CURRENT - RUNNER NOT PROVEN - LIVE ORDERS BLOCKED"
     else:
         primary_status_text = "PAPER STATUS NOT LOADED - READ ONLY, LIVE ORDERS BLOCKED"
-    if stop_status_for_primary == "STOPPED" and runner_state_for_primary != "RUNNING":
+    if stop_status_for_primary in {"STOP_REQUESTED", "STOPPED"}:
         next_action_value = operator_stop_status.get("next_operator_action")
     elif reconciliation_blocks_operator_action:
         next_action_value = reconciliation_recovery_summary.get("next_operator_action")
@@ -26570,7 +26577,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"stop={safe_text(paper_runner_operations.get('stop_launcher_path', 'STOP_UPBIT_PAPER.py'))}</dd></div>"
         f"<div><dt>Stop status</dt><dd class=\"pill {status_class(operator_stop_status.get('status'))}\">{safe_text(operator_stop_status.get('status', 'NOT_REQUESTED'))}</dd></div>"
         f"<div><dt>Stop launcher</dt><dd>{safe_text(operator_stop_status.get('stop_launcher_name') or paper_runner_operations.get('stop_launcher_path', 'STOP_UPBIT_PAPER.py'))}<br>"
-        f"{safe_text(operator_stop_status.get('one_line_summary', 'No operator stop request is loaded.'))}</dd></div>"
+        f"{safe_text(operator_stop_status.get('one_line_summary', 'No operator stop request is loaded.'))}<br>"
+        f"{safe_text(operator_stop_status.get('next_operator_action', ''))}</dd></div>"
         f"<div><dt>Runner cycles</dt><dd>{safe_text(paper_runner_operations.get('completed_cycle_count', 0))} ok / {safe_text(paper_runner_operations.get('failed_cycle_count', 0))} fail</dd></div>"
         f"<div><dt>Next cycle</dt><dd>{safe_text(paper_runner_operations.get('next_cycle_eta') or 'not scheduled')}</dd></div>"
         f"<div><dt>Evidence refresh</dt><dd class=\"pill {status_class(paper_runner_operations.get('profitability_evidence_refresh_status'))}\">{safe_text(paper_runner_evidence_display)}</dd></div>"

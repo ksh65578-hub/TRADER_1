@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import subprocess
 import sys
 import time
 import webbrowser
@@ -3255,6 +3256,7 @@ def _request_single_root_launcher_stop(
     root: Path,
     wait_timeout_seconds: float,
     poll_interval_seconds: float,
+    refresh_dashboard: bool = True,
 ) -> dict[str, Any]:
     target_report = build_launcher_report(target_launcher_name)
     if target_launcher_name == "UPBIT_PAPER":
@@ -3299,13 +3301,21 @@ def _request_single_root_launcher_stop(
             primary_blocker_message="No active background runner was detected for this fail-closed launcher.",
         )
     write_root_stop_request_report(stop_report, root=root)
+    if not refresh_dashboard:
+        stop_report["dashboard_refresh_status"] = "DEFERRED"
+        stop_report["dashboard_refresh_deferred"] = True
+        stop_report["stop_request_hash"] = root_stop_request_report_hash(stop_report)
+        write_root_stop_request_report(stop_report, root=root)
+        return stop_report
     try:
         write_launcher_dashboard(target_report, root)
         stop_report["dashboard_refresh_status"] = "PASS"
+        stop_report["dashboard_refresh_deferred"] = False
         stop_report["stop_request_hash"] = root_stop_request_report_hash(stop_report)
         write_root_stop_request_report(stop_report, root=root)
     except Exception as exc:
         stop_report["dashboard_refresh_status"] = "BLOCKED"
+        stop_report["dashboard_refresh_deferred"] = False
         stop_report["primary_blocker_code"] = stop_report.get("primary_blocker_code") or "DASHBOARD_REFRESH_FAILED"
         stop_report["primary_blocker_message"] = str(exc)
         stop_report["stop_request_hash"] = root_stop_request_report_hash(stop_report)
@@ -3319,6 +3329,7 @@ def request_root_stop_launcher(
     root: Path = ROOT,
     wait_timeout_seconds: float = 90.0,
     poll_interval_seconds: float = 1.0,
+    refresh_dashboard: bool = True,
 ) -> dict[str, Any]:
     if stop_launcher_name not in ROOT_STOP_LAUNCHER_TARGETS:
         raise ValueError(f"unknown stop launcher: {stop_launcher_name}")
@@ -3330,13 +3341,16 @@ def request_root_stop_launcher(
             root=root,
             wait_timeout_seconds=wait_timeout_seconds,
             poll_interval_seconds=poll_interval_seconds,
+            refresh_dashboard=refresh_dashboard,
         )
         for target_name in target_names
     ]
     if len(target_reports) == 1:
         return target_reports[0]
     all_confirmed = all(report.get("stop_confirmed") is True for report in target_reports)
-    any_requested = any(report.get("stop_request_status") == "STOP_CONFIRMED" for report in target_reports)
+    any_confirmed = any(report.get("stop_request_status") == "STOP_CONFIRMED" for report in target_reports)
+    any_requested = any(report.get("stop_request_status") == "STOP_REQUESTED" for report in target_reports)
+    any_blocked = any(report.get("stop_request_status") in {"BLOCKED", "STOP_REQUEST_TIMEOUT"} for report in target_reports)
     aggregate = {
         "schema_id": "trader1.root_stop_aggregate_report.v1",
         "generated_at_utc": utc_now(),
@@ -3344,11 +3358,24 @@ def request_root_stop_launcher(
         "stop_launcher_name": stop_launcher_name,
         "target_launcher_names": list(target_names),
         "target_stop_reports": target_reports,
-        "stop_request_status": "STOP_CONFIRMED" if all_confirmed and any_requested else "NO_RUNNING_RUNNER" if all_confirmed else "BLOCKED",
+        "stop_request_status": (
+            "BLOCKED"
+            if any_blocked
+            else "STOP_CONFIRMED"
+            if all_confirmed and any_confirmed
+            else "NO_RUNNING_RUNNER"
+            if all_confirmed
+            else "STOP_REQUESTED"
+            if any_requested
+            else "BLOCKED"
+        ),
         "stop_confirmed": all_confirmed,
         "dashboard_refresh_status": "PASS"
         if all(report.get("dashboard_refresh_status") == "PASS" for report in target_reports)
+        else "DEFERRED"
+        if all(report.get("dashboard_refresh_status") in {"PASS", "DEFERRED"} for report in target_reports)
         else "BLOCKED",
+        "dashboard_refresh_deferred": any(report.get("dashboard_refresh_status") == "DEFERRED" for report in target_reports),
         "live_order_ready": False,
         "live_order_allowed": False,
         "can_live_trade": False,
@@ -3363,28 +3390,152 @@ def request_root_stop_launcher(
     return aggregate
 
 
+def _root_stop_dashboard_refresh_creation_flags() -> int:
+    if os.name != "nt":
+        return 0
+    return int(getattr(subprocess, "CREATE_NO_WINDOW", 0)) | int(getattr(subprocess, "DETACHED_PROCESS", 0))
+
+
+def _confirm_deferred_upbit_stop_report_if_stopped(report: dict[str, Any], *, root: Path) -> dict[str, Any]:
+    if report.get("target_launcher_name") != "UPBIT_PAPER" or report.get("stop_request_status") != "STOP_REQUESTED":
+        return report
+    runner_status_path = report.get("runner_status_path")
+    status_path = Path(str(runner_status_path)) if runner_status_path else None
+    if status_path is None or not status_path.exists():
+        return report
+    try:
+        runner_status = load_json(status_path)
+    except Exception:
+        return report
+    if not isinstance(runner_status, dict) or runner_status.get("runner_status") != "STOPPED":
+        return report
+    updated = dict(report)
+    updated["stop_request_status"] = "STOP_CONFIRMED"
+    updated["stop_confirmed"] = True
+    updated["runner_status_after"] = runner_status.get("runner_status")
+    updated["runner_running_after"] = runner_status.get("running")
+    updated["dashboard_should_show_stopped"] = True
+    updated["stop_result_summary"] = "UPBIT PAPER runner stopped after the fast operator stop request."
+    updated["stop_request_hash"] = root_stop_request_report_hash(updated)
+    write_root_stop_request_report(updated, root=root)
+    return updated
+
+
+def refresh_root_stop_dashboard_for_stop_launcher(stop_launcher_name: str, *, root: Path = ROOT) -> dict[str, Any]:
+    if stop_launcher_name not in ROOT_STOP_LAUNCHER_TARGETS:
+        raise ValueError(f"unknown stop launcher: {stop_launcher_name}")
+    refreshed: list[dict[str, Any]] = []
+    for target_launcher_name in ROOT_STOP_LAUNCHER_TARGETS[stop_launcher_name]:
+        target_report = build_launcher_report(target_launcher_name)
+        paths = launcher_dashboard_paths(target_report, root)
+        stop_report = load_json(paths["root_stop_request_report"]) if paths["root_stop_request_report"].exists() else None
+        if isinstance(stop_report, dict):
+            stop_report = _confirm_deferred_upbit_stop_report_if_stopped(stop_report, root=root)
+        write_launcher_dashboard(target_report, root)
+        if isinstance(stop_report, dict):
+            stop_report["dashboard_refresh_status"] = "PASS"
+            stop_report["dashboard_refresh_deferred"] = False
+            stop_report["stop_request_hash"] = root_stop_request_report_hash(stop_report)
+            write_root_stop_request_report(stop_report, root=root)
+            refreshed.append(stop_report)
+    return {
+        "status": "PASS",
+        "stop_launcher_name": stop_launcher_name,
+        "target_launcher_names": list(ROOT_STOP_LAUNCHER_TARGETS[stop_launcher_name]),
+        "refreshed_count": len(refreshed),
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
+def start_root_stop_dashboard_refresh_background(stop_launcher_name: str, *, root: Path = ROOT) -> dict[str, Any]:
+    root = Path(root)
+    command = [
+        sys.executable,
+        "-B",
+        "-c",
+        (
+            "from pathlib import Path; "
+            "from trader1.runtime.boot.safe_launcher import refresh_root_stop_dashboard_for_stop_launcher; "
+            f"refresh_root_stop_dashboard_for_stop_launcher({stop_launcher_name!r}, root=Path({str(root)!r}))"
+        ),
+    ]
+    report = {
+        "status": "NOT_STARTED",
+        "stop_launcher_name": stop_launcher_name,
+        "background_dashboard_refresh_started": False,
+        "background_dashboard_refresh_pid": None,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    try:
+        process = subprocess.Popen(
+            command,
+            cwd=str(root),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=_root_stop_dashboard_refresh_creation_flags(),
+        )
+    except Exception as exc:
+        report.update(
+            {
+                "status": "BLOCKED",
+                "primary_blocker_code": "BACKGROUND_DASHBOARD_REFRESH_START_FAILED",
+                "primary_blocker_message": str(exc),
+            }
+        )
+        return report
+    report.update(
+        {
+            "status": "STARTED",
+            "background_dashboard_refresh_started": True,
+            "background_dashboard_refresh_pid": int(getattr(process, "pid", 0) or 0) or None,
+        }
+    )
+    return report
+
+
 def root_stop_launcher_main(stop_launcher_name: str, *, root: Path = ROOT) -> int:
     wait_timeout = _optional_nonnegative_float_env("TRADER1_ROOT_STOP_WAIT_SECONDS")
     poll_interval = _optional_nonnegative_float_env("TRADER1_ROOT_STOP_POLL_SECONDS")
-    effective_wait_timeout = 90.0 if wait_timeout is None else wait_timeout
+    sync_dashboard_refresh = _optional_bool_env("TRADER1_ROOT_STOP_SYNC_DASHBOARD_REFRESH", default=False)
+    effective_wait_timeout = 0.0 if wait_timeout is None else wait_timeout
     effective_poll_interval = 1.0 if poll_interval is None else poll_interval
+    waiting_for_stop_confirmation = effective_wait_timeout > 0
     print(f"TRADER_1 {stop_launcher_name} requesting_stop=true", flush=True)
     print("operator_console_auto_closes=true", flush=True)
     print(
-        f"waiting_for_stop_confirmation=true wait_timeout_seconds={effective_wait_timeout}",
+        "waiting_for_stop_confirmation="
+        f"{str(waiting_for_stop_confirmation).lower()} wait_timeout_seconds={effective_wait_timeout}",
         flush=True,
     )
-    print("dashboard_will_show_stopped_after_confirmation=true", flush=True)
+    print(f"dashboard_refresh_mode={'sync' if sync_dashboard_refresh else 'background'}", flush=True)
     print("live_order_ready=false live_order_allowed=false can_live_trade=false scale_up_allowed=false", flush=True)
     report = request_root_stop_launcher(
         stop_launcher_name,
         root=root,
         wait_timeout_seconds=effective_wait_timeout,
         poll_interval_seconds=effective_poll_interval,
+        refresh_dashboard=sync_dashboard_refresh,
     )
+    background_refresh = None
+    if not sync_dashboard_refresh and report.get("dashboard_refresh_status") == "DEFERRED":
+        background_refresh = start_root_stop_dashboard_refresh_background(stop_launcher_name, root=root)
     print(f"TRADER_1 {stop_launcher_name} status={report.get('stop_request_status')}", flush=True)
     print(f"stop_confirmed={str(report.get('stop_confirmed') is True).lower()}", flush=True)
     print(f"dashboard_refresh_status={report.get('dashboard_refresh_status')}", flush=True)
+    if background_refresh is not None:
+        print(
+            "background_dashboard_refresh_started="
+            f"{str(background_refresh.get('background_dashboard_refresh_started') is True).lower()}",
+            flush=True,
+        )
+        print(f"background_dashboard_refresh_pid={background_refresh.get('background_dashboard_refresh_pid')}", flush=True)
     if "target_stop_reports" in report:
         for target_report in report.get("target_stop_reports", []):
             if isinstance(target_report, dict):
@@ -3399,7 +3550,10 @@ def root_stop_launcher_main(stop_launcher_name: str, *, root: Path = ROOT) -> in
         print(f"runner_status_path={report.get('runner_status_path')}", flush=True)
         print(f"stop_file_path={report.get('stop_file_path')}", flush=True)
     print("live_order_ready=false live_order_allowed=false can_live_trade=false scale_up_allowed=false", flush=True)
-    return 0 if report.get("stop_confirmed") is True and report.get("dashboard_refresh_status") == "PASS" else 1
+    ok_statuses = {"STOP_CONFIRMED", "NO_RUNNING_RUNNER", "STOP_REQUESTED"}
+    refresh_ok = report.get("dashboard_refresh_status") in {"PASS", "DEFERRED"}
+    background_ok = background_refresh is None or background_refresh.get("background_dashboard_refresh_started") is True
+    return 0 if report.get("stop_request_status") in ok_statuses and refresh_ok and background_ok else 1
 
 
 def should_pause_for_operator(pause: bool | None = None) -> bool:
