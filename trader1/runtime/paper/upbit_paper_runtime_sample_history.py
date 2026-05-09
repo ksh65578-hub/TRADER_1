@@ -489,6 +489,13 @@ def _strategy_id_for_family(strategy_family: str) -> str:
 
 
 def _candidate_parameter_hash(candidate: dict[str, Any]) -> str | None:
+    explicit_hash = str(candidate.get("parameter_hash") or "").upper()
+    if (
+        candidate.get("mutation_status") == "APPLIED_TO_PAPER_CANDIDATE"
+        and candidate.get("mutation_id")
+        and re.fullmatch(r"[0-9A-F]{64}", explicit_hash)
+    ):
+        return explicit_hash
     candidate_id = str(candidate.get("candidate_id") or "")
     strategy_family = str(candidate.get("strategy_family") or "")
     symbol = str(candidate.get("symbol") or "")
@@ -497,13 +504,24 @@ def _candidate_parameter_hash(candidate: dict[str, Any]) -> str | None:
     return hashlib.sha256(f"{candidate_id}:{strategy_family}:{symbol}".encode("utf-8")).hexdigest().upper()
 
 
+_PAPER_SCOPE_FOCUS_SAMPLE_HISTORY_STATUSES = frozenset(
+    {
+        "SELECTED",
+        "MANAGED_POSITION_OVERRIDES_SCOPE_FOCUS",
+        "FOCUS_CANDIDATE_NOT_ENTRY_REVIEW",
+        "SCORE_GAP_TOO_WIDE",
+        "NET_EV_GAP_TOO_WIDE",
+    }
+)
+
+
 def _paper_scope_focus_candidate_from_runtime_cycle(runtime_cycle: dict[str, Any]) -> dict[str, Any] | None:
     continuity = runtime_cycle.get("paper_scope_continuity_decision")
     if not isinstance(continuity, dict):
         return None
-    if continuity.get("selection_status") != "MANAGED_POSITION_OVERRIDES_SCOPE_FOCUS":
-        return None
     if continuity.get("requested") is not True:
+        return None
+    if str(continuity.get("selection_status") or "") not in _PAPER_SCOPE_FOCUS_SAMPLE_HISTORY_STATUSES:
         return None
 
     requested_candidate_id = str(continuity.get("requested_candidate_id") or "")
@@ -518,8 +536,6 @@ def _paper_scope_focus_candidate_from_runtime_cycle(runtime_cycle: dict[str, Any
             continue
         if candidate.get("candidate_id") != requested_candidate_id:
             continue
-        if candidate.get("decision") != "PAPER_ENTRY_REVIEW":
-            return None
         if not _candidate_is_non_live(candidate):
             return None
         candidate_symbol = str(candidate.get("symbol") or "")
