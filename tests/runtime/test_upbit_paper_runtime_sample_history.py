@@ -131,7 +131,7 @@ class UpbitPaperRuntimeSampleHistoryTest(unittest.TestCase):
         self.assertEqual(focused_history["active_candidate_scope_sample_deficit"], 28)
         self.assertFalse(focused_history["live_order_allowed"])
 
-    def test_active_scope_prefers_latest_collectable_candidate_over_older_larger_scope(self):
+    def test_active_scope_prefers_most_mature_candidate_scope_over_latest_switch(self):
         old_parameter_hash = "A" * 64
         new_parameter_hash = "B" * 64
         samples = [
@@ -222,9 +222,9 @@ class UpbitPaperRuntimeSampleHistoryTest(unittest.TestCase):
         )
 
         active = scope_fields["active_candidate_scope"]
-        self.assertEqual(active["candidate_id"], "KRW-NEW-breakout-retest-long")
-        self.assertEqual(active["sample_count"], 1)
-        self.assertEqual(active["sample_deficit"], 29)
+        self.assertEqual(active["candidate_id"], "KRW-OLD-pullback-trend-long")
+        self.assertEqual(active["sample_count"], 2)
+        self.assertEqual(active["sample_deficit"], 28)
         self.assertFalse(active["live_order_allowed"])
 
     def test_entry_reason_evidence_counts_blocked_candidate_entry_review(self):
