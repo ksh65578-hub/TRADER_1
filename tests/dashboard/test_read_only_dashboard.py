@@ -2615,6 +2615,47 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("querySelectorAll('[data-public-ticker-symbol=", html)
         self.assertIn("wss://api.upbit.com/websocket/v1", html)
 
+    def test_dashboard_top_action_prefers_running_runner_collection_over_reconciliation_blocker(self):
+        audited_writer_precheck = audited_writer_precheck_fixture()
+        session_id = audited_writer_precheck["session_id"]
+        summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+        runner_status = runner_status_fixture(session_id=session_id)
+
+        dashboard = build_read_only_dashboard_shell(
+            exchange=audited_writer_precheck["exchange"],
+            market_type=audited_writer_precheck["market_type"],
+            mode=audited_writer_precheck["mode"],
+            session_id=session_id,
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            upbit_paper_long_runner_status_report=runner_status,
+            upbit_paper_long_runner_retention_manifest=runner_retention_manifest_fixture(session_id=session_id),
+            upbit_paper_repaired_current_evidence_audited_writer_precheck_report=audited_writer_precheck,
+        )
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(dashboard["reconciliation_recovery_summary"]["status"], "BLOCKED")
+        self.assertEqual(
+            dashboard["reconciliation_recovery_summary"]["primary_blocker_code"],
+            "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+        )
+        self.assertEqual(dashboard["primary_status_text"], "PAPER RUNNING - READ ONLY, LIVE ORDERS BLOCKED")
+        self.assertEqual(
+            dashboard["next_action"],
+            "Collect 27 more PAPER samples for the same candidate/strategy/parameter scope.",
+        )
+        self.assertEqual(
+            dashboard["operator_action_summary"]["primary_blocker_code"],
+            "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+        )
+        self.assertFalse(dashboard["live_order_ready"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["can_live_trade"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
     def test_dashboard_shows_operator_stop_launcher_confirmed_status(self):
         session_id = "test_read_only_dashboard_runner_ops_stopped"
         stop_report = {
