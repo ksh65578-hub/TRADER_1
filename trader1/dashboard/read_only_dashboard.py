@@ -29211,6 +29211,70 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
           node.textContent = value == null || value === "" ? "not loaded" : String(value);
         }
       }
+      function runnerChannelPrimaryStatusText(payload) {
+        if (payload.live_flag_drift_detected === true) {
+          return "PAPER BLOCKED - LIVE FLAG DRIFT DETECTED";
+        }
+        if (payload.runner_status === "STOPPED") {
+          return "PAPER STOPPED BY OPERATOR - READ ONLY, LIVE ORDERS BLOCKED";
+        }
+        if (payload.stop_requested === true || payload.runner_status === "STOPPING") {
+          return "PAPER STOPPING - READ ONLY, LIVE ORDERS BLOCKED";
+        }
+        if (payload.running === true && payload.runner_status === "RUNNING") {
+          return "PAPER RUNNING - READ ONLY, LIVE ORDERS BLOCKED";
+        }
+        return "PAPER STATUS CHANNEL CONNECTED - LIVE ORDERS BLOCKED";
+      }
+      function runnerChannelNextAction(payload) {
+        var deficit = Number(payload.paper_scope_sample_deficit);
+        var sampleCount = Number(payload.paper_scope_sample_count);
+        var requiredCount = Number(payload.paper_scope_min_required_sample_count);
+        var candidate = payload.paper_scope_candidate_id || payload.current_symbol || "current candidate";
+        if (payload.live_flag_drift_detected === true) {
+          return "Stop PAPER and inspect live/order/key drift before collecting more samples.";
+        }
+        if (payload.runner_status === "STOPPED") {
+          return "Start PAPER again only when you want to resume non-live collection.";
+        }
+        if (payload.stop_requested === true || payload.runner_status === "STOPPING") {
+          return "Wait for the local runner channel to disconnect after the stop request.";
+        }
+        if (payload.running === true && payload.runner_status === "RUNNING") {
+          if (Number.isFinite(deficit) && deficit > 0) {
+            return "Collect " + String(deficit) + " more PAPER samples for " + String(candidate) + ".";
+          }
+          if (Number.isFinite(sampleCount) && Number.isFinite(requiredCount) && requiredCount > 0) {
+            return "Keep PAPER running while scorecard, replay, and cost checks refresh for " + String(candidate) + ".";
+          }
+          return "Keep PAPER running; the local runner channel is the current process view.";
+        }
+        return "Keep the PAPER launcher open from its local status URL, or restart PAPER if this channel disconnects.";
+      }
+      function updateFirstScreenFromRunnerChannel(payload) {
+        var primaryText = runnerChannelPrimaryStatusText(payload);
+        var nextAction = runnerChannelNextAction(payload);
+        var running = payload.running === true && payload.runner_status === "RUNNING";
+        var stopped = payload.runner_status === "STOPPED";
+        var stopping = payload.stop_requested === true || payload.runner_status === "STOPPING";
+        setRunnerChannelText("[data-primary-status-text]", primaryText);
+        setRunnerChannelText("[data-quick-run-status]", running ? "Running" : stopping ? "Stopping" : stopped ? "Stopped" : String(payload.runner_status || "Connected"));
+        setRunnerChannelText(
+          "[data-quick-run-detail]",
+          running
+            ? "Attached to the local PAPER runner process."
+            : stopping
+            ? "Stop request is being applied by the PAPER runner."
+            : stopped
+            ? "The PAPER runner has stopped; this page is status-only."
+            : "Connected to the local status channel."
+        );
+        setRunnerChannelText("[data-quick-run-context]", "Current: " + String(payload.current_symbol || "not loaded") + " / " + String(payload.last_decision || "not loaded"));
+        setRunnerChannelText("[data-quick-next-label]", running ? "Keep collecting" : stopping ? "Wait for stop" : stopped ? "Stopped" : "Inspect status");
+        setRunnerChannelText("[data-quick-next-action]", nextAction);
+        setRunnerChannelText("[data-quick-next-step]", running ? "Step: Collect Paper Evidence" : stopping ? "Step: Stop Requested" : stopped ? "Step: Restart When Needed" : "Step: Inspect Dashboard");
+        setRunnerChannelText("[data-quick-next-action-kind]", running ? "Action: Keep Running" : stopping ? "Action: Wait" : stopped ? "Action: Optional Restart" : "Action: Inspect Status");
+      }
       function applyRunnerStatus(payload) {
         if (!payload || typeof payload !== "object") {
           return;
@@ -29242,6 +29306,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
           ? "Operator stop was requested. This live process view will disconnect when the PAPER runner status channel shuts down."
           : "Dashboard is attached to the local read-only runner status channel. Orders, private endpoints, credentials, and LIVE_READY remain blocked.";
         setRunnerChannelText("[data-runner-channel-message]", message);
+        updateFirstScreenFromRunnerChannel(payload);
         var box = document.querySelector("[data-dashboard-freshness]");
         if (box) {
           box.className = drift || stopped || stopping ? "freshness-strip freshness-stale" : "freshness-strip freshness-fresh";
@@ -29475,7 +29540,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
 <body>
   <header>
     <h1>TRADER_1</h1>
-    <p>""" + safe_text(shell.get("primary_status_text", "")) + """</p>
+    <p data-primary-status-text>""" + safe_text(shell.get("primary_status_text", "")) + """</p>
   </header>
   <main>
     <section class="operator-decision-surface" aria-label="operator decision surface">
@@ -29490,9 +29555,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
       <section class="quick-status-tile quick-status-""" + safe_text(runner_quick_class) + """" aria-label="running state quick answer" data-primary-question="run">
         <span class="eyebrow">Run</span>
         <span class="question-label">Is it running normally?</span>
-        <strong>""" + safe_text(runner_quick_status) + """</strong>
-        <small>""" + safe_text(runner_quick_detail) + """</small>
-        <span class="live-answer-reason">Current: """ + safe_text(runner_current_symbol) + """ / """ + safe_text(runner_last_decision) + """</span>
+        <strong data-quick-run-status>""" + safe_text(runner_quick_status) + """</strong>
+        <small data-quick-run-detail>""" + safe_text(runner_quick_detail) + """</small>
+        <span class="live-answer-reason" data-quick-run-context>Current: """ + safe_text(runner_current_symbol) + """ / """ + safe_text(runner_last_decision) + """</span>
       </section>
       <section class="quick-status-tile quick-status-""" + safe_text(portfolio_quick_class) + """" aria-label="portfolio quick answer" data-primary-question="portfolio">
         <span class="eyebrow">Portfolio</span>
@@ -29503,10 +29568,10 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
       <section class="quick-status-tile quick-status-""" + safe_text(operator_color) + """" aria-label="operator next action quick answer" data-primary-question="next-action">
         <span class="eyebrow">Next</span>
         <span class="question-label">What should I do now?</span>
-        <strong>""" + safe_text(operator_action.get("primary_action_label", "Resolve dashboard blocker")) + """</strong>
-        <small>""" + safe_text(operator_action.get("next_operator_action", "Resolve visible blocker and rerun PAPER.")) + """</small>
-        <span class="live-answer-reason">Step: """ + safe_text(operator_action.get("workflow_step", "INSPECT_DASHBOARD")).replace("_", " ").title() + """</span>
-        <span class="live-answer-reason">Action: """ + safe_text(operator_action.get("primary_action", "RESOLVE_BLOCKER")).replace("_", " ").title() + """</span>
+        <strong data-quick-next-label>""" + safe_text(operator_action.get("primary_action_label", "Resolve dashboard blocker")) + """</strong>
+        <small data-quick-next-action>""" + safe_text(operator_action.get("next_operator_action", "Resolve visible blocker and rerun PAPER.")) + """</small>
+        <span class="live-answer-reason" data-quick-next-step>Step: """ + safe_text(operator_action.get("workflow_step", "INSPECT_DASHBOARD")).replace("_", " ").title() + """</span>
+        <span class="live-answer-reason" data-quick-next-action-kind>Action: """ + safe_text(operator_action.get("primary_action", "RESOLVE_BLOCKER")).replace("_", " ").title() + """</span>
       </section>
       <section class="quick-status-tile quick-status-yellow" aria-label="live execution quick answer" data-primary-question="live">
         <span class="eyebrow">Live</span>
