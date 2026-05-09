@@ -387,6 +387,64 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
         self.assertFalse(selected["live_order_allowed"])
         self.assertFalse(selected["can_live_trade"])
 
+    def test_profitability_sample_selection_honors_active_scope_no_trade_sample(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        samples = [
+            {
+                "cycle_id": "cycle-entry-review",
+                "source_runtime_cycle_path": "paper_runtime/cycles/cycle-entry-review.runtime_cycle.json",
+                "source_runtime_cycle_hash": "A" * 64,
+                "candidate_count": 60,
+                "entry_reason_count": 2,
+                "no_trade_reason_count": 2,
+                "scorecard_candidate_identity_binding_status": "BOUND",
+                "scorecard_candidate_live_flags_clear": True,
+                "scorecard_candidate_decision": "PAPER_ENTRY_REVIEW",
+                "scorecard_candidate_id": "KRW-ONDO-breakout-retest-long",
+                "scorecard_strategy_id": "breakout_retest",
+                "scorecard_parameter_hash": "B" * 64,
+                "scorecard_candidate_net_ev_after_cost_bps": "28.12",
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+            {
+                "cycle_id": "cycle-active-scope-no-trade",
+                "source_runtime_cycle_path": "paper_runtime/cycles/cycle-active-scope-no-trade.runtime_cycle.json",
+                "source_runtime_cycle_hash": "C" * 64,
+                "candidate_count": 51,
+                "entry_reason_count": 0,
+                "no_trade_reason_count": 3,
+                "scorecard_candidate_identity_binding_status": "BOUND",
+                "scorecard_candidate_live_flags_clear": True,
+                "scorecard_candidate_decision": "NO_TRADE",
+                "scorecard_candidate_id": "KRW-PROS-pullback-trend-long",
+                "scorecard_strategy_id": "trend_pullback",
+                "scorecard_parameter_hash": "D" * 64,
+                "scorecard_candidate_net_ev_after_cost_bps": "17.25",
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+        ]
+
+        selected = long_runner._select_profitability_evidence_sample(
+            samples,
+            active_scope={
+                "candidate_id": "KRW-PROS-pullback-trend-long",
+                "latest_runtime_cycle_hash": "C" * 64,
+                "latest_cycle_id": "cycle-active-scope-no-trade",
+            },
+        )
+
+        self.assertEqual(selected["cycle_id"], "cycle-active-scope-no-trade")
+        self.assertEqual(selected["scorecard_candidate_id"], "KRW-PROS-pullback-trend-long")
+        self.assertFalse(selected["live_order_allowed"])
+        self.assertFalse(selected["can_live_trade"])
+
     def test_profitability_sample_selection_fails_closed_without_usable_sample(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
 

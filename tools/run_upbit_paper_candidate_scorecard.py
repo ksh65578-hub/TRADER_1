@@ -174,6 +174,15 @@ def _blocked_result(message: str, blocker_code: str, **extra: Any) -> dict[str, 
     }
 
 
+def _scorecard_candidate_id_from_runtime_sample(sample: dict[str, Any]) -> str | None:
+    if sample.get("scorecard_candidate_identity_binding_status") != "BOUND":
+        return None
+    if sample.get("scorecard_candidate_live_flags_clear") is False:
+        return None
+    candidate_id = str(sample.get("scorecard_candidate_id") or "")
+    return candidate_id or None
+
+
 def _paper_shadow_identity_matches(scorecard: dict[str, Any], evidence: dict[str, Any]) -> bool:
     for field in ("candidate_id", "strategy_id", "strategy_build_id", "parameter_hash", "exchange", "market_type"):
         if str(scorecard.get(field) or "") != str(evidence.get(field) or ""):
@@ -1753,7 +1762,13 @@ def build_current_upbit_paper_candidate_scorecard(
             scorecard_runtime_selection_source=scorecard_runtime_selection_source,
         )
 
-    base_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+    scorecard_sample_candidate_id = _scorecard_candidate_id_from_runtime_sample(scorecard_sample)
+    scorecard_sample_candidate_decision = str(scorecard_sample.get("scorecard_candidate_decision") or "")
+    base_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+        runtime,
+        candidate_id=scorecard_sample_candidate_id,
+        allow_non_entry_review_candidate=scorecard_sample_candidate_id is not None,
+    )
     loaded_replay_robustness_report = load_public_replay_robustness_report(
         root=root,
         session_id=session_id,
@@ -1808,6 +1823,8 @@ def build_current_upbit_paper_candidate_scorecard(
     robustness_statuses, robustness_source_ids = robustness_inputs_from_overfit_diagnostic(diagnostic)
     scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
         runtime,
+        candidate_id=scorecard_sample_candidate_id,
+        allow_non_entry_review_candidate=scorecard_sample_candidate_id is not None,
         robustness_statuses=robustness_statuses,
         robustness_source_evidence_ids=robustness_source_ids,
         performance_statuses=performance_statuses,
@@ -1955,6 +1972,13 @@ def build_current_upbit_paper_candidate_scorecard(
         "runtime_sample_history_path": _relative_path(history_path, root),
         "overfit_diagnostic_path": _relative_path(diagnostic_path, root),
         "candidate_scorecard_path": _relative_path(scorecard_path, root),
+        "scorecard_runtime_sample_candidate_id": scorecard_sample_candidate_id,
+        "scorecard_runtime_sample_candidate_decision": scorecard_sample_candidate_decision,
+        "scorecard_candidate_identity_alignment_status": (
+            "BOUND_TO_RUNTIME_SAMPLE"
+            if scorecard_sample_candidate_id and scorecard.get("candidate_id") == scorecard_sample_candidate_id
+            else "UNBOUND"
+        ),
         "candidate_generation_report_path": _relative_path(candidate_generation_path, root),
         "candidate_discovery_runtime_cycle_path": (
             _relative_path(candidate_discovery_runtime_path, root)
