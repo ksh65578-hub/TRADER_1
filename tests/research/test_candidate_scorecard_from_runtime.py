@@ -19,7 +19,9 @@ from trader1.research.profitability.candidate_scorecard import (
     performance_source_evidence_id,
     robustness_source_evidence_id,
     safe_candidate_scorecard_filename,
+    source_role_semantics_errors,
     stable_hash,
+    strict_robustness_triplet_binding_from_source_ids,
     validate_candidate_generation_report,
     write_upbit_paper_candidate_scorecard,
 )
@@ -448,7 +450,7 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
 
         self.assertEqual(errors, [])
         self.assertFalse(scorecard["ranking_eligible"])
-        self.assertIn("SCORECARD_MISSING", {blocker["code"] for blocker in scorecard["blockers"]})
+        self.assertIn("ROBUSTNESS_TRIPLET_MISMATCH", {blocker["code"] for blocker in scorecard["blockers"]})
 
     def test_public_replay_failed_robustness_blocks_as_failed_not_missing(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-public-replay-fail")
@@ -860,7 +862,7 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertFalse(has_required_robustness_source_ids(scorecard["source_evidence_ids"]))
         self.assertFalse(scorecard["ranking_eligible"])
         self.assertEqual(scorecard["scorecard_scope"], "PAPER_EVIDENCE_COLLECTION_ONLY")
-        self.assertIn("SCORECARD_MISSING", {blocker["code"] for blocker in scorecard["blockers"]})
+        self.assertIn("ROBUSTNESS_TRIPLET_MISMATCH", {blocker["code"] for blocker in scorecard["blockers"]})
 
     def test_robustness_evidence_must_match_runtime_cycle_hash(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust-mismatch")
@@ -878,7 +880,60 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
 
         self.assertEqual(errors, [])
         self.assertFalse(scorecard["ranking_eligible"])
-        self.assertIn("SCORECARD_MISSING", {blocker["code"] for blocker in scorecard["blockers"]})
+        self.assertIsNone(
+            strict_robustness_triplet_binding_from_source_ids(
+                scorecard["source_evidence_ids"],
+                cycle_id=runtime["cycle_id"],
+                cycle_hash=runtime["cycle_hash"],
+            )
+        )
+        self.assertIn("ROBUSTNESS_TRIPLET_MISMATCH", {blocker["code"] for blocker in scorecard["blockers"]})
+
+    def test_robustness_evidence_triplet_rejects_cross_cycle_mix(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust-cross-cycle")
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses=ROBUSTNESS_PASS,
+            robustness_source_evidence_ids=[
+                robustness_source_evidence_id("oos", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("walk_forward", "other-cycle", runtime["cycle_hash"]),
+                robustness_source_evidence_id("bootstrap", runtime["cycle_id"], runtime["cycle_hash"]),
+            ],
+        )
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        self.assertFalse(scorecard["ranking_eligible"])
+        self.assertIsNone(
+            strict_robustness_triplet_binding_from_source_ids(
+                scorecard["source_evidence_ids"],
+                cycle_id=runtime["cycle_id"],
+                cycle_hash=runtime["cycle_hash"],
+            )
+        )
+        self.assertIn("ROBUSTNESS_TRIPLET_MISMATCH", {blocker["code"] for blocker in scorecard["blockers"]})
+
+    def test_source_role_semantics_rejects_malformed_known_prefixes(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-source-role-format")
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses=ROBUSTNESS_PASS,
+            robustness_source_evidence_ids=[
+                "oos:",
+                robustness_source_evidence_id("walk_forward", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("bootstrap", runtime["cycle_id"], runtime["cycle_hash"]),
+            ],
+        )
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        self.assertTrue(source_role_semantics_errors(["oos:"]))
+        self.assertFalse(scorecard["ranking_eligible"])
+        blocker_codes = {blocker["code"] for blocker in scorecard["blockers"]}
+        self.assertIn("SOURCE_ROLE_SEMANTICS_MISMATCH", blocker_codes)
+        self.assertIn("ROBUSTNESS_TRIPLET_MISMATCH", blocker_codes)
 
     def test_robustness_pass_still_blocks_without_closed_trade_performance(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust-no-performance")
