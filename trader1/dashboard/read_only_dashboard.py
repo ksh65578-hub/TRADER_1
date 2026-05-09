@@ -19737,13 +19737,13 @@ def build_read_only_dashboard_shell(
             "title": "Dashboard Data Freshness",
             "status": "AUTO_REFRESH_ENABLED",
             "truth_role": "dashboard_serving_truth",
-            "source": "heartbeat.json",
+            "source": "runner_status.json",
             "generated_at_utc": generated_at_utc,
             "auto_refresh_interval_seconds": DASHBOARD_AUTO_REFRESH_SECONDS,
             "stale_after_seconds": SOURCE_FRESHNESS_MAX_AGE_SECONDS,
             "client_stale_guard_enabled": True,
-            "refresh_mode": "LOCAL_FILE_RELOAD",
-            "next_action": "Keep the PAPER safe monitor running. If this page turns stale, rerun PAPER before trusting dashboard values.",
+            "refresh_mode": "LOCAL_STATUS_CHANNEL",
+            "next_action": "Keep the PAPER runner active. This dashboard uses the local read-only status channel when opened from the launcher; file reload is fallback only.",
             "display_only": True,
             "dashboard_truth_only": True,
             "live_order_ready": False,
@@ -20777,8 +20777,11 @@ def validate_read_only_dashboard_shell(
         or refresh_policy.get("scale_up_allowed")
     ):
         return DashboardValidationResult("BLOCKED", "dashboard refresh policy attempted to create live or scale permission", "LIVE_FINAL_GUARD_FAILED")
-    if refresh_policy.get("status") != "AUTO_REFRESH_ENABLED" or refresh_policy.get("refresh_mode") != "LOCAL_FILE_RELOAD":
-        return DashboardValidationResult("FAIL", "dashboard refresh policy must use local file reload", "SCHEMA_IDENTITY_MISMATCH")
+    if refresh_policy.get("status") != "AUTO_REFRESH_ENABLED" or refresh_policy.get("refresh_mode") not in {
+        "LOCAL_STATUS_CHANNEL",
+        "LOCAL_FILE_RELOAD",
+    }:
+        return DashboardValidationResult("FAIL", "dashboard refresh policy must use local status channel or file fallback", "SCHEMA_IDENTITY_MISMATCH")
     refresh_seconds = refresh_policy.get("auto_refresh_interval_seconds")
     stale_after = refresh_policy.get("stale_after_seconds")
     if not isinstance(refresh_seconds, int) or refresh_seconds < 1 or refresh_seconds > SOURCE_FRESHNESS_MAX_AGE_SECONDS:
@@ -26395,6 +26398,11 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     )
     source_health_status = "PASS" if source_attention_count == 0 and source_artifacts else "ATTENTION"
     source_health_display = f"{source_pass_count}/{len(source_artifacts)} PASS, {source_attention_count} attention"
+    paper_runner_operations = (
+        shell.get("paper_runner_operations_status", {})
+        if isinstance(shell.get("paper_runner_operations_status"), dict)
+        else {}
+    )
     freshness_html = (
         "<section class=\"freshness-strip\" data-dashboard-freshness "
         f"data-generated-at=\"{safe_text(shell.get('generated_at_utc', ''))}\" "
@@ -26408,10 +26416,15 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         "<dl>"
         f"<div><dt>Updated</dt><dd>{safe_text(shell.get('generated_at_utc', 'UNKNOWN'))}</dd></div>"
         "<div><dt>Age</dt><dd data-dashboard-age>0s</dd></div>"
-        f"<div><dt>Auto Refresh</dt><dd>{safe_text(refresh_seconds)}s</dd></div>"
+        f"<div><dt>Status Channel</dt><dd data-runner-channel-state>Connecting to local runner channel</dd></div>"
+        f"<div><dt>Runner</dt><dd><span data-runner-channel-runner-status>{safe_text(paper_runner_operations.get('runner_status', 'NOT_LOADED'))}</span>"
+        f" / <span data-runner-channel-cycles>{safe_text(paper_runner_operations.get('completed_cycle_count', 0))}</span> cycles</dd></div>"
+        f"<div><dt>Next Cycle</dt><dd data-runner-channel-next>{safe_text(paper_runner_operations.get('next_cycle_eta') or 'not scheduled')}</dd></div>"
+        f"<div><dt>Fallback Refresh</dt><dd>{safe_text(refresh_seconds)}s</dd></div>"
         f"<div><dt>Sources</dt><dd class=\"source-summary\">{source_summary_html}</dd></div>"
         "</dl>"
-        f"<p data-stale-warning>{safe_text(refresh_policy.get('next_action', 'Keep PAPER safe monitor running before trusting dashboard values.'))}</p>"
+        f"<p data-runner-channel-message>{safe_text(refresh_policy.get('next_action', 'Keep PAPER safe monitor running before trusting dashboard values.'))}</p>"
+        "<p data-stale-warning>Local runner status channel is primary; file refresh is fallback only.</p>"
         "</section>"
     )
 
@@ -29102,9 +29115,74 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         if (warning) {
           warning.textContent = stale
             ? "This dashboard page is older than the freshness limit. PAPER ledger values may be last verified simulated values, but runtime continuity is not proven; keep the safe monitor running or rerun PAPER."
-            : "This page reloads the local dashboard file while the safe monitor writes new snapshots.";
+            : "Local runner status channel is primary while this page is served by the PAPER runner; file refresh is fallback only.";
         }
         box.className = stale ? "freshness-strip freshness-stale" : "freshness-strip freshness-fresh";
+      }
+      function setRunnerChannelText(selector, value) {
+        var node = document.querySelector(selector);
+        if (node) {
+          node.textContent = value == null || value === "" ? "not loaded" : String(value);
+        }
+      }
+      function applyRunnerStatus(payload) {
+        if (!payload || typeof payload !== "object") {
+          return;
+        }
+        var drift = payload.live_flag_drift_detected === true;
+        var running = payload.running === true && payload.runner_status === "RUNNING";
+        var state = drift
+          ? "LIVE FLAG DRIFT BLOCKED"
+          : running
+          ? "Connected to running PAPER runner"
+          : "Connected; runner " + String(payload.runner_status || "not loaded").toLowerCase();
+        setRunnerChannelText("[data-runner-channel-state]", state);
+        setRunnerChannelText("[data-runner-channel-runner-status]", payload.runner_status);
+        setRunnerChannelText("[data-runner-channel-cycles]", payload.completed_cycle_count);
+        setRunnerChannelText("[data-runner-channel-next]", payload.next_cycle_eta || "not scheduled");
+        var message = drift
+          ? "Read-only dashboard detected live/scale flag drift in runner status and keeps live orders blocked."
+          : "Dashboard is attached to the local read-only runner status channel. Orders, private endpoints, credentials, and LIVE_READY remain blocked.";
+        setRunnerChannelText("[data-runner-channel-message]", message);
+        var box = document.querySelector("[data-dashboard-freshness]");
+        if (box) {
+          box.className = drift ? "freshness-strip freshness-stale" : "freshness-strip freshness-fresh";
+        }
+      }
+      function initializeRunnerStatusChannel() {
+        if (window.location.protocol !== "http:" && window.location.protocol !== "https:") {
+          setRunnerChannelText("[data-runner-channel-state]", "File fallback; open with the PAPER launcher for live runner status");
+          return false;
+        }
+        if ("EventSource" in window) {
+          try {
+            var events = new EventSource("/events");
+            events.addEventListener("runner_status", function (event) {
+              try {
+                applyRunnerStatus(JSON.parse(event.data));
+              } catch (error) {
+                setRunnerChannelText("[data-runner-channel-state]", "Runner channel parse error; waiting for next update");
+              }
+            });
+            events.onerror = function () {
+              setRunnerChannelText("[data-runner-channel-state]", "Runner status channel disconnected; showing last received status");
+            };
+            return true;
+          } catch (error) {
+            setRunnerChannelText("[data-runner-channel-state]", "Runner status channel unavailable; using file fallback");
+          }
+        }
+        function pollOnce() {
+          fetch("/api/runner-status", { cache: "no-store" })
+            .then(function (response) { return response.ok ? response.json() : null; })
+            .then(applyRunnerStatus)
+            .catch(function () {
+              setRunnerChannelText("[data-runner-channel-state]", "Runner status channel unavailable; using file fallback");
+            });
+        }
+        pollOnce();
+        window.setInterval(pollOnce, 1000);
+        return true;
       }
       function detailStateKey(detail, index) {
         var stableKey = detail.getAttribute("data-detail-key");
@@ -29268,9 +29346,10 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         restoreDetailState();
         initializePublicTickerStream();
         window.setInterval(updateDashboardFreshness, 1000);
+        var channelAttached = initializeRunnerStatusChannel();
         var box = document.querySelector("[data-dashboard-freshness]");
         var refreshSeconds = box ? Number(box.getAttribute("data-refresh-seconds") || "2") : 2;
-        if (Number.isFinite(refreshSeconds) && refreshSeconds >= 1) {
+        if (!channelAttached && Number.isFinite(refreshSeconds) && refreshSeconds >= 1) {
           window.setTimeout(function () { window.location.reload(); }, refreshSeconds * 1000);
         }
       }
