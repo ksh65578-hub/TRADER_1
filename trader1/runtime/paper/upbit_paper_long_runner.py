@@ -4917,13 +4917,13 @@ def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
     dashboard_open_result: DashboardOpenResult | None = None
     dashboard_opened = False
     dashboard_refresh_error: str | None = None
-    if refresh_dashboard and (not background_launch or open_dashboard):
+    if refresh_dashboard and not background_launch:
         try:
             _maybe_refresh_dashboard(root)
         except Exception as exc:
             dashboard_refresh_error = str(exc)
             print(f"TRADER_1 UPBIT_PAPER dashboard_refresh_failed={exc}", flush=True)
-    if open_dashboard:
+    if open_dashboard and not background_launch:
         if dashboard_refresh_error:
             dashboard_open_result = dashboard_preopen_refresh_failed_result(
                 root,
@@ -4941,6 +4941,35 @@ def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
             print(f"dashboard_open_blocker_message={dashboard_open_result.blocker_message}", flush=True)
         print(f"dashboard_path={runner_dashboard_path(root)}", flush=True)
     if background_launch and canonical_running_before_start:
+        if refresh_dashboard:
+            try:
+                _maybe_refresh_dashboard(root)
+            except Exception as exc:
+                dashboard_refresh_error = str(exc)
+                print(f"TRADER_1 UPBIT_PAPER dashboard_refresh_failed={exc}", flush=True)
+        if open_dashboard:
+            if dashboard_refresh_error:
+                dashboard_open_result = dashboard_preopen_refresh_failed_result(
+                    root,
+                    DEFAULT_SESSION_ID,
+                    error=dashboard_refresh_error,
+                )
+            else:
+                dashboard_open_result = open_runner_dashboard_result(root)
+            status_after_open = _read_json(runner_status_path(root))
+            if isinstance(status_after_open, dict):
+                try:
+                    _persist_dashboard_open_result(status_after_open, dashboard_open_result, root=root)
+                except Exception as exc:
+                    print(f"TRADER_1 UPBIT_PAPER dashboard_status_persist_failed={exc}", flush=True)
+            dashboard_opened = dashboard_open_result.opened
+            print(f"TRADER_1 UPBIT_PAPER dashboard_opened={str(dashboard_opened).lower()}", flush=True)
+            print(f"dashboard_open_method={dashboard_open_result.method}", flush=True)
+            print(f"dashboard_open_target={dashboard_open_result.target}", flush=True)
+            if dashboard_open_result.blocker_code:
+                print(f"dashboard_open_blocker_code={dashboard_open_result.blocker_code}", flush=True)
+                print(f"dashboard_open_blocker_message={dashboard_open_result.blocker_message}", flush=True)
+            print(f"dashboard_path={runner_dashboard_path(root)}", flush=True)
         print("TRADER_1 UPBIT_PAPER already_running=true", flush=True)
         print("background_runner_active=true", flush=True)
         print("operator_console_auto_closes=true", flush=True)
