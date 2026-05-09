@@ -428,8 +428,8 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(generation_report["generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_BLOCKED")
         self.assertEqual(generation_report["best_alternative_symbol"], "KRW-ETH")
         self.assertEqual(generation_report["best_alternative_public_replay_status"], "BLOCKED")
-        self.assertIn(generation_report["primary_blocker_code"], {"OOS_MISSING", "SAMPLE_INSUFFICIENT"})
-        self.assertIn("SAMPLE_INSUFFICIENT", {blocker["code"] for blocker in generation_report["blockers"]})
+        self.assertEqual(generation_report["primary_blocker_code"], "REPLAY_CLOSED_TRADES_MISSING")
+        self.assertIn("REPLAY_CLOSED_TRADES_MISSING", {blocker["code"] for blocker in generation_report["blockers"]})
         self.assertIn("Run bounded public replay robustness", generation_report["next_action"])
         self.assertEqual(generation_report["alternative_candidate_count"], 1)
         best_item = next(
@@ -464,8 +464,12 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         )
         self.assertFalse(alternative_replay["live_order_allowed"])
         self.assertEqual(result["candidate_generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_BLOCKED")
-        self.assertIn(result["candidate_generation_primary_blocker_code"], {"OOS_MISSING", "SAMPLE_INSUFFICIENT"})
+        self.assertEqual(result["candidate_generation_primary_blocker_code"], "REPLAY_CLOSED_TRADES_MISSING")
         self.assertEqual(result["candidate_generation_best_alternative_public_replay_status"], "BLOCKED")
+        self.assertEqual(
+            result["candidate_generation_best_alternative_public_replay_closed_trade_maturity_blocker_code"],
+            "REPLAY_CLOSED_TRADES_MISSING",
+        )
         self.assertFalse(generation_report["live_order_allowed"])
         self.assertFalse(result["credential_load_attempted"])
         self.assertFalse(result["private_endpoint_called"])

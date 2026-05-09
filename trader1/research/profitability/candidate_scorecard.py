@@ -1205,10 +1205,47 @@ def _public_replay_source_evidence_ids(report: dict[str, Any]) -> list[str]:
     return source_ids
 
 
+def _public_replay_closed_trade_maturity(report: dict[str, Any]) -> dict[str, Any]:
+    closed_count = int(report.get("replay_closed_trade_sample_count") or 0)
+    min_required = int(
+        report.get("min_required_closed_trade_sample_count")
+        or report.get("min_required_sample_count")
+        or 1
+    )
+    min_required = max(1, min_required)
+    deficit = max(0, min_required - closed_count)
+    status = str(report.get("replay_closed_trade_maturity_status") or "")
+    if status not in {"PASS", "BLOCKED", "UNTESTED"}:
+        if deficit <= 0:
+            status = "PASS"
+        elif closed_count > 0:
+            status = "BLOCKED"
+        else:
+            status = "UNTESTED"
+    blocker_code = report.get("replay_closed_trade_maturity_blocker_code")
+    if status != "PASS" and not blocker_code:
+        blocker_code = "REPLAY_CLOSED_TRADES_BELOW_MIN" if closed_count > 0 else "REPLAY_CLOSED_TRADES_MISSING"
+    return {
+        "min_required_closed_trade_sample_count": min_required,
+        "replay_closed_trade_deficit": deficit,
+        "replay_closed_trade_maturity_status": status,
+        "replay_closed_trade_maturity_blocker_code": blocker_code,
+    }
+
+
 def _best_alternative_public_replay_profitability_blocker(replay_report: dict[str, Any]) -> dict[str, str] | None:
+    maturity = _public_replay_closed_trade_maturity(replay_report)
+    if maturity["replay_closed_trade_maturity_status"] != "PASS":
+        closed_count = int(replay_report.get("replay_closed_trade_sample_count") or 0)
+        return blocker(
+            str(maturity["replay_closed_trade_maturity_blocker_code"] or "REPLAY_CLOSED_TRADES_MISSING"),
+            "Best alternative public replay has "
+            f"{closed_count}/{maturity['min_required_closed_trade_sample_count']} "
+            "candidate-owned closed trades; closed-trade maturity must pass before ranking review.",
+        )
     if int(replay_report.get("replay_closed_trade_sample_count") or 0) <= 0:
         return blocker(
-            "SAMPLE_INSUFFICIENT",
+            "REPLAY_CLOSED_TRADES_MISSING",
             "Best alternative public replay collected windows but has no candidate-owned closed trade evidence.",
         )
     if replay_report.get("replay_strategy_exit_policy_status") != "PASS":
@@ -1245,6 +1282,10 @@ def _best_alternative_replay_binding(
         "best_alternative_public_replay_report_hash": None,
         "best_alternative_public_replay_sample_count": 0,
         "best_alternative_public_replay_closed_trade_sample_count": 0,
+        "best_alternative_public_replay_min_closed_trade_sample_count": 0,
+        "best_alternative_public_replay_closed_trade_deficit": 0,
+        "best_alternative_public_replay_closed_trade_maturity_status": "UNTESTED",
+        "best_alternative_public_replay_closed_trade_maturity_blocker_code": None,
         "best_alternative_public_replay_strategy_exit_policy_sample_count": 0,
         "best_alternative_public_replay_profit_factor": 0.0,
         "best_alternative_public_replay_max_drawdown_bps": 0.0,
@@ -1255,6 +1296,7 @@ def _best_alternative_replay_binding(
     }
     if replay_report is None:
         return binding, None
+    maturity = _public_replay_closed_trade_maturity(replay_report)
     binding.update(
         {
             "best_alternative_public_replay_status": "BLOCKED",
@@ -1264,6 +1306,16 @@ def _best_alternative_replay_binding(
             "best_alternative_public_replay_closed_trade_sample_count": int(
                 replay_report.get("replay_closed_trade_sample_count") or 0
             ),
+            "best_alternative_public_replay_min_closed_trade_sample_count": maturity[
+                "min_required_closed_trade_sample_count"
+            ],
+            "best_alternative_public_replay_closed_trade_deficit": maturity["replay_closed_trade_deficit"],
+            "best_alternative_public_replay_closed_trade_maturity_status": maturity[
+                "replay_closed_trade_maturity_status"
+            ],
+            "best_alternative_public_replay_closed_trade_maturity_blocker_code": maturity[
+                "replay_closed_trade_maturity_blocker_code"
+            ],
             "best_alternative_public_replay_strategy_exit_policy_sample_count": int(
                 replay_report.get("replay_strategy_exit_policy_sample_count") or 0
             ),
@@ -1480,6 +1532,13 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
     )
     alternative_replay_passed = alternative_replay_binding["best_alternative_public_replay_status"] == "PASS"
     blockers = []
+    if live_flag_drift_count:
+        blockers.append(
+            blocker(
+                "LIVE_FINAL_GUARD_FAILED",
+                "Candidate generation rejected a candidate with live or scale-up permission drift.",
+            )
+        )
     if best is None:
         blockers.append(
             blocker(
@@ -1487,6 +1546,8 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
                 "Bounded candidate generation found no different non-live PAPER_ENTRY_REVIEW candidate above the minimum net EV threshold.",
             )
         )
+    if alternative_replay_blocker is not None:
+        blockers.append(alternative_replay_blocker)
     if failed_current_candidate and not alternative_replay_passed:
         blockers.append(
             blocker(
@@ -1494,10 +1555,6 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
                 "Current candidate is retired from ranking review until fresh robustness and performance evidence pass.",
             )
         )
-    if alternative_replay_blocker is not None:
-        blockers.append(alternative_replay_blocker)
-    if live_flag_drift_count:
-        blockers.append(blocker("LIVE_FINAL_GUARD_FAILED", "Candidate generation rejected a candidate with live or scale-up permission drift."))
     blockers.extend(discovery_blockers)
     if not selected_candidate_seen:
         blockers.append(blocker("SCORECARD_MISSING", "Current scorecard candidate was not present in the source runtime cycle candidate set."))
