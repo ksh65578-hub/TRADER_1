@@ -91,6 +91,8 @@
     "truth_role": {"const": "paper_current_truth_refresh_not_audited_writer"},
     "source_portfolio_schema_id": {"$ref": "#/$defs/string_or_null"},
     "source_portfolio_snapshot_hash": {"$ref": "#/$defs/hash_or_null"},
+    "source_mark_to_market_parent_snapshot_hash": {"$ref": "#/$defs/hash_or_null"},
+    "source_mark_to_market_parent_generated_at_utc": {"$ref": "#/$defs/string_or_null"},
     "source_portfolio_snapshot_generated_at_utc": {"$ref": "#/$defs/string_or_null"},
     "source_portfolio_snapshot_status": {"type": "string", "minLength": 1},
     "source_paper_ledger_head_hash": {"$ref": "#/$defs/hash_or_null"},

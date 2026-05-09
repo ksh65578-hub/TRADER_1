@@ -180,6 +180,11 @@ class PaperPortfolioTest(unittest.TestCase):
         position = marked["positions"][0]
         expected_quantity = Decimal("0.007") * Decimal("1000870") / close
         self.assertEqual(marked["mark_to_market_status"], "PASS_PUBLIC_MARK_TO_MARKET")
+        self.assertEqual(marked["source_mark_to_market_parent_snapshot_hash"], snapshot["snapshot_hash"])
+        self.assertEqual(
+            marked["source_mark_to_market_parent_generated_at_utc"],
+            snapshot["generated_at_utc"],
+        )
         self.assertEqual(marked["price_basis_repair_status"], "APPLIED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION")
         self.assertEqual(
             marked["price_basis_repair_source"],

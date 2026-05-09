@@ -11,6 +11,8 @@ from trader1.runtime.portfolio.paper_portfolio import (
     MARK_TO_MARKET_NOT_REQUIRED_STATUS,
     MARK_TO_MARKET_PASS_STATUS,
     PAPER_PORTFOLIO_SCHEMA_ID,
+    PUBLIC_MARK_PARENT_SNAPSHOT_GENERATED_AT_FIELD,
+    PUBLIC_MARK_PARENT_SNAPSHOT_HASH_FIELD,
     paper_portfolio_hash,
     validate_paper_portfolio_snapshot,
 )
@@ -122,6 +124,16 @@ def build_paper_current_truth_refresh_report(
             else None
         ),
         "source_portfolio_snapshot_hash": portfolio_hash,
+        "source_mark_to_market_parent_snapshot_hash": (
+            paper_portfolio_snapshot.get(PUBLIC_MARK_PARENT_SNAPSHOT_HASH_FIELD)
+            if isinstance(paper_portfolio_snapshot, dict)
+            else None
+        ),
+        "source_mark_to_market_parent_generated_at_utc": (
+            paper_portfolio_snapshot.get(PUBLIC_MARK_PARENT_SNAPSHOT_GENERATED_AT_FIELD)
+            if isinstance(paper_portfolio_snapshot, dict)
+            else None
+        ),
         "source_portfolio_snapshot_generated_at_utc": (
             paper_portfolio_snapshot.get("generated_at_utc")
             if isinstance(paper_portfolio_snapshot, dict)
@@ -364,6 +376,11 @@ def validate_paper_current_truth_refresh_report(
     if report.get("refresh_report_hash") != paper_current_truth_refresh_report_hash(report):
         return PaperCurrentTruthRefreshValidationResult(
             "FAIL", "paper current truth refresh hash mismatch", "SCHEMA_IDENTITY_MISMATCH"
+        )
+    parent_hash = report.get("source_mark_to_market_parent_snapshot_hash")
+    if parent_hash is not None and (not isinstance(parent_hash, str) or len(parent_hash) != 64):
+        return PaperCurrentTruthRefreshValidationResult(
+            "FAIL", "paper current truth refresh parent snapshot hash malformed", "SCHEMA_IDENTITY_MISMATCH"
         )
     false_fields = (
         "audited_current_evidence_writer",
