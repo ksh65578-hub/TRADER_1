@@ -24,6 +24,7 @@ UPBIT_PUBLIC_TICKER_SNAPSHOT_SCHEMA_ID = "trader1.upbit_public_ticker_snapshot_r
 UPBIT_PUBLIC_SYMBOL_RANKING_SCHEMA_ID = "trader1.upbit_public_krw_symbol_ranking_report.v1"
 DEFAULT_DISCOVERY_EVALUATION_LIMIT = 30
 DEFAULT_MINIMUM_DISCOVERY_QUOTE_VOLUME_KRW = Decimal("50000000")
+PUBLIC_CANDLE_HISTORY_MAX_TARGET_COUNT = 2400
 
 
 def _decimal_text(value: Any) -> str:
@@ -534,7 +535,7 @@ def fetch_upbit_public_candle_history_read_only(
     retry_backoff_seconds: float = 0.15,
     urlopen_fn: Callable[..., Any] = urlopen,
 ) -> dict[str, Any]:
-    safe_target_count = max(5, min(int(target_count), 1000))
+    safe_target_count = max(5, min(int(target_count), PUBLIC_CANDLE_HISTORY_MAX_TARGET_COUNT))
     safe_page_size = max(5, min(int(page_size), 200))
     safe_retry_attempts = max(1, min(int(retry_attempts), 5))
     safe_backoff_seconds = max(0.0, min(float(retry_backoff_seconds), 2.0))

@@ -28,6 +28,7 @@ PUBLIC_REPLAY_FETCH_FAILED_SOURCE = "PUBLIC_REST_READ_ONLY_FETCH_FAILED"
 PUBLIC_REPLAY_MIN_WINDOW_SIZE = 5
 PUBLIC_REPLAY_DEFAULT_WINDOW_SIZE = 6
 PUBLIC_REPLAY_DEFAULT_MAX_WINDOWS = 420
+PUBLIC_REPLAY_MAX_WINDOW_CAP = 2400
 ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -422,7 +423,7 @@ def build_public_replay_robustness_report(
     symbol = str(candidate_scorecard.get("symbol") or "")
     session_id = str(candidate_scorecard.get("session_id") or "mvp1_upbit_paper_launcher")
     safe_window_size = max(PUBLIC_REPLAY_MIN_WINDOW_SIZE, int(window_size))
-    safe_max_windows = max(1, min(int(max_replay_windows), 1000))
+    safe_max_windows = max(1, min(int(max_replay_windows), PUBLIC_REPLAY_MAX_WINDOW_CAP))
     replay_id = replay_id or f"public-replay:{candidate_scorecard.get('source_runtime_cycle_id')}:{candidate_scorecard.get('candidate_id')}"
     data_status, data_blocker, data_message = validate_upbit_public_candle_data(
         market_data,
@@ -580,7 +581,7 @@ def build_public_replay_fetch_failure_report(
     symbol = str(candidate_scorecard.get("symbol") or "")
     session_id = str(candidate_scorecard.get("session_id") or "mvp1_upbit_paper_launcher")
     safe_window_size = max(PUBLIC_REPLAY_MIN_WINDOW_SIZE, int(window_size))
-    safe_max_windows = max(1, min(int(max_replay_windows), 1000))
+    safe_max_windows = max(1, min(int(max_replay_windows), PUBLIC_REPLAY_MAX_WINDOW_CAP))
     failure_source = {
         "source": PUBLIC_REPLAY_FETCH_FAILED_SOURCE,
         "exchange": "UPBIT",

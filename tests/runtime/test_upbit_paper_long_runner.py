@@ -688,7 +688,13 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
         from trader1.research.profitability.candidate_scorecard import (
             candidate_generation_report_from_upbit_paper_runtime_cycle,
             candidate_scorecard_from_upbit_paper_runtime_cycle,
+            stable_hash,
             validate_candidate_generation_report,
+        )
+        from trader1.research.replay.replay_runner import (
+            PUBLIC_REPLAY_ROBUSTNESS_SCHEMA_ID,
+            PUBLIC_REPLAY_VALUE_SOURCE,
+            public_replay_robustness_report_hash,
         )
         from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
 
@@ -779,6 +785,150 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
         self.assertFalse(updated_report["live_order_allowed"])
         self.assertFalse(updated_report["can_live_trade"])
         self.assertFalse(updated_report["scale_up_allowed"])
+
+        calls = []
+
+        def pass_replay_report(candidate_id: str, symbol: str, strategy_id: str, strategy_family: str) -> dict:
+            report = {
+                "schema_id": PUBLIC_REPLAY_ROBUSTNESS_SCHEMA_ID,
+                "generated_at_utc": "2026-05-09T00:00:00Z",
+                "project_id": "TRADER_1",
+                "replay_id": f"public-replay-expanded:{candidate_id}",
+                "exchange": "UPBIT",
+                "market_type": "KRW_SPOT",
+                "mode": "REPLAY",
+                "session_id": session_id,
+                "symbol": symbol,
+                "candidate_id": candidate_id,
+                "strategy_id": strategy_id,
+                "strategy_build_id": "upbit_paper_runtime_cycle_v1",
+                "parameter_hash": stable_hash(f"{candidate_id}:{strategy_family}:{symbol}"),
+                "value_source": PUBLIC_REPLAY_VALUE_SOURCE,
+                "public_market_data_source": "PUBLIC_REST_READ_ONLY",
+                "public_market_data_hash": "C" * 64,
+                "window_size": 6,
+                "sample_count": 900,
+                "min_required_sample_count": 300,
+                "max_replay_windows": 900,
+                "sample_rows": [],
+                "replay_closed_trade_sample_count": 30,
+                "replay_closed_trade_status": "PASS",
+                "min_required_closed_trade_sample_count": 30,
+                "replay_closed_trade_deficit": 0,
+                "replay_closed_trade_maturity_status": "PASS",
+                "replay_closed_trade_maturity_blocker_code": None,
+                "replay_strategy_exit_policy_sample_count": 30,
+                "replay_strategy_exit_policy_match_count": 30,
+                "replay_strategy_exit_policy_mismatch_count": 0,
+                "replay_strategy_exit_policy_status": "PASS",
+                "replay_strategy_exit_reason_counts": [{"reason_code": "TREND_INVALIDATED", "count": 30}],
+                "replay_profit_factor": 1.5,
+                "replay_profit_factor_status": "PASS",
+                "replay_max_drawdown_bps": 50.0,
+                "replay_realized_vs_expected_edge_bps": 12.0,
+                "replay_realized_vs_expected_edge_status": "PASS",
+                "replay_fill_quality_score": 1.0,
+                "replay_execution_cost_delta_bps": 0.0,
+                "replay_execution_cost_status": "PASS",
+                "replay_performance_scope": "PUBLIC_REPLAY_ONLY_NOT_PAPER_RANKING",
+                "replay_status": "PASS",
+                "primary_blocker_code": None,
+                "blockers": [],
+                "credential_load_attempted": False,
+                "private_endpoint_called": False,
+                "order_endpoint_called": False,
+                "order_adapter_called": False,
+                "live_key_loaded": False,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+                "report_hash": "",
+            }
+            report["report_hash"] = public_replay_robustness_report_hash(report)
+            return report
+
+        def fake_replay_with_expansion(**kwargs):
+            calls.append(kwargs)
+            first_item = kwargs["candidate_generation_report"]["candidate_items"][0]
+            if len(calls) == 1:
+                return {
+                    "status": "BLOCKED",
+                    "blocker_code": "REPLAY_CLOSED_TRADES_BELOW_MIN",
+                    "message": "initial closed trade maturity below floor",
+                    "candidate_id": generation_report["best_alternative_candidate_id"],
+                    "symbol": generation_report["best_alternative_symbol"],
+                    "replay_status": "PASS",
+                    "sample_count": 415,
+                    "replay_closed_trade_sample_count": 3,
+                    "replay_closed_trade_deficit": 27,
+                    "replay_closed_trade_maturity_status": "BLOCKED",
+                    "replay_closed_trade_maturity_blocker_code": "REPLAY_CLOSED_TRADES_BELOW_MIN",
+                    "live_order_ready": False,
+                    "live_order_allowed": False,
+                    "can_live_trade": False,
+                    "scale_up_allowed": False,
+                }
+            report = pass_replay_report(
+                candidate_id=str(first_item["candidate_id"]),
+                symbol=str(first_item["symbol"]),
+                strategy_id=str(first_item["strategy_id"]),
+                strategy_family=str(first_item["strategy_family"]),
+            )
+            return {
+                "status": "PASS",
+                "blocker_code": None,
+                "message": "expanded public replay passed closed-trade maturity",
+                "candidate_id": report["candidate_id"],
+                "symbol": report["symbol"],
+                "replay_status": "PASS",
+                "sample_count": report["sample_count"],
+                "replay_closed_trade_sample_count": report["replay_closed_trade_sample_count"],
+                "replay_closed_trade_deficit": report["replay_closed_trade_deficit"],
+                "replay_closed_trade_maturity_status": report["replay_closed_trade_maturity_status"],
+                "replay_closed_trade_maturity_blocker_code": report["replay_closed_trade_maturity_blocker_code"],
+                "report": report,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with patch(
+                "tools.run_upbit_paper_candidate_scorecard._build_bounded_public_discovery_runtime_cycle",
+                side_effect=AssertionError("discovery should not run for an existing review-ready alternative"),
+            ), patch(
+                "tools.run_upbit_paper_candidate_scorecard._build_and_write_alternative_public_replay",
+                side_effect=fake_replay_with_expansion,
+            ):
+                expanded_report, expanded_fields, _ = long_runner._review_public_alternatives_for_candidate_generation(
+                    root=root,
+                    session_id=session_id,
+                    runtime=runtime,
+                    scorecard=scorecard,
+                    history={"history_id": "existing-review-ready-history", "history_hash": "H" * 64, "samples": []},
+                    candidate_generation_report=generation_report,
+                )
+
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[1]["target_count"], long_runner.DEFAULT_ALTERNATIVE_REPLAY_MATURITY_EXPANSION_TARGET_COUNT)
+        self.assertEqual(calls[1]["max_replay_windows"], long_runner.DEFAULT_ALTERNATIVE_REPLAY_MATURITY_EXPANSION_MAX_WINDOWS)
+        self.assertEqual(calls[1]["candidate_limit"], 1)
+        self.assertEqual(
+            calls[1]["candidate_generation_report"]["candidate_items"][0]["candidate_id"],
+            generation_report["best_alternative_candidate_id"],
+        )
+        self.assertEqual(expanded_report["generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_VALIDATED")
+        self.assertEqual(validate_candidate_generation_report(expanded_report, candidate_scorecard=scorecard)[0], "PASS")
+        self.assertTrue(expanded_fields["alternative_public_replay_maturity_expansion_attempted"])
+        self.assertEqual(expanded_fields["alternative_public_replay_maturity_expansion_status"], "PASS")
+        self.assertEqual(expanded_fields["alternative_public_replay_closed_trade_maturity_status"], "PASS")
+        self.assertFalse(expanded_report["live_order_ready"])
+        self.assertFalse(expanded_report["live_order_allowed"])
+        self.assertFalse(expanded_report["can_live_trade"])
+        self.assertFalse(expanded_report["scale_up_allowed"])
 
     def test_paper_scope_progress_prefers_candidate_scope_over_general_evidence_count(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
