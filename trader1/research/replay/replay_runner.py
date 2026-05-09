@@ -290,13 +290,32 @@ def _public_replay_closed_trade_summary(sample_rows: list[dict[str, Any]]) -> di
     }
 
 
-def min_required_closed_trade_sample_count_for_public_replay(min_required_sample_count: int) -> int:
-    """Derive closed-trade maturity separately from replay window count."""
-    window_minimum = max(1, int(min_required_sample_count))
+def required_replay_closed_trade_threshold(
+    replay_window_minimum: int,
+    runtime_mode: str,
+    replay_type: str,
+) -> int:
+    """Return the single closed-trade maturity floor used by replay promotion gates."""
+    window_minimum = max(1, int(replay_window_minimum))
+    normalized_mode = str(runtime_mode or "").strip().upper()
+    normalized_replay_type = str(replay_type or "").strip().upper()
+    if normalized_mode not in {"PAPER", "SHADOW", "REPLAY"}:
+        normalized_mode = "PAPER"
+    if normalized_replay_type not in {"PUBLIC_REPLAY", "PUBLIC", "PUBLIC_REPLAY_ROBUSTNESS"}:
+        normalized_replay_type = "PUBLIC_REPLAY"
     if window_minimum < 30:
         return window_minimum
     one_tenth_of_windows = (window_minimum + 9) // 10
     return max(30, min(120, one_tenth_of_windows))
+
+
+def min_required_closed_trade_sample_count_for_public_replay(min_required_sample_count: int) -> int:
+    """Backward-compatible public replay threshold wrapper."""
+    return required_replay_closed_trade_threshold(
+        replay_window_minimum=min_required_sample_count,
+        runtime_mode="PAPER",
+        replay_type="PUBLIC_REPLAY",
+    )
 
 
 def _public_replay_closed_trade_maturity_summary(
@@ -304,8 +323,10 @@ def _public_replay_closed_trade_maturity_summary(
     closed_trade_count: int,
     min_required_closed_trade_sample_count: int,
 ) -> dict[str, Any]:
-    safe_minimum = min_required_closed_trade_sample_count_for_public_replay(
-        int(min_required_closed_trade_sample_count)
+    safe_minimum = required_replay_closed_trade_threshold(
+        replay_window_minimum=int(min_required_closed_trade_sample_count),
+        runtime_mode="PAPER",
+        replay_type="PUBLIC_REPLAY",
     )
     deficit = max(0, safe_minimum - int(closed_trade_count))
     if deficit <= 0:
@@ -599,11 +620,15 @@ def build_public_replay_fetch_failure_report(
         "sample_rows": [],
         "replay_closed_trade_sample_count": 0,
         "replay_closed_trade_status": "UNTESTED",
-        "min_required_closed_trade_sample_count": min_required_closed_trade_sample_count_for_public_replay(
-            int(min_required_sample_count)
+        "min_required_closed_trade_sample_count": required_replay_closed_trade_threshold(
+            replay_window_minimum=int(min_required_sample_count),
+            runtime_mode="PAPER",
+            replay_type="PUBLIC_REPLAY",
         ),
-        "replay_closed_trade_deficit": min_required_closed_trade_sample_count_for_public_replay(
-            int(min_required_sample_count)
+        "replay_closed_trade_deficit": required_replay_closed_trade_threshold(
+            replay_window_minimum=int(min_required_sample_count),
+            runtime_mode="PAPER",
+            replay_type="PUBLIC_REPLAY",
         ),
         "replay_closed_trade_maturity_status": "UNTESTED",
         "replay_closed_trade_maturity_blocker_code": "REPLAY_CLOSED_TRADES_MISSING",

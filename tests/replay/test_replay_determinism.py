@@ -13,6 +13,7 @@ from trader1.research.replay.replay_runner import (
     min_required_closed_trade_sample_count_for_public_replay,
     public_replay_robustness_report_hash,
     public_replay_robustness_values_from_report,
+    required_replay_closed_trade_threshold,
     validate_public_replay_robustness_report,
     replay_consistency_hash,
     validate_replay_consistency_report,
@@ -251,11 +252,54 @@ class ReplayDeterminismTest(unittest.TestCase):
         self.assertFalse(report["live_order_allowed"])
 
     def test_closed_trade_maturity_threshold_is_not_window_count(self):
-        self.assertEqual(min_required_closed_trade_sample_count_for_public_replay(2), 2)
-        self.assertEqual(min_required_closed_trade_sample_count_for_public_replay(50), 30)
-        self.assertEqual(min_required_closed_trade_sample_count_for_public_replay(300), 30)
-        self.assertEqual(min_required_closed_trade_sample_count_for_public_replay(1000), 100)
-        self.assertEqual(min_required_closed_trade_sample_count_for_public_replay(5000), 120)
+        self.assertEqual(
+            required_replay_closed_trade_threshold(
+                replay_window_minimum=2,
+                runtime_mode="PAPER",
+                replay_type="PUBLIC_REPLAY",
+            ),
+            2,
+        )
+        self.assertEqual(
+            required_replay_closed_trade_threshold(
+                replay_window_minimum=50,
+                runtime_mode="PAPER",
+                replay_type="PUBLIC_REPLAY",
+            ),
+            30,
+        )
+        self.assertEqual(
+            required_replay_closed_trade_threshold(
+                replay_window_minimum=300,
+                runtime_mode="PAPER",
+                replay_type="PUBLIC_REPLAY",
+            ),
+            30,
+        )
+        self.assertEqual(
+            required_replay_closed_trade_threshold(
+                replay_window_minimum=1000,
+                runtime_mode="PAPER",
+                replay_type="PUBLIC_REPLAY",
+            ),
+            100,
+        )
+        self.assertEqual(
+            required_replay_closed_trade_threshold(
+                replay_window_minimum=5000,
+                runtime_mode="PAPER",
+                replay_type="PUBLIC_REPLAY",
+            ),
+            120,
+        )
+        self.assertEqual(
+            min_required_closed_trade_sample_count_for_public_replay(1000),
+            required_replay_closed_trade_threshold(
+                replay_window_minimum=1000,
+                runtime_mode="PAPER",
+                replay_type="PUBLIC_REPLAY",
+            ),
+        )
 
     def test_public_replay_ignores_non_target_candidate_fills_for_candidate_lifecycle(self):
         runtime = build_upbit_paper_runtime_cycle_report(

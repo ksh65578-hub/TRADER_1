@@ -54,6 +54,9 @@ from trader1.research.shadow.shadow_observation_runtime_orchestration import (
     shadow_observation_runtime_orchestration_hash,
     validate_shadow_observation_runtime_orchestration_report,
 )
+from trader1.runtime.paper.candidate_generation_intent_provider import (
+    default_candidate_generation_paper_intent_provider,
+)
 from trader1.runtime.paper.upbit_paper_persistent_loop import (
     LONG_RUN_EVIDENCE_BLOCKER_CODE,
     run_upbit_paper_persistent_loop,
@@ -708,6 +711,47 @@ def _paper_scope_continuity_focus_from_history(root: Path, session_id: str) -> d
         "can_live_trade": False,
         "scale_up_allowed": False,
     }
+
+
+def _paper_scope_focus_from_trade_intent_inputs(intent_inputs: Any) -> dict[str, Any] | None:
+    if intent_inputs is None:
+        return None
+    focus = intent_inputs.get("paper_scope_focus") if isinstance(intent_inputs, dict) else getattr(
+        intent_inputs,
+        "paper_scope_focus",
+        None,
+    )
+    if not isinstance(focus, dict):
+        return None
+    if any(focus.get(flag) for flag in LIVE_FALSE_FLAGS[:4]):
+        return None
+    candidate_id = str(focus.get("candidate_id") or "")
+    symbol = str(focus.get("symbol") or "").upper()
+    strategy_id = str(focus.get("strategy_id") or "")
+    parameter_hash = str(focus.get("parameter_hash") or "").upper()
+    sample_deficit = _int_value(focus.get("sample_deficit"), 0)
+    if not candidate_id or not symbol.startswith("KRW-") or not strategy_id or len(parameter_hash) != 64:
+        return None
+    if sample_deficit <= 0:
+        return None
+    normalized = dict(focus)
+    normalized.update(
+        {
+            "source": str(focus.get("source") or "CANDIDATE_GENERATION_PUBLIC_REPLAY_REHYDRATION"),
+            "candidate_id": candidate_id,
+            "symbol": symbol,
+            "strategy_id": strategy_id,
+            "parameter_hash": parameter_hash,
+            "sample_count": _int_value(focus.get("sample_count"), 0),
+            "sample_deficit": sample_deficit,
+            "scope_progress_status": str(focus.get("scope_progress_status") or "COLLECT_PAPER_SCOPE_SAMPLES"),
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+    )
+    return normalized
 
 
 def _candidate_scorecard_snapshot_fields(
@@ -2658,6 +2702,7 @@ def run_upbit_paper_long_running_runner(
     retention_max_uncompacted_archive_batches: int = DEFAULT_RETENTION_MAX_UNCOMPACTED_ARCHIVE_BATCHES,
     retention_log_max_bytes: int = DEFAULT_RUNNER_LOG_MAX_BYTES,
     disk_pressure_max_runtime_bytes: int = DEFAULT_RUNTIME_DISK_PRESSURE_MAX_BYTES,
+    paper_trade_intent_inputs_provider: Callable[..., Any] | None = None,
 ) -> dict[str, Any]:
     if cycle_interval_seconds < 0:
         raise ValueError("cycle_interval_seconds must be >= 0")
@@ -2795,6 +2840,52 @@ def run_upbit_paper_long_running_runner(
 
             cycle_loop_id = f"{runner_id}-cycle-{completed + 1:06d}"
             paper_scope_focus = _paper_scope_continuity_focus_from_history(root, session_id)
+            if paper_trade_intent_inputs_provider is not None:
+                try:
+                    latest_runtime_cycle = _load_latest_runtime_cycle(root, session_id)
+                    current_snapshot = (
+                        latest_runtime_cycle.get("paper_portfolio_snapshot")
+                        if isinstance(latest_runtime_cycle, dict)
+                        else None
+                    )
+                    intent_inputs = paper_trade_intent_inputs_provider(
+                        root=root,
+                        session_id=session_id,
+                        current_paper_portfolio_snapshot=current_snapshot,
+                        current_runtime_cycle_report=latest_runtime_cycle,
+                    )
+                    provider_focus = _paper_scope_focus_from_trade_intent_inputs(intent_inputs)
+                    if provider_focus is not None:
+                        paper_scope_focus = provider_focus
+                        _append_log(
+                            root,
+                            session_id,
+                            {
+                                "event": "paper_trade_intent_inputs_provider_selected_candidate",
+                                "candidate_id": provider_focus.get("candidate_id"),
+                                "symbol": provider_focus.get("symbol"),
+                                "source": provider_focus.get("source"),
+                                "at": utc_now(),
+                                "live_order_ready": False,
+                                "live_order_allowed": False,
+                                "can_live_trade": False,
+                                "scale_up_allowed": False,
+                            },
+                        )
+                except Exception as exc:  # pragma: no cover - provider failures must fail closed.
+                    _append_log(
+                        root,
+                        session_id,
+                        {
+                            "event": "paper_trade_intent_inputs_provider_blocked",
+                            "error": str(exc),
+                            "at": utc_now(),
+                            "live_order_ready": False,
+                            "live_order_allowed": False,
+                            "can_live_trade": False,
+                            "scale_up_allowed": False,
+                        },
+                    )
             loop_result = run_upbit_paper_persistent_loop(
                 root=root,
                 loop_id=cycle_loop_id,
@@ -3243,6 +3334,7 @@ def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
         retention_max_uncompacted_archive_batches=retention_max_uncompacted_archives,
         retention_log_max_bytes=retention_log_max_bytes,
         disk_pressure_max_runtime_bytes=disk_pressure_max_bytes,
+        paper_trade_intent_inputs_provider=default_candidate_generation_paper_intent_provider,
     )
     if dashboard_open_result is not None:
         report = _persist_dashboard_open_result(report, dashboard_open_result, root=root)

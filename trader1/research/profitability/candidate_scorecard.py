@@ -16,7 +16,10 @@ from trader1.runtime.paper.upbit_paper_runtime import (
     validate_upbit_paper_runtime_cycle_report,
 )
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
-from trader1.research.replay.replay_runner import public_replay_robustness_report_hash
+from trader1.research.replay.replay_runner import (
+    public_replay_robustness_report_hash,
+    required_replay_closed_trade_threshold,
+)
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -1205,20 +1208,14 @@ def _public_replay_source_evidence_ids(report: dict[str, Any]) -> list[str]:
     return source_ids
 
 
-def _min_required_closed_trade_sample_count_for_public_replay(min_required_sample_count: int) -> int:
-    window_minimum = max(1, int(min_required_sample_count))
-    if window_minimum < 30:
-        return window_minimum
-    one_tenth_of_windows = (window_minimum + 9) // 10
-    return max(30, min(120, one_tenth_of_windows))
-
-
 def _public_replay_closed_trade_maturity(report: dict[str, Any]) -> dict[str, Any]:
     closed_count = int(report.get("replay_closed_trade_sample_count") or 0)
     min_required = int(report.get("min_required_closed_trade_sample_count") or 0)
     if min_required <= 0:
-        min_required = _min_required_closed_trade_sample_count_for_public_replay(
-            int(report.get("min_required_sample_count") or 1)
+        min_required = required_replay_closed_trade_threshold(
+            replay_window_minimum=int(report.get("min_required_sample_count") or 1),
+            runtime_mode="PAPER",
+            replay_type="PUBLIC_REPLAY",
         )
     deficit = max(0, min_required - closed_count)
     status = str(report.get("replay_closed_trade_maturity_status") or "")

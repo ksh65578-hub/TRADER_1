@@ -42,7 +42,7 @@ from trader1.research.replay.replay_runner import (
     build_public_replay_fetch_failure_report,
     build_public_replay_robustness_report,
     load_public_replay_robustness_report,
-    min_required_closed_trade_sample_count_for_public_replay,
+    required_replay_closed_trade_threshold,
     validate_public_replay_robustness_report,
     write_public_replay_robustness_report,
 )
@@ -748,8 +748,10 @@ def _replay_closed_trade_maturity(report: dict[str, Any]) -> dict[str, Any]:
     closed_count = _safe_int(report.get("replay_closed_trade_sample_count"))
     min_required = _safe_int(report.get("min_required_closed_trade_sample_count"))
     if min_required <= 0:
-        min_required = min_required_closed_trade_sample_count_for_public_replay(
-            _safe_int(report.get("min_required_sample_count")) or 1
+        min_required = required_replay_closed_trade_threshold(
+            replay_window_minimum=_safe_int(report.get("min_required_sample_count")) or 1,
+            runtime_mode="PAPER",
+            replay_type="PUBLIC_REPLAY",
         )
     deficit = max(0, min_required - closed_count)
     status = str(report.get("replay_closed_trade_maturity_status") or "")
