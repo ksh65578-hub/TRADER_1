@@ -578,6 +578,28 @@
     "replay_execution_cost_delta_bps": {"type": "number"},
     "replay_execution_cost_status": {"enum": ["PASS", "FAIL", "UNTESTED", "BLOCKED"]},
     "replay_performance_scope": {"const": "PUBLIC_REPLAY_ONLY_NOT_PAPER_RANKING"},
+    "runtime_execution_cost_feedback_status": {"enum": ["CLEAR", "ACTIVE"]},
+    "runtime_execution_cost_feedback_source": {"type": "string", "minLength": 1},
+    "runtime_execution_cost_feedback_binding_status": {"enum": ["CLEAR", "PASS", "FAIL"]},
+    "runtime_execution_cost_feedback_blocker_code": {
+      "type": ["string", "null"],
+      "enum": ["EXECUTION_FEEDBACK_DIVERGENT", "SOURCE_ROLE_SEMANTICS_MISMATCH", null]
+    },
+    "runtime_execution_cost_feedback_sample_count": {"type": "integer", "minimum": 0},
+    "runtime_execution_cost_feedback_adjustment_bps": {"type": "number", "minimum": 0},
+    "runtime_execution_cost_feedback_realized_cost_bps": {"type": "number", "minimum": 0},
+    "runtime_execution_cost_feedback_expected_cost_bps": {"type": "number", "minimum": 0},
+    "runtime_execution_cost_feedback_delta_bps": {"type": "number", "minimum": 0},
+    "runtime_execution_cost_feedback_max_allowed_delta_bps": {"type": "number", "minimum": 0},
+    "runtime_execution_cost_feedback_partial_fill_rate": {"type": "number", "minimum": 0, "maximum": 1},
+    "runtime_execution_cost_feedback_terminal_attempt_rate": {"type": "number", "minimum": 0, "maximum": 1},
+    "runtime_execution_cost_feedback_source_cycle_id": {"type": ["string", "null"]},
+    "runtime_execution_cost_feedback_source_cycle_hash": {
+      "type": ["string", "null"],
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "runtime_execution_cost_feedback_formula": {"type": "string", "minLength": 1},
+    "runtime_execution_cost_feedback_live_flags_clear": {"type": "boolean"},
     "performance_ready": {
       "type": "boolean"
     },

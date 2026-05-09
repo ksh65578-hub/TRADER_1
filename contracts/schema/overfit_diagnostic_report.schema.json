@@ -425,6 +425,41 @@
       "type": "string",
       "minLength": 1
     },
+    "runtime_execution_cost_feedback_status": {
+      "enum": ["CLEAR", "ACTIVE"]
+    },
+    "runtime_execution_cost_feedback_binding_status": {
+      "enum": ["CLEAR", "PASS", "FAIL"]
+    },
+    "runtime_execution_cost_feedback_diagnostic_status": {
+      "enum": ["CLEAR", "PASS", "FAIL"]
+    },
+    "runtime_execution_cost_feedback_blocked": {
+      "type": "boolean"
+    },
+    "runtime_execution_cost_feedback_adjustment_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "runtime_execution_cost_feedback_delta_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "runtime_execution_cost_feedback_max_allowed_delta_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "runtime_execution_cost_feedback_source": {
+      "type": "string",
+      "minLength": 1
+    },
+    "runtime_execution_cost_feedback_source_cycle_id": {
+      "type": ["string", "null"]
+    },
+    "runtime_execution_cost_feedback_source_cycle_hash": {
+      "type": ["string", "null"],
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
     "robustness_eligible": {
       "type": "boolean"
     },

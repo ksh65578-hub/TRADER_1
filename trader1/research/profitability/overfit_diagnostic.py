@@ -106,6 +106,41 @@ def _clamp(value: float, lower: float = 0.0, upper: float = 1.0) -> float:
     return max(lower, min(upper, value))
 
 
+def _runtime_execution_cost_feedback_from_scorecard(candidate_scorecard: dict[str, Any]) -> dict[str, Any]:
+    status = str(candidate_scorecard.get("runtime_execution_cost_feedback_status") or "CLEAR")
+    binding_status = str(candidate_scorecard.get("runtime_execution_cost_feedback_binding_status") or "CLEAR")
+    adjustment_bps = max(Decimal("0"), _decimal_value(candidate_scorecard.get("runtime_execution_cost_feedback_adjustment_bps")))
+    delta_bps = max(Decimal("0"), _decimal_value(candidate_scorecard.get("runtime_execution_cost_feedback_delta_bps")))
+    max_allowed_bps = max(
+        Decimal("0"),
+        _decimal_value(
+            candidate_scorecard.get(
+                "runtime_execution_cost_feedback_max_allowed_delta_bps",
+                candidate_scorecard.get("max_allowed_execution_cost_delta_bps"),
+            )
+        ),
+    )
+    blocked = binding_status == "FAIL" or (status == "ACTIVE" and delta_bps > max_allowed_bps)
+    if status == "CLEAR" and binding_status == "CLEAR":
+        diagnostic_status = "CLEAR"
+    elif blocked:
+        diagnostic_status = "FAIL"
+    else:
+        diagnostic_status = "PASS"
+    return {
+        "runtime_execution_cost_feedback_status": status,
+        "runtime_execution_cost_feedback_binding_status": binding_status,
+        "runtime_execution_cost_feedback_diagnostic_status": diagnostic_status,
+        "runtime_execution_cost_feedback_blocked": blocked,
+        "runtime_execution_cost_feedback_adjustment_bps": float(adjustment_bps),
+        "runtime_execution_cost_feedback_delta_bps": float(delta_bps),
+        "runtime_execution_cost_feedback_max_allowed_delta_bps": float(max_allowed_bps),
+        "runtime_execution_cost_feedback_source": str(candidate_scorecard.get("runtime_execution_cost_feedback_source") or "NONE"),
+        "runtime_execution_cost_feedback_source_cycle_id": candidate_scorecard.get("runtime_execution_cost_feedback_source_cycle_id"),
+        "runtime_execution_cost_feedback_source_cycle_hash": candidate_scorecard.get("runtime_execution_cost_feedback_source_cycle_hash"),
+    }
+
+
 def _candidate_net_ev(runtime_cycle: dict[str, Any], candidate_id: str) -> float | None:
     selected = runtime_cycle.get("selected_candidate")
     if isinstance(selected, dict) and selected.get("candidate_id") == candidate_id:
@@ -696,6 +731,8 @@ def overfit_diagnostic_from_upbit_paper_runtime(
 
     survivorship_bias_check = "PASS" if enough_samples and concentration_status in {"LOW", "MEDIUM"} else "BLOCKED"
     data_snooping_check = "PASS" if enough_samples and oos_window_count > 0 and walk_forward_window_count >= min_walk_windows else "BLOCKED"
+    runtime_execution_feedback = _runtime_execution_cost_feedback_from_scorecard(candidate_scorecard)
+    runtime_execution_feedback_blocked = bool(runtime_execution_feedback["runtime_execution_cost_feedback_blocked"])
 
     base_eligible = (
         oos_status == "PASS"
@@ -706,7 +743,7 @@ def overfit_diagnostic_from_upbit_paper_runtime(
         and survivorship_bias_check == "PASS"
         and data_snooping_check == "PASS"
     )
-    robustness_eligible = bool(base_eligible)
+    robustness_eligible = bool(base_eligible and not runtime_execution_feedback_blocked)
     overfit_status = "LOW" if robustness_eligible else ("HIGH" if not enough_samples or oos_status != "PASS" or bootstrap_status != "PASS" else "MEDIUM")
 
     if robustness_eligible and samples:
@@ -770,6 +807,13 @@ def overfit_diagnostic_from_upbit_paper_runtime(
         blockers.append(_blocker("SURVIVORSHIP_BIAS_RISK", "survivorship bias check requires sufficient namespace-bound PAPER samples"))
     if data_snooping_check != "PASS":
         blockers.append(_blocker("DATA_SNOOPING_RISK", "data-snooping check requires separate OOS and walk-forward windows"))
+    if runtime_execution_feedback_blocked:
+        blockers.append(
+            _blocker(
+                "EXECUTION_FEEDBACK_DIVERGENT",
+                "PAPER runtime execution-cost feedback exceeded scorecard bounds or failed source binding",
+            )
+        )
 
     if robustness_eligible:
         blockers = []
@@ -842,6 +886,7 @@ def overfit_diagnostic_from_upbit_paper_runtime(
         "preliminary_primary_blocker_code": preliminary_primary_blocker_code,
         "preliminary_summary": preliminary_summary,
         "preliminary_next_action": preliminary_next_action,
+        **runtime_execution_feedback,
         "robustness_eligible": robustness_eligible,
         "dashboard_display_truth_only": True,
         "promotion_eligible": False,

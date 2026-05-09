@@ -36,6 +36,44 @@ from trader1.research.profitability.candidate_scorecard import (
 from trader1.validation.mvp0_validators import _candidate_scorecard_net_ev_errors, _overfit_diagnostic_errors
 
 
+def _runtime_with_execution_cost_feedback(*, cycle_id: str, adjustment_bps: str = "10") -> dict:
+    baseline = build_upbit_paper_runtime_cycle_report(cycle_id=f"{cycle_id}-feedback-target")
+    feedback = [
+        {
+            "source": "PAPER_RUNTIME_EXECUTION_COST_FEEDBACK",
+            "exchange": "UPBIT",
+            "market_type": "KRW_SPOT",
+            "mode": "PAPER",
+            "symbol": candidate["symbol"],
+            "candidate_id": candidate["candidate_id"],
+            "strategy_family": candidate["strategy_family"],
+            "sample_count": 4,
+            "realized_execution_cost_bps": "32",
+            "expected_execution_cost_bps": "20",
+            "partial_fill_rate": "0",
+            "terminal_attempt_rate": "0",
+            "adjustment_bps": adjustment_bps,
+            "source_runtime_cycle_id": f"{cycle_id}-prior-paper-cost",
+            "source_runtime_cycle_hash": "C" * 64,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+            "order_adapter_called": False,
+            "private_endpoint_called": False,
+            "credential_load_attempted": False,
+            "live_key_loaded": False,
+        }
+        for candidate in baseline["strategy_candidates"]
+    ]
+    runtime = build_upbit_paper_runtime_cycle_report(
+        cycle_id=cycle_id,
+        execution_cost_feedback=feedback,
+    )
+    assert runtime["selected_candidate"]["execution_cost_feedback_status"] == "ACTIVE"
+    return runtime
+
+
 def _short_paper_runtime_inputs(root: Path):
     run_upbit_paper_persistent_loop(
         root=root,
@@ -600,6 +638,29 @@ class OverfitDiagnosticFromRuntimeTest(unittest.TestCase):
         )
         self.assertTrue(any(source_id.startswith("runtime_sample_history:") for source_id in report["source_evidence_ids"]))
         self.assertTrue(any(source_id.startswith("upbit_paper_runtime_cycle:") for source_id in report["source_evidence_ids"]))
+
+    def test_runtime_execution_cost_feedback_keeps_overfit_diagnostic_blocked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _, _, history = _short_paper_runtime_inputs(root)
+            runtime = _runtime_with_execution_cost_feedback(cycle_id="overfit-active-cost-feedback")
+            scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+
+            report = overfit_diagnostic_from_upbit_paper_runtime(
+                candidate_scorecard=scorecard,
+                runtime_sample_history=history,
+                root=root,
+            )
+
+        self.assertEqual(_overfit_diagnostic_errors(report), [])
+        self.assertEqual(report["runtime_execution_cost_feedback_status"], "ACTIVE")
+        self.assertEqual(report["runtime_execution_cost_feedback_binding_status"], "FAIL")
+        self.assertEqual(report["runtime_execution_cost_feedback_diagnostic_status"], "FAIL")
+        self.assertTrue(report["runtime_execution_cost_feedback_blocked"])
+        self.assertFalse(report["robustness_eligible"])
+        self.assertFalse(report["promotion_eligible"])
+        self.assertFalse(report["live_order_allowed"])
+        self.assertIn("EXECUTION_FEEDBACK_DIVERGENT", {blocker["code"] for blocker in report["blockers"]})
 
     def test_preliminary_diagnostic_measures_short_window_without_full_robustness(self):
         with tempfile.TemporaryDirectory() as tmp:
