@@ -1780,7 +1780,7 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertFalse(report["live_order_allowed"])
             self.assertFalse(report["can_live_trade"])
 
-    def test_root_operator_background_launch_opens_dashboard_before_console_auto_closes(self):
+    def test_root_operator_background_launch_opens_dashboard_after_status_refresh(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -1791,13 +1791,30 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
                 encoding="utf-8",
             )
             popen_calls: list[dict] = []
+            events: list[str] = []
 
             class FakeProcess:
                 pid = 434343
 
             def fake_popen(command, **kwargs):
+                events.append("start")
                 popen_calls.append({"command": command, "kwargs": kwargs})
+                status_path = runner_status_path(root)
+                status_path.parent.mkdir(parents=True, exist_ok=True)
+                status_path.write_text(
+                    json.dumps(
+                        {
+                            "runner_status": RUNNER_STATUS_RUNNING,
+                            "running": True,
+                            "runner_lock_pid": 434343,
+                        }
+                    ),
+                    encoding="utf-8",
+                )
                 return FakeProcess()
+
+            def fake_refresh(_root):
+                events.append("refresh")
 
             dashboard_result = DashboardOpenResult(
                 attempted=True,
@@ -1807,19 +1824,27 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
                 path=str(runner_dashboard_path(root)),
             )
 
+            def fake_open(_root):
+                events.append("open")
+                return dashboard_result
+
             with patch.dict(
                 os.environ,
                 {
                     "TRADER1_UPBIT_PAPER_SAFE_CHECK_ONLY": "false",
                     "TRADER1_UPBIT_PAPER_BACKGROUND_LAUNCH": "true",
-                    "TRADER1_UPBIT_PAPER_REFRESH_DASHBOARD": "false",
+                    "TRADER1_UPBIT_PAPER_REFRESH_DASHBOARD": "true",
                     "TRADER1_UPBIT_PAPER_OPEN_DASHBOARD": "true",
                     "TRADER1_UPBIT_PAPER_HOLD_ON_EXIT": "false",
                 },
             ), patch.object(long_runner.subprocess, "Popen", side_effect=fake_popen), patch.object(
                 long_runner,
+                "_maybe_refresh_dashboard",
+                side_effect=fake_refresh,
+            ), patch.object(
+                long_runner,
                 "open_runner_dashboard_result",
-                return_value=dashboard_result,
+                side_effect=fake_open,
             ) as open_mock, patch.object(
                 long_runner,
                 "run_upbit_paper_long_running_runner",
@@ -1830,6 +1855,7 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             self.assertEqual(len(popen_calls), 1)
             open_mock.assert_called_once_with(root)
+            self.assertEqual(events, ["start", "refresh", "open"])
             report = _load_json(runner_background_launch_report_path(root))
             self.assertEqual(report["background_launch_status"], "STARTED")
             self.assertTrue(report["operator_console_auto_closes"])

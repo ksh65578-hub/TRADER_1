@@ -438,7 +438,7 @@ AUDITED_WRITER_BLOCKER_TRUTH_CLASSES = {
 }
 SOURCE_FRESHNESS_MAX_AGE_SECONDS = 300
 SOURCE_CLOCK_SKEW_ALLOWANCE_SECONDS = 60
-DASHBOARD_AUTO_REFRESH_SECONDS = 10
+DASHBOARD_AUTO_REFRESH_SECONDS = 2
 ACTUAL_LONG_RUN_MIN_VALIDATED_SPAN_SECONDS = 86400
 ACTUAL_LONG_RUN_MIN_ACTUAL_CYCLE_COUNT = 2880
 OPERATION_STATUS_LEVELS = {"NORMAL", "WARNING", "ERROR"}
@@ -20781,7 +20781,7 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "dashboard refresh policy must use local file reload", "SCHEMA_IDENTITY_MISMATCH")
     refresh_seconds = refresh_policy.get("auto_refresh_interval_seconds")
     stale_after = refresh_policy.get("stale_after_seconds")
-    if not isinstance(refresh_seconds, int) or refresh_seconds < 5 or refresh_seconds > SOURCE_FRESHNESS_MAX_AGE_SECONDS:
+    if not isinstance(refresh_seconds, int) or refresh_seconds < 1 or refresh_seconds > SOURCE_FRESHNESS_MAX_AGE_SECONDS:
         return DashboardValidationResult("FAIL", "dashboard refresh interval is invalid", "SCHEMA_IDENTITY_MISMATCH")
     if stale_after != SOURCE_FRESHNESS_MAX_AGE_SECONDS or refresh_policy.get("client_stale_guard_enabled") is not True:
         return DashboardValidationResult("BLOCKED", "dashboard must expose a client-side stale guard", "LATENCY_TTL_EXPIRED")
@@ -29269,8 +29269,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         initializePublicTickerStream();
         window.setInterval(updateDashboardFreshness, 1000);
         var box = document.querySelector("[data-dashboard-freshness]");
-        var refreshSeconds = box ? Number(box.getAttribute("data-refresh-seconds") || "10") : 10;
-        if (Number.isFinite(refreshSeconds) && refreshSeconds >= 5) {
+        var refreshSeconds = box ? Number(box.getAttribute("data-refresh-seconds") || "2") : 2;
+        if (Number.isFinite(refreshSeconds) && refreshSeconds >= 1) {
           window.setTimeout(function () { window.location.reload(); }, refreshSeconds * 1000);
         }
       }
