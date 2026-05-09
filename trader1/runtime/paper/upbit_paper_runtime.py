@@ -37,6 +37,8 @@ from trader1.runtime.paper.upbit_public_collector import (
 
 UPBIT_PAPER_RUNTIME_CYCLE_SCHEMA_ID = "trader1.upbit_paper_runtime_cycle_report.v1"
 SAFE_FINAL_DECISIONS = {"ENTER_LONG", "EXIT_POSITION", "REDUCE_POSITION", "HOLD_POSITION", "NO_TRADE", "BLOCKED", "SAFE_MODE", "RECONCILE_REQUIRED"}
+PAPER_PORTFOLIO_TRUTH_UNVERIFIED_REASON = "PAPER_PORTFOLIO_TRUTH_UNVERIFIED"
+PAPER_PORTFOLIO_TRUTH_UNVERIFIED_STATUS = "UNVERIFIED_COLLECTION_ONLY"
 PAPER_ENTRY_FEE_RATE = Decimal("0.0005")
 PAPER_ENTRY_SLIPPAGE_BPS = Decimal("5")
 PAPER_EXIT_FEE_RATE = Decimal("0.0005")
@@ -3713,6 +3715,9 @@ def build_upbit_paper_runtime_cycle_report(
     paper_position_market_value: str | int | float | Decimal | None = None,
     paper_cash_source: str = "PAPER_LEDGER_ROLLUP",
     current_paper_portfolio_snapshot: dict[str, Any] | None = None,
+    paper_portfolio_truth_unverified: bool = False,
+    paper_portfolio_truth_blocker_code: str | None = None,
+    paper_portfolio_truth_message: str | None = None,
     recent_failure_feedback: list[dict[str, Any]] | None = None,
     execution_cost_feedback: list[dict[str, Any]] | None = None,
     paper_scope_focus: dict[str, Any] | None = None,
@@ -3994,6 +3999,13 @@ def build_upbit_paper_runtime_cycle_report(
     else:
         final_decision = "NO_TRADE"
         no_trade_reasons = [str(selected.get("no_trade_reason") or "MIN_EDGE_FAIL")]
+    if paper_portfolio_truth_unverified and final_decision != "BLOCKED":
+        final_decision = "NO_TRADE"
+        no_trade_reasons = [PAPER_PORTFOLIO_TRUTH_UNVERIFIED_REASON]
+        selected_no_trade_reason = selected.get("no_trade_reason")
+        if selected_no_trade_reason and selected_no_trade_reason not in no_trade_reasons:
+            no_trade_reasons.append(str(selected_no_trade_reason))
+        entry_reasons = []
     runtime_public_market_data_hash = public_market_data_hash(market_data)
     feature_snapshot_hash = _hash_payload(features)
     strategy_regime_cost_linkage = _build_strategy_regime_cost_linkage(
@@ -4129,6 +4141,14 @@ def build_upbit_paper_runtime_cycle_report(
             final_decision = "BLOCKED"
             no_trade_reasons = order_blocker_codes(blockers)
             entry_reasons = []
+
+    if paper_portfolio_truth_unverified and final_decision != "BLOCKED":
+        final_decision = "NO_TRADE"
+        no_trade_reasons = [PAPER_PORTFOLIO_TRUTH_UNVERIFIED_REASON]
+        selected_no_trade_reason = selected.get("no_trade_reason")
+        if selected_no_trade_reason and selected_no_trade_reason not in no_trade_reasons:
+            no_trade_reasons.append(str(selected_no_trade_reason))
+        entry_reasons = []
 
     if blockers and final_decision == "ENTER_LONG":
         final_decision = "BLOCKED"
@@ -4431,6 +4451,11 @@ def build_upbit_paper_runtime_cycle_report(
         "sizing_decision": sizing,
         "exit_plan": exit_plan,
         "position_management_decision": position_management_decision,
+        "paper_portfolio_truth_status": (
+            PAPER_PORTFOLIO_TRUTH_UNVERIFIED_STATUS if paper_portfolio_truth_unverified else "VERIFIED_RUNTIME_INPUT"
+        ),
+        "paper_portfolio_truth_blocker_code": paper_portfolio_truth_blocker_code if paper_portfolio_truth_unverified else None,
+        "paper_portfolio_truth_message": paper_portfolio_truth_message if paper_portfolio_truth_unverified else None,
         "paper_broker_execution": broker_execution,
         "paper_fill": fill,
         "paper_ledger_events": ledger_events,
@@ -4709,6 +4734,19 @@ def validate_upbit_paper_runtime_cycle_report(
     final_decision = report.get("final_decision")
     if final_decision not in SAFE_FINAL_DECISIONS:
         return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "unknown paper runtime final decision", "LIVE_FINAL_GUARD_FAILED")
+    if report.get("paper_portfolio_truth_status") == PAPER_PORTFOLIO_TRUTH_UNVERIFIED_STATUS:
+        if final_decision != "NO_TRADE" or report.get("paper_fill") is not None or report.get("paper_ledger_events"):
+            return UpbitPaperRuntimeCycleValidationResult(
+                "BLOCKED",
+                "unverified PAPER portfolio truth can only produce a no-trade collection sample",
+                "MEASUREMENT_MISSING",
+            )
+        if PAPER_PORTFOLIO_TRUTH_UNVERIFIED_REASON not in report.get("no_trade_reasons", []):
+            return UpbitPaperRuntimeCycleValidationResult(
+                "FAIL",
+                "unverified PAPER portfolio truth sample missing no-trade reason",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
     selected = report.get("selected_candidate")
     if not isinstance(selected, dict):
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "selected candidate must be an object", "SCHEMA_IDENTITY_MISMATCH")

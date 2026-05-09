@@ -33,6 +33,7 @@ from trader1.runtime.paper.upbit_paper_runtime import (
     EXECUTION_COST_FEEDBACK_MAX_ADJUSTMENT_BPS,
     EXECUTION_COST_FEEDBACK_PARTIAL_FILL_PENALTY_BPS,
     EXECUTION_COST_FEEDBACK_TERMINAL_ATTEMPT_PENALTY_BPS,
+    PAPER_PORTFOLIO_TRUTH_UNVERIFIED_REASON,
     POSITION_ROTATION_EXIT_FIELDS,
     UpbitPaperRuntimeCycleValidationResult,
     build_upbit_paper_runtime_cycle_report,
@@ -104,6 +105,7 @@ LONG_RUN_EVIDENCE_BLOCKER_CODE = "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT"
 LONG_RUN_EVIDENCE_NEXT_ACTION = (
     "Collect validated long-run PAPER and SHADOW runtime evidence before treating this as live-review or scale-up evidence."
 )
+PAPER_PORTFOLIO_TRUTH_UNVERIFIED_COLLECTION_SOURCE = "PAPER_PORTFOLIO_TRUTH_UNVERIFIED_COLLECTION_ONLY"
 LEGACY_RUNTIME_RISK_EXIT_LIFECYCLE_FIELDS = frozenset(
     {"risk_state", "exit_plan", "position_management_decision"}
 )
@@ -270,6 +272,44 @@ def _runtime_base_dir(root: Path, session_id: str) -> Path:
     return root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / session_id
 
 
+def _paper_collection_only_unverified_cash_guard(
+    *,
+    source: str,
+    blocker_code: str | None,
+    message: str | None,
+    manifest_status: str | None = None,
+    manifest_path: str | None = None,
+    source_portfolio_snapshot: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    _, starting_cash = PAPER_STARTING_CASH_BY_SCOPE[("UPBIT", "KRW_SPOT")]
+    open_position_count = None
+    if isinstance(source_portfolio_snapshot, dict):
+        try:
+            open_position_count = int(source_portfolio_snapshot.get("open_position_count", 0) or 0)
+        except (TypeError, ValueError):
+            open_position_count = None
+    return {
+        "status": "UNVERIFIED",
+        "cash_available": str(starting_cash),
+        "equity": str(starting_cash),
+        "position_market_value": "0",
+        "portfolio_snapshot": None,
+        "source": PAPER_PORTFOLIO_TRUTH_UNVERIFIED_COLLECTION_SOURCE,
+        "source_status": source,
+        "source_portfolio_snapshot_status": (
+            source_portfolio_snapshot.get("snapshot_status") if isinstance(source_portfolio_snapshot, dict) else None
+        ),
+        "source_open_position_count": open_position_count,
+        "paper_sample_collection_allowed": True,
+        "entry_write_allowed": False,
+        "force_no_trade_reason": PAPER_PORTFOLIO_TRUTH_UNVERIFIED_REASON,
+        "manifest_status": manifest_status,
+        "manifest_path": manifest_path,
+        "blocker_code": blocker_code or "MEASUREMENT_MISSING",
+        "message": message or "PAPER portfolio truth is unavailable; collecting public-data PAPER samples without ledger writes",
+    }
+
+
 def _paper_cash_guard_context(*, root: Path, session_id: str, rollup_id: str) -> dict[str, Any]:
     base = _runtime_base_dir(root, session_id)
     cycle_dir = base / "ledger" / "cycles"
@@ -411,19 +451,14 @@ def _mark_cash_guard_portfolio_to_public_market(
     if not open_symbols:
         return cash_guard
     if len(open_symbols) != 1:
-        marked_guard = dict(cash_guard)
-        marked_guard.update(
-            {
-                "status": "BLOCKED",
-                "cash_available": "-1",
-                "equity": "0",
-                "position_market_value": "0",
-                "portfolio_snapshot": None,
-                "blocker_code": "MEASUREMENT_MISSING",
-                "message": "multiple open PAPER positions require complete public mark coverage before the next runtime cycle",
-            }
+        return _paper_collection_only_unverified_cash_guard(
+            source="PAPER_LEDGER_ROLLUP_MARK_TO_MARKET",
+            blocker_code="MEASUREMENT_MISSING",
+            message="multiple open PAPER positions require complete public mark coverage before executable portfolio use",
+            manifest_status=cash_guard.get("manifest_status"),
+            manifest_path=cash_guard.get("manifest_path"),
+            source_portfolio_snapshot=portfolio if isinstance(portfolio, dict) else None,
         )
-        return marked_guard
     collection = next((item for item in usable_collections if item.get("symbol") == open_symbols[0]), None)
     public_market_data = collection.get("public_market_data") if isinstance(collection, dict) else None
     if not isinstance(public_market_data, dict) or public_market_data.get("source") != "PUBLIC_REST_READ_ONLY":
@@ -435,19 +470,25 @@ def _mark_cash_guard_portfolio_to_public_market(
     )
     result = validate_paper_portfolio_snapshot(marked)
     if result.status != "PASS" or marked.get("snapshot_status") != "PASS" or marked.get("mark_to_market_status") != "PASS_PUBLIC_MARK_TO_MARKET":
-        marked_guard = dict(cash_guard)
-        marked_guard.update(
-            {
-                "status": "BLOCKED",
-                "cash_available": "-1",
-                "equity": "0",
-                "position_market_value": "0",
-                "portfolio_snapshot": None,
-                "blocker_code": result.blocker_code or "MEASUREMENT_MISSING",
-                "message": result.message,
-            }
+        marked_blockers = marked.get("blockers") if isinstance(marked, dict) else None
+        first_blocker = marked_blockers[0] if isinstance(marked_blockers, list) and marked_blockers else {}
+        return _paper_collection_only_unverified_cash_guard(
+            source="PAPER_LEDGER_ROLLUP_PUBLIC_MARK",
+            blocker_code=(
+                result.blocker_code
+                or marked.get("mark_to_market_blocker_code")
+                or first_blocker.get("code")
+                or "MEASUREMENT_MISSING"
+            ),
+            message=(
+                first_blocker.get("message")
+                or marked.get("mark_to_market_status")
+                or result.message
+            ),
+            manifest_status=cash_guard.get("manifest_status"),
+            manifest_path=cash_guard.get("manifest_path"),
+            source_portfolio_snapshot=portfolio if isinstance(portfolio, dict) else None,
         )
-        return marked_guard
     marked_guard = dict(cash_guard)
     marked_guard.update(
         {
@@ -2040,7 +2081,12 @@ def run_upbit_paper_persistent_loop(
                     cash_guard=cash_guard,
                     usable_collections=usable_collections,
                 )
-                if cash_guard["status"] != "PASS":
+                cash_guard_unverified_collection_only = (
+                    cash_guard.get("status") == "UNVERIFIED"
+                    and cash_guard.get("paper_sample_collection_allowed") is True
+                    and cash_guard.get("entry_write_allowed") is False
+                )
+                if cash_guard["status"] != "PASS" and not cash_guard_unverified_collection_only:
                     blockers.append(
                         {
                             "code": cash_guard.get("blocker_code") or "RECONCILIATION_REQUIRED",
@@ -2063,6 +2109,9 @@ def run_upbit_paper_persistent_loop(
                     paper_position_market_value=cash_guard["position_market_value"],
                     paper_cash_source=cash_guard["source"],
                     current_paper_portfolio_snapshot=cash_guard.get("portfolio_snapshot"),
+                    paper_portfolio_truth_unverified=cash_guard_unverified_collection_only,
+                    paper_portfolio_truth_blocker_code=cash_guard.get("blocker_code"),
+                    paper_portfolio_truth_message=cash_guard.get("message"),
                     recent_failure_feedback=recent_failure_feedback,
                     execution_cost_feedback=execution_cost_feedback,
                     paper_scope_focus=normalized_paper_scope_focus,
@@ -2163,6 +2212,9 @@ def run_upbit_paper_persistent_loop(
                     "selected_candidate_execution_cost_feedback_adjustment_bps": selected_candidate.get(
                         "execution_cost_feedback_adjustment_bps"
                     ),
+                    "paper_portfolio_truth_status": cycle.get("paper_portfolio_truth_status") if isinstance(cycle, dict) else None,
+                    "paper_portfolio_truth_blocker_code": cycle.get("paper_portfolio_truth_blocker_code") if isinstance(cycle, dict) else None,
+                    "paper_portfolio_truth_message": cycle.get("paper_portfolio_truth_message") if isinstance(cycle, dict) else None,
                     "runtime_quality_feedback_count": sum(
                         1 for item in recent_failure_feedback if item.get("feedback_kind") == "PRELIMINARY_ROBUSTNESS_FAIL"
                     ),
