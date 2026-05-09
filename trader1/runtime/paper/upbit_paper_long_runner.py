@@ -4755,6 +4755,68 @@ def _refresh_dashboard_after_runner_status(root: Path, session_id: str, *, refre
         )
 
 
+def _finalize_runner_stop_file(
+    *,
+    root: Path,
+    session_id: str,
+    status_path: Path,
+    runner_id: str,
+    started_at_utc: str,
+    completed_cycle_count: int,
+    failed_cycle_count: int,
+    cycle_interval_seconds: float,
+    loop_report: dict[str, Any] | None,
+    refresh_dashboard: bool,
+    emit_console_status: bool,
+    dashboard_open_result: DashboardOpenResult | None,
+) -> dict[str, Any]:
+    final = build_runner_status_report(
+        root=root,
+        runner_id=runner_id,
+        session_id=session_id,
+        runner_status=RUNNER_STATUS_STOPPED,
+        started_at_utc=started_at_utc,
+        completed_cycle_count=completed_cycle_count,
+        failed_cycle_count=failed_cycle_count,
+        cycle_interval_seconds=cycle_interval_seconds,
+        loop_report=loop_report,
+        stop_reason="STOP_FILE",
+        dashboard_open_result=dashboard_open_result,
+    )
+    _write_runner_status(status_path, final)
+    _confirm_operator_stop_reports_from_final_status(root, session_id, final)
+    _refresh_dashboard_after_runner_status(root, session_id, refresh_dashboard=refresh_dashboard)
+    if emit_console_status:
+        _emit_console_status(final)
+    _append_log(root, session_id, {"event": "runner_stopped", "reason": "STOP_FILE", "at": utc_now()})
+    return final
+
+
+def _sleep_until_next_cycle_or_stop_requested(
+    *,
+    root: Path,
+    session_id: str,
+    cycle_interval_seconds: float,
+    sleep_fn: Callable[[float], None],
+) -> bool:
+    stop_path = runner_stop_file_path(root, session_id)
+    if stop_path.exists():
+        return True
+    if cycle_interval_seconds <= 0 or not math.isfinite(cycle_interval_seconds):
+        return stop_path.exists()
+    remaining = float(cycle_interval_seconds)
+    poll_seconds = max(0.05, min(DEFAULT_DASHBOARD_STATUS_CHANNEL_STOP_POLL_SECONDS, remaining))
+    while remaining > 0:
+        if stop_path.exists():
+            return True
+        step = min(poll_seconds, remaining)
+        sleep_fn(step)
+        remaining -= step
+        if stop_path.exists():
+            return True
+    return stop_path.exists()
+
+
 def refresh_paper_shadow_runtime_from_latest_loop(root: Path, session_id: str) -> dict[str, dict[str, Any]] | None:
     from trader1.runtime.boot.safe_launcher import refresh_scoped_paper_shadow_runtime_harness_if_safe
 
@@ -5059,26 +5121,20 @@ def run_upbit_paper_long_running_runner(
             heartbeat_runner_lock(lock, session_id)
             stop_file = runner_stop_file_path(root, session_id)
             if stop_file.exists():
-                final = build_runner_status_report(
+                return _finalize_runner_stop_file(
                     root=root,
-                    runner_id=runner_id,
                     session_id=session_id,
-                    runner_status=RUNNER_STATUS_STOPPED,
+                    status_path=status_path,
+                    runner_id=runner_id,
                     started_at_utc=started_at,
                     completed_cycle_count=completed,
                     failed_cycle_count=failed,
                     cycle_interval_seconds=cycle_interval_seconds,
                     loop_report=last_loop_report,
-                    stop_reason="STOP_FILE",
+                    refresh_dashboard=refresh_dashboard,
+                    emit_console_status=emit_console_status,
                     dashboard_open_result=dashboard_open_result,
                 )
-                _write_runner_status(status_path, final)
-                _confirm_operator_stop_reports_from_final_status(root, session_id, final)
-                _refresh_dashboard_after_runner_status(root, session_id, refresh_dashboard=refresh_dashboard)
-                if emit_console_status:
-                    _emit_console_status(final)
-                _append_log(root, session_id, {"event": "runner_stopped", "reason": "STOP_FILE", "at": utc_now()})
-                return final
             if max_cycles is not None and completed >= max_cycles:
                 final = build_runner_status_report(
                     root=root,
@@ -5464,26 +5520,20 @@ def run_upbit_paper_long_running_runner(
             )
             _write_runner_status(status_path, post_cycle_running)
             if runner_stop_file_path(root, session_id).exists():
-                final = build_runner_status_report(
+                return _finalize_runner_stop_file(
                     root=root,
-                    runner_id=runner_id,
                     session_id=session_id,
-                    runner_status=RUNNER_STATUS_STOPPED,
+                    status_path=status_path,
+                    runner_id=runner_id,
                     started_at_utc=started_at,
                     completed_cycle_count=completed,
                     failed_cycle_count=failed,
                     cycle_interval_seconds=cycle_interval_seconds,
                     loop_report=last_loop_report,
-                    stop_reason="STOP_FILE",
+                    refresh_dashboard=refresh_dashboard,
+                    emit_console_status=emit_console_status,
                     dashboard_open_result=dashboard_open_result,
                 )
-                _write_runner_status(status_path, final)
-                _confirm_operator_stop_reports_from_final_status(root, session_id, final)
-                _refresh_dashboard_after_runner_status(root, session_id, refresh_dashboard=refresh_dashboard)
-                if emit_console_status:
-                    _emit_console_status(final)
-                _append_log(root, session_id, {"event": "runner_stopped", "reason": "STOP_FILE", "at": utc_now()})
-                return final
             if refresh_dashboard:
                 try:
                     _maybe_refresh_dashboard(root, session_id=session_id)
@@ -5566,7 +5616,26 @@ def run_upbit_paper_long_running_runner(
                 _refresh_dashboard_after_runner_status(root, session_id, refresh_dashboard=refresh_dashboard)
                 if emit_console_status:
                     _emit_console_status(running)
-                sleep_fn(cycle_interval_seconds)
+                if _sleep_until_next_cycle_or_stop_requested(
+                    root=root,
+                    session_id=session_id,
+                    cycle_interval_seconds=cycle_interval_seconds,
+                    sleep_fn=sleep_fn,
+                ):
+                    return _finalize_runner_stop_file(
+                        root=root,
+                        session_id=session_id,
+                        status_path=status_path,
+                        runner_id=runner_id,
+                        started_at_utc=started_at,
+                        completed_cycle_count=completed,
+                        failed_cycle_count=failed,
+                        cycle_interval_seconds=cycle_interval_seconds,
+                        loop_report=last_loop_report,
+                        refresh_dashboard=refresh_dashboard,
+                        emit_console_status=emit_console_status,
+                        dashboard_open_result=dashboard_open_result,
+                    )
     except KeyboardInterrupt:
         final = build_runner_status_report(
             root=root,
