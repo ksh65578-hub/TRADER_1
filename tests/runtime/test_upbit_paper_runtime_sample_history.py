@@ -333,6 +333,204 @@ class UpbitPaperRuntimeSampleHistoryTest(unittest.TestCase):
         self.assertEqual(identity["scorecard_parameter_hash"], requested_hash)
         self.assertTrue(identity["scorecard_candidate_live_flags_clear"])
 
+    def test_candidate_identity_counts_requested_scope_even_when_focus_is_no_trade(self):
+        focus_candidate = {
+            "candidate_id": "KRW-ADA-pullback-trend-long",
+            "symbol": "KRW-ADA",
+            "strategy_family": "PULLBACK_TREND_LONG",
+            "decision": "NO_TRADE",
+            "no_trade_reason": "STRATEGY_CONFIDENCE_LOW",
+            "net_ev_after_cost_bps": "4.0",
+            "candidate_selection_score": "51.0",
+            "expected_edge_bps": "24.0",
+            "expected_cost_bps": "20.0",
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+        requested_hash = sample_history_module._candidate_parameter_hash(focus_candidate)
+        runtime_cycle = {
+            "paper_scope_continuity_decision": {
+                "requested": True,
+                "selection_status": "FOCUS_CANDIDATE_NOT_ENTRY_REVIEW",
+                "requested_candidate_id": focus_candidate["candidate_id"],
+                "requested_symbol": focus_candidate["symbol"],
+                "requested_strategy_id": "trend_pullback",
+                "requested_parameter_hash": requested_hash,
+            },
+            "selected_candidate": {
+                "candidate_id": "KRW-PROS-pullback-trend-long",
+                "symbol": "KRW-PROS",
+                "strategy_family": "PULLBACK_TREND_LONG",
+                "decision": "PAPER_ENTRY_REVIEW",
+                "net_ev_after_cost_bps": "17.0",
+                "candidate_selection_score": "67.0",
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+            "strategy_candidates": [focus_candidate],
+            "symbol_evidence_scorecards": [{"symbol": "KRW-ADA"}],
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+        identity = sample_history_module._candidate_identity_fields(runtime_cycle)
+
+        self.assertEqual(identity["scorecard_candidate_identity_source"], "PAPER_SCOPE_FOCUS_CANDIDATE")
+        self.assertEqual(identity["scorecard_candidate_identity_binding_status"], "BOUND")
+        self.assertEqual(identity["scorecard_candidate_id"], focus_candidate["candidate_id"])
+        self.assertEqual(identity["scorecard_candidate_decision"], "NO_TRADE")
+        self.assertEqual(identity["scorecard_strategy_id"], "trend_pullback")
+        self.assertEqual(identity["scorecard_parameter_hash"], requested_hash)
+        self.assertFalse(identity["scorecard_candidate_id"] == runtime_cycle["selected_candidate"]["candidate_id"])
+        self.assertTrue(identity["scorecard_candidate_live_flags_clear"])
+
+    def test_candidate_identity_uses_explicit_mutated_parameter_hash_for_requested_scope(self):
+        mutated_hash = "E" * 64
+        focus_candidate = {
+            "candidate_id": "KRW-ADA-pullback-trend-long",
+            "symbol": "KRW-ADA",
+            "strategy_family": "PULLBACK_TREND_LONG",
+            "parameter_hash": mutated_hash,
+            "decision": "NO_TRADE",
+            "net_ev_after_cost_bps": "7.0",
+            "candidate_selection_score": "56.0",
+            "expected_edge_bps": "27.0",
+            "expected_cost_bps": "20.0",
+            "mutation_status": "APPLIED_TO_PAPER_CANDIDATE",
+            "mutation_id": "mutation-explicit-hash",
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+        runtime_cycle = {
+            "paper_scope_continuity_decision": {
+                "requested": True,
+                "selection_status": "FOCUS_CANDIDATE_NOT_ENTRY_REVIEW",
+                "requested_candidate_id": focus_candidate["candidate_id"],
+                "requested_symbol": focus_candidate["symbol"],
+                "requested_strategy_id": "trend_pullback",
+                "requested_parameter_hash": mutated_hash,
+            },
+            "selected_candidate": {"candidate_id": "KRW-OTHER", "decision": "NO_TRADE"},
+            "strategy_candidates": [focus_candidate],
+            "symbol_evidence_scorecards": [{"symbol": "KRW-ADA"}],
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+        identity = sample_history_module._candidate_identity_fields(runtime_cycle)
+
+        self.assertEqual(identity["scorecard_candidate_identity_binding_status"], "BOUND")
+        self.assertEqual(identity["scorecard_candidate_id"], focus_candidate["candidate_id"])
+        self.assertEqual(identity["scorecard_parameter_hash"], mutated_hash)
+        self.assertEqual(sample_history_module._candidate_parameter_hash(focus_candidate), mutated_hash)
+        self.assertTrue(identity["scorecard_candidate_live_flags_clear"])
+
+    def test_candidate_identity_blocks_requested_scope_with_live_flag_drift(self):
+        focus_candidate = {
+            "candidate_id": "KRW-ADA-pullback-trend-long",
+            "symbol": "KRW-ADA",
+            "strategy_family": "PULLBACK_TREND_LONG",
+            "decision": "NO_TRADE",
+            "net_ev_after_cost_bps": "7.0",
+            "candidate_selection_score": "56.0",
+            "live_order_ready": False,
+            "live_order_allowed": True,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+        requested_hash = sample_history_module._candidate_parameter_hash(focus_candidate)
+        runtime_cycle = {
+            "paper_scope_continuity_decision": {
+                "requested": True,
+                "selection_status": "FOCUS_CANDIDATE_NOT_ENTRY_REVIEW",
+                "requested_candidate_id": focus_candidate["candidate_id"],
+                "requested_symbol": focus_candidate["symbol"],
+                "requested_strategy_id": "trend_pullback",
+                "requested_parameter_hash": requested_hash,
+            },
+            "selected_candidate": {
+                "candidate_id": "KRW-BTC-vwap-mean-reversion",
+                "symbol": "KRW-BTC",
+                "strategy_family": "VWAP_MEAN_REVERSION",
+                "decision": "NO_TRADE",
+                "net_ev_after_cost_bps": "2.0",
+                "candidate_selection_score": "44.0",
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+            "strategy_candidates": [focus_candidate],
+            "symbol_evidence_scorecards": [{"symbol": "KRW-ADA"}],
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+        identity = sample_history_module._candidate_identity_fields(runtime_cycle)
+
+        self.assertNotEqual(identity["scorecard_candidate_id"], focus_candidate["candidate_id"])
+        self.assertTrue(identity["scorecard_candidate_live_flags_clear"])
+
+    def test_candidate_identity_blocks_requested_scope_with_unknown_continuity_status(self):
+        focus_candidate = {
+            "candidate_id": "KRW-ADA-pullback-trend-long",
+            "symbol": "KRW-ADA",
+            "strategy_family": "PULLBACK_TREND_LONG",
+            "decision": "NO_TRADE",
+            "net_ev_after_cost_bps": "7.0",
+            "candidate_selection_score": "56.0",
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+        requested_hash = sample_history_module._candidate_parameter_hash(focus_candidate)
+        runtime_cycle = {
+            "paper_scope_continuity_decision": {
+                "requested": True,
+                "selection_status": "UNRECOGNIZED_STATUS",
+                "requested_candidate_id": focus_candidate["candidate_id"],
+                "requested_symbol": focus_candidate["symbol"],
+                "requested_strategy_id": "trend_pullback",
+                "requested_parameter_hash": requested_hash,
+            },
+            "selected_candidate": {
+                "candidate_id": "KRW-BTC-vwap-mean-reversion",
+                "symbol": "KRW-BTC",
+                "strategy_family": "VWAP_MEAN_REVERSION",
+                "decision": "NO_TRADE",
+                "net_ev_after_cost_bps": "2.0",
+                "candidate_selection_score": "44.0",
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+            "strategy_candidates": [focus_candidate],
+            "symbol_evidence_scorecards": [{"symbol": "KRW-ADA"}],
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+        identity = sample_history_module._candidate_identity_fields(runtime_cycle)
+
+        self.assertNotEqual(identity["scorecard_candidate_id"], focus_candidate["candidate_id"])
+        self.assertTrue(identity["scorecard_candidate_live_flags_clear"])
+
     def test_runtime_sample_history_excludes_invalid_legacy_loop_sources_while_collecting(self):
         history, root = self._history()
         paper_runtime_dir = (
