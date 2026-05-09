@@ -2643,6 +2643,51 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("UPBIT PAPER runner stopped by operator stop launcher.", html)
         self.assertFalse(dashboard["live_order_allowed"])
 
+    def test_dashboard_shows_operator_stop_launcher_requested_status_as_in_progress(self):
+        session_id = "test_read_only_dashboard_runner_ops"
+        stop_report = {
+            "schema_id": "trader1.root_stop_request_report.v1",
+            "generated_at_utc": utc_now(),
+            "project_id": "TRADER_1",
+            "stop_launcher_name": "STOP_UPBIT_PAPER",
+            "target_launcher_name": "UPBIT_PAPER",
+            "exchange": "UPBIT",
+            "market_type": "KRW_SPOT",
+            "mode": "PAPER",
+            "session_id": session_id,
+            "stop_request_status": "STOP_REQUESTED",
+            "stop_request_method": "UPBIT_PAPER_STOP_FILE",
+            "stop_confirmed": False,
+            "stop_result_summary": "UPBIT PAPER stop was requested.",
+            "runner_status_after": "RUNNING",
+            "runner_running_after": True,
+            "dashboard_refresh_requested": True,
+            "dashboard_should_show_stopped": False,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+            "order_adapter_called": False,
+            "private_endpoint_called": False,
+            "credential_load_attempted": False,
+            "live_key_loaded": False,
+            "order_endpoint_called": False,
+        }
+        dashboard = build_dashboard_with_runner_operations(root_stop_request_report=stop_report)
+        result = validate_read_only_dashboard_shell(dashboard)
+        html = render_dashboard_html(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(dashboard["primary_status_text"], "PAPER STOP REQUESTED - READ ONLY, LIVE ORDERS BLOCKED")
+        self.assertEqual(dashboard["operator_stop_status"]["status"], "STOP_REQUESTED")
+        self.assertEqual(dashboard["operator_stop_status"]["severity"], "WARNING")
+        self.assertFalse(dashboard["operator_stop_status"]["stop_confirmed"])
+        self.assertIn("Stop request was sent", dashboard["operator_stop_status"]["next_operator_action"])
+        self.assertIn("STOP_REQUESTED", html)
+        self.assertIn("UPBIT PAPER stop was requested.", html)
+        self.assertIn("Stop request was sent", html)
+        self.assertFalse(dashboard["live_order_allowed"])
+
     def test_dashboard_surfaces_paper_scope_continuity_status(self):
         session_id = "test_read_only_dashboard_runner_scope_continuity"
         summary, heartbeat, startup_probe = build_inputs(session_id=session_id)

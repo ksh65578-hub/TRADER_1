@@ -2174,7 +2174,96 @@ class SafeLauncherTest(unittest.TestCase):
         ):
             self.assertFalse(stop_report[field], field)
 
-    def test_root_stop_launcher_prints_immediate_operator_feedback_before_waiting(self):
+    def test_root_stop_launcher_can_defer_dashboard_refresh_for_fast_console_exit(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            stop_report = request_root_stop_launcher(
+                "STOP_BINANCE_PAPER",
+                root=root,
+                wait_timeout_seconds=0,
+                refresh_dashboard=False,
+            )
+            target_report = build_launcher_report("BINANCE_PAPER")
+            paths = launcher_dashboard_paths(target_report, root)
+            persisted = load_json(paths["root_stop_request_report"])
+            dashboard_shell_exists = paths["dashboard_shell"].exists()
+
+        self.assertEqual(stop_report["stop_request_status"], "NO_RUNNING_RUNNER")
+        self.assertEqual(stop_report["dashboard_refresh_status"], "DEFERRED")
+        self.assertTrue(stop_report["dashboard_refresh_deferred"])
+        self.assertEqual(persisted["dashboard_refresh_status"], "DEFERRED")
+        self.assertFalse(dashboard_shell_exists)
+        for field in (
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "scale_up_allowed",
+            "order_adapter_called",
+            "private_endpoint_called",
+            "credential_load_attempted",
+            "live_key_loaded",
+            "order_endpoint_called",
+        ):
+            self.assertFalse(stop_report[field], field)
+
+    def test_root_stop_launcher_prints_immediate_operator_feedback_and_exits_fast(self):
+        calls: list[dict[str, object]] = []
+        background_calls: list[dict[str, object]] = []
+
+        def fake_request(stop_launcher_name, **kwargs):
+            calls.append({"stop_launcher_name": stop_launcher_name, **kwargs})
+            return {
+                "stop_request_status": "STOP_REQUESTED",
+                "stop_confirmed": False,
+                "dashboard_refresh_status": "DEFERRED",
+                "target_launcher_name": "BINANCE_PAPER",
+                "runner_status_path": "runner_status.json",
+                "stop_file_path": "STOP.signal",
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+
+        def fake_background(stop_launcher_name, **kwargs):
+            background_calls.append({"stop_launcher_name": stop_launcher_name, **kwargs})
+            return {
+                "status": "STARTED",
+                "background_dashboard_refresh_started": True,
+                "background_dashboard_refresh_pid": 12345,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+
+        buffer = StringIO()
+        with (
+            patch.object(safe_launcher, "request_root_stop_launcher", side_effect=fake_request),
+            patch.object(safe_launcher, "start_root_stop_dashboard_refresh_background", side_effect=fake_background),
+            redirect_stdout(buffer),
+        ):
+            result = safe_launcher.root_stop_launcher_main("STOP_BINANCE_PAPER", root=Path("C:/TRADER_1"))
+
+        output = buffer.getvalue()
+        self.assertEqual(result, 0)
+        self.assertEqual(calls[0]["stop_launcher_name"], "STOP_BINANCE_PAPER")
+        self.assertEqual(calls[0]["wait_timeout_seconds"], 0.0)
+        self.assertFalse(calls[0]["refresh_dashboard"])
+        self.assertEqual(background_calls[0]["stop_launcher_name"], "STOP_BINANCE_PAPER")
+        self.assertIn("TRADER_1 STOP_BINANCE_PAPER requesting_stop=true", output)
+        self.assertLess(
+            output.index("requesting_stop=true"),
+            output.index("status=STOP_REQUESTED"),
+        )
+        self.assertIn("operator_console_auto_closes=true", output)
+        self.assertIn("waiting_for_stop_confirmation=false wait_timeout_seconds=0.0", output)
+        self.assertIn("dashboard_refresh_mode=background", output)
+        self.assertIn("dashboard_refresh_status=DEFERRED", output)
+        self.assertIn("background_dashboard_refresh_started=true", output)
+        self.assertIn("live_order_ready=false live_order_allowed=false can_live_trade=false scale_up_allowed=false", output)
+
+    def test_root_stop_launcher_can_be_forced_to_synchronous_dashboard_refresh(self):
         calls: list[dict[str, object]] = []
 
         def fake_request(stop_launcher_name, **kwargs):
@@ -2193,20 +2282,28 @@ class SafeLauncherTest(unittest.TestCase):
             }
 
         buffer = StringIO()
-        with patch.object(safe_launcher, "request_root_stop_launcher", side_effect=fake_request), redirect_stdout(buffer):
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "TRADER1_ROOT_STOP_WAIT_SECONDS": "5",
+                    "TRADER1_ROOT_STOP_SYNC_DASHBOARD_REFRESH": "1",
+                },
+                clear=True,
+            ),
+            patch.object(safe_launcher, "request_root_stop_launcher", side_effect=fake_request),
+            patch.object(safe_launcher, "start_root_stop_dashboard_refresh_background") as background,
+            redirect_stdout(buffer),
+        ):
             result = safe_launcher.root_stop_launcher_main("STOP_BINANCE_PAPER", root=Path("C:/TRADER_1"))
 
         output = buffer.getvalue()
         self.assertEqual(result, 0)
-        self.assertEqual(calls[0]["stop_launcher_name"], "STOP_BINANCE_PAPER")
-        self.assertIn("TRADER_1 STOP_BINANCE_PAPER requesting_stop=true", output)
-        self.assertLess(
-            output.index("requesting_stop=true"),
-            output.index("status=NO_RUNNING_RUNNER"),
-        )
-        self.assertIn("operator_console_auto_closes=true", output)
-        self.assertIn("dashboard_will_show_stopped_after_confirmation=true", output)
-        self.assertIn("live_order_ready=false live_order_allowed=false can_live_trade=false scale_up_allowed=false", output)
+        self.assertEqual(calls[0]["wait_timeout_seconds"], 5.0)
+        self.assertTrue(calls[0]["refresh_dashboard"])
+        background.assert_not_called()
+        self.assertIn("waiting_for_stop_confirmation=true wait_timeout_seconds=5.0", output)
+        self.assertIn("dashboard_refresh_mode=sync", output)
 
     def test_source_identity_includes_root_launchers_and_contracts(self):
         relative_paths = {path.relative_to(Path(__file__).resolve().parents[2]).as_posix() for path in source_identity_files()}
