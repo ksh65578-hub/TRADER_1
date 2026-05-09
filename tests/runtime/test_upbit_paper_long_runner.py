@@ -390,6 +390,97 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
         self.assertFalse(report["scale_up_allowed"])
         self.assertNotEqual(long_runner.validate_upbit_paper_long_runner_status_report(report)["status"], "FAIL")
 
+    def test_runner_status_ignores_stale_strategy_mutation_report_candidate_mismatch(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+        from trader1.research.profitability.strategy_mutation_compiler import (
+            StrategyMutationCompiler,
+            strategy_mutation_compiler_report_hash,
+            write_strategy_mutation_compiler_report,
+        )
+        from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
+            build_upbit_paper_runtime_sample_history,
+            validate_upbit_paper_runtime_sample_history_sources,
+            write_upbit_paper_runtime_sample_history,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "mvp1_upbit_paper_launcher"
+            first_loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="mutation-stale-current-status-a",
+                requested_cycle_count=1,
+            )
+            self.assertEqual(first_loop["loop_status"], "PASS")
+            stale_history = build_upbit_paper_runtime_sample_history(root=root, session_id=session_id)
+            self.assertEqual(
+                validate_upbit_paper_runtime_sample_history_sources(root=root, history=stale_history).status,
+                "PASS",
+            )
+            focus = stale_history["active_candidate_scope"]
+            self.assertIsInstance(focus, dict)
+            write_upbit_paper_runtime_sample_history(root=root, history=stale_history)
+
+            second_loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="mutation-stale-current-status-b",
+                requested_cycle_count=1,
+                paper_scope_focus=focus,
+            )
+            self.assertEqual(second_loop["loop_status"], "PASS")
+
+            stale_report = StrategyMutationCompiler().compile(
+                candidate_scorecard=None,
+                overfit_diagnostic=None,
+                convergence_memory=None,
+                optimizer_memory=None,
+                replay_closed_trade_evidence=None,
+            )
+            stale_report.update(
+                {
+                    "session_id": session_id,
+                    "candidate_id": "KRW-STALE-pullback-trend-long",
+                    "strategy_id": "pullback_trend",
+                    "strategy_build_id": "stale-test-build",
+                    "parent_parameter_hash": "A" * 64,
+                }
+            )
+            stale_report["mutation_budget_state"]["session_id"] = session_id
+            stale_report["mutation_budget_state"]["strategy_id"] = "pullback_trend"
+            stale_report["report_hash"] = strategy_mutation_compiler_report_hash(stale_report)
+            write_strategy_mutation_compiler_report(root=root, report=stale_report)
+
+            report = long_runner.build_runner_status_report(
+                root=root,
+                runner_id="mutation-stale-current-status-runner",
+                session_id=session_id,
+                runner_status=RUNNER_STATUS_STOPPED,
+                started_at_utc=utc_now(),
+                completed_cycle_count=2,
+                failed_cycle_count=0,
+                cycle_interval_seconds=0,
+                loop_report=second_loop,
+                stop_reason="TEST",
+            )
+
+        self.assertEqual(report["paper_scope_candidate_id"], focus["candidate_id"])
+        self.assertEqual(report["strategy_mutation_compiler_status"], "NOT_RUN")
+        self.assertFalse(report["strategy_mutation_compiler_report_current"])
+        self.assertEqual(
+            report["strategy_mutation_compiler_report_ignored_candidate_id"],
+            "KRW-STALE-pullback-trend-long",
+        )
+        self.assertEqual(report["strategy_mutation_compiler_candidate_id"], focus["candidate_id"])
+        self.assertEqual(report["strategy_mutation_compiler_source"], "STALE_MUTATION_REPORT_IGNORED")
+        self.assertFalse(report["strategy_mutation_ranking_eligible"])
+        self.assertFalse(report["live_order_ready"])
+        self.assertFalse(report["live_order_allowed"])
+        self.assertFalse(report["can_live_trade"])
+        self.assertFalse(report["scale_up_allowed"])
+        validation = long_runner.validate_upbit_paper_long_runner_status_report(report)
+        self.assertNotEqual(validation["status"], "FAIL")
+        self.assertNotEqual(validation.get("blocker_code"), "RUNNER_STATUS_MUTATION_CANDIDATE_MISMATCH")
+
     def test_profitability_sample_selection_prefers_entry_review_over_later_no_trade(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
 
