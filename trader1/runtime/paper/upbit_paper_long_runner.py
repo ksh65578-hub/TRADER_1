@@ -142,6 +142,7 @@ LIVE_FALSE_FLAGS = (
     "credential_load_attempted",
     "live_key_loaded",
 )
+PAPER_SCOPE_FOCUS_DRIFT_FLAGS = (*LIVE_FALSE_FLAGS, "order_endpoint_called")
 
 
 @dataclass(frozen=True)
@@ -686,7 +687,7 @@ def _paper_scope_continuity_focus_from_history(root: Path, session_id: str) -> d
     active = history.get("active_candidate_scope")
     if not isinstance(active, dict):
         return None
-    if any(active.get(flag) for flag in LIVE_FALSE_FLAGS[:4]):
+    if _paper_scope_focus_has_live_private_drift(active):
         return None
     sample_deficit = _int_value(active.get("sample_deficit"), 0)
     if sample_deficit <= 0:
@@ -713,6 +714,15 @@ def _paper_scope_continuity_focus_from_history(root: Path, session_id: str) -> d
     }
 
 
+def _paper_scope_focus_has_live_private_drift(focus: dict[str, Any]) -> bool:
+    if any(focus.get(flag) is True for flag in PAPER_SCOPE_FOCUS_DRIFT_FLAGS):
+        return True
+    spec = focus.get("mutated_paper_candidate_spec")
+    if isinstance(spec, dict) and any(spec.get(flag) is True for flag in PAPER_SCOPE_FOCUS_DRIFT_FLAGS):
+        return True
+    return False
+
+
 def _paper_scope_focus_from_trade_intent_inputs(intent_inputs: Any) -> dict[str, Any] | None:
     if intent_inputs is None:
         return None
@@ -723,7 +733,7 @@ def _paper_scope_focus_from_trade_intent_inputs(intent_inputs: Any) -> dict[str,
     )
     if not isinstance(focus, dict):
         return None
-    if any(focus.get(flag) for flag in LIVE_FALSE_FLAGS[:4]):
+    if _paper_scope_focus_has_live_private_drift(focus):
         return None
     candidate_id = str(focus.get("candidate_id") or "")
     symbol = str(focus.get("symbol") or "").upper()
@@ -752,6 +762,67 @@ def _paper_scope_focus_from_trade_intent_inputs(intent_inputs: Any) -> dict[str,
         }
     )
     return normalized
+
+
+def _paper_scope_focus_identity(focus: dict[str, Any] | None) -> tuple[str, str, str, str] | None:
+    if not isinstance(focus, dict):
+        return None
+    candidate_id = str(focus.get("candidate_id") or "")
+    symbol = str(focus.get("symbol") or "").upper()
+    strategy_id = str(focus.get("strategy_id") or "")
+    parameter_hash = str(focus.get("parameter_hash") or "").upper()
+    if not candidate_id or not symbol.startswith("KRW-") or not strategy_id or len(parameter_hash) != 64:
+        return None
+    return candidate_id, symbol, strategy_id, parameter_hash
+
+
+def _select_paper_scope_focus_for_next_cycle(
+    *,
+    history_focus: dict[str, Any] | None,
+    provider_focus: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, str]:
+    if history_focus is not None and _paper_scope_focus_has_live_private_drift(history_focus):
+        history_focus = None
+    if provider_focus is not None and _paper_scope_focus_has_live_private_drift(provider_focus):
+        provider_focus = None
+
+    history_identity = _paper_scope_focus_identity(history_focus)
+    provider_identity = _paper_scope_focus_identity(provider_focus)
+    if history_identity is None:
+        if provider_identity is None:
+            return None, "NO_SAFE_PAPER_SCOPE_FOCUS"
+        return provider_focus, "PROVIDER_SCOPE_SELECTED"
+    if provider_identity is None:
+        return history_focus, "HISTORY_SCOPE_CONTINUITY_SELECTED"
+    if history_identity == provider_identity:
+        merged_focus = dict(provider_focus or {})
+        merged_focus.update(
+            {
+                "source": "PAPER_RUNTIME_SAMPLE_HISTORY_CONTINUITY_WITH_PROVIDER_DETAILS",
+                "candidate_id": history_focus["candidate_id"],
+                "symbol": history_focus["symbol"],
+                "strategy_id": history_focus["strategy_id"],
+                "parameter_hash": history_focus["parameter_hash"],
+                "sample_count": _int_value(history_focus.get("sample_count"), 0),
+                "sample_deficit": _int_value(history_focus.get("sample_deficit"), 0),
+                "scope_progress_status": str(
+                    history_focus.get("scope_progress_status") or "COLLECT_PAPER_SCOPE_SAMPLES"
+                ),
+                "provider_focus_source": provider_focus.get("source"),
+                "history_focus_source": history_focus.get("source"),
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+        )
+        return merged_focus, "HISTORY_SCOPE_CONTINUITY_MERGED_PROVIDER_DETAILS"
+    if _int_value(history_focus.get("sample_deficit"), 0) > 0 and _int_value(history_focus.get("sample_count"), 0) > 0:
+        selected = dict(history_focus)
+        selected["suppressed_provider_focus_candidate_id"] = provider_focus.get("candidate_id")
+        selected["suppressed_provider_focus_source"] = provider_focus.get("source")
+        return selected, "HISTORY_SCOPE_CONTINUITY_SUPPRESSED_PROVIDER_SWITCH"
+    return provider_focus, "PROVIDER_SCOPE_SELECTED"
 
 
 def _candidate_scorecard_snapshot_fields(
@@ -2839,7 +2910,8 @@ def run_upbit_paper_long_running_runner(
                 _emit_console_status(running)
 
             cycle_loop_id = f"{runner_id}-cycle-{completed + 1:06d}"
-            paper_scope_focus = _paper_scope_continuity_focus_from_history(root, session_id)
+            history_paper_scope_focus = _paper_scope_continuity_focus_from_history(root, session_id)
+            provider_paper_scope_focus: dict[str, Any] | None = None
             if paper_trade_intent_inputs_provider is not None:
                 try:
                     latest_runtime_cycle = _load_latest_runtime_cycle(root, session_id)
@@ -2856,7 +2928,7 @@ def run_upbit_paper_long_running_runner(
                     )
                     provider_focus = _paper_scope_focus_from_trade_intent_inputs(intent_inputs)
                     if provider_focus is not None:
-                        paper_scope_focus = provider_focus
+                        provider_paper_scope_focus = provider_focus
                         _append_log(
                             root,
                             session_id,
@@ -2886,6 +2958,37 @@ def run_upbit_paper_long_running_runner(
                             "scale_up_allowed": False,
                         },
                     )
+            paper_scope_focus, paper_scope_focus_arbitration_status = _select_paper_scope_focus_for_next_cycle(
+                history_focus=history_paper_scope_focus,
+                provider_focus=provider_paper_scope_focus,
+            )
+            if history_paper_scope_focus is not None or provider_paper_scope_focus is not None:
+                _append_log(
+                    root,
+                    session_id,
+                    {
+                        "event": "paper_scope_focus_arbitrated",
+                        "status": paper_scope_focus_arbitration_status,
+                        "selected_candidate_id": (
+                            paper_scope_focus.get("candidate_id") if isinstance(paper_scope_focus, dict) else None
+                        ),
+                        "history_candidate_id": (
+                            history_paper_scope_focus.get("candidate_id")
+                            if isinstance(history_paper_scope_focus, dict)
+                            else None
+                        ),
+                        "provider_candidate_id": (
+                            provider_paper_scope_focus.get("candidate_id")
+                            if isinstance(provider_paper_scope_focus, dict)
+                            else None
+                        ),
+                        "at": utc_now(),
+                        "live_order_ready": False,
+                        "live_order_allowed": False,
+                        "can_live_trade": False,
+                        "scale_up_allowed": False,
+                    },
+                )
             loop_result = run_upbit_paper_persistent_loop(
                 root=root,
                 loop_id=cycle_loop_id,

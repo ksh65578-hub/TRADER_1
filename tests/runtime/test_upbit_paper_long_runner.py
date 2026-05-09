@@ -50,6 +50,176 @@ def _load_json(path: Path) -> dict:
 
 
 class UpbitPaperLongRunnerTest(unittest.TestCase):
+    def test_scope_focus_adapter_rejects_private_order_key_drift(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        focus = {
+            "source": "CANDIDATE_GENERATION_PUBLIC_REPLAY_REHYDRATION",
+            "candidate_id": "KRW-ETH-pullback-trend-long",
+            "symbol": "KRW-ETH",
+            "strategy_id": "trend_pullback",
+            "parameter_hash": "A" * 64,
+            "sample_count": 0,
+            "sample_deficit": 30,
+            "order_endpoint_called": True,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+        self.assertIsNone(long_runner._paper_scope_focus_from_trade_intent_inputs({"paper_scope_focus": focus}))
+
+    def test_scope_focus_arbitration_keeps_collecting_history_scope_over_provider_switch(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        history_focus = {
+            "source": "PAPER_RUNTIME_SAMPLE_HISTORY_ACTIVE_CANDIDATE_SCOPE",
+            "candidate_id": "KRW-AXL-pullback-trend-long",
+            "symbol": "KRW-AXL",
+            "strategy_id": "trend_pullback",
+            "parameter_hash": "A" * 64,
+            "sample_count": 4,
+            "sample_deficit": 26,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+        provider_focus = {
+            "source": "CANDIDATE_GENERATION_PUBLIC_REPLAY_REHYDRATION",
+            "candidate_id": "KRW-WIF-vwap-mean-reversion",
+            "symbol": "KRW-WIF",
+            "strategy_id": "vwap_mean_reversion",
+            "parameter_hash": "B" * 64,
+            "sample_count": 0,
+            "sample_deficit": 30,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+        selected, status = long_runner._select_paper_scope_focus_for_next_cycle(
+            history_focus=history_focus,
+            provider_focus=provider_focus,
+        )
+
+        self.assertEqual(status, "HISTORY_SCOPE_CONTINUITY_SUPPRESSED_PROVIDER_SWITCH")
+        self.assertEqual(selected["candidate_id"], history_focus["candidate_id"])
+        self.assertEqual(selected["suppressed_provider_focus_candidate_id"], provider_focus["candidate_id"])
+        self.assertFalse(selected["live_order_allowed"])
+
+    def test_scope_focus_arbitration_merges_provider_mutation_for_same_history_scope(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        history_focus = {
+            "source": "PAPER_RUNTIME_SAMPLE_HISTORY_ACTIVE_CANDIDATE_SCOPE",
+            "candidate_id": "KRW-AXL-pullback-trend-long",
+            "symbol": "KRW-AXL",
+            "strategy_id": "trend_pullback",
+            "parameter_hash": "C" * 64,
+            "sample_count": 6,
+            "sample_deficit": 24,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+        provider_focus = dict(history_focus)
+        provider_focus.update(
+            {
+                "source": "CANDIDATE_GENERATION_PUBLIC_REPLAY_REHYDRATION_WITH_MUTATION",
+                "sample_count": 0,
+                "sample_deficit": 30,
+                "mutated_paper_candidate_spec": {
+                    "schema_id": "trader1.mutated_paper_candidate_spec.v1",
+                    "mutation_id": "mutation-001",
+                    "live_order_ready": False,
+                    "live_order_allowed": False,
+                    "can_live_trade": False,
+                    "scale_up_allowed": False,
+                    "order_adapter_called": False,
+                    "private_endpoint_called": False,
+                    "credential_load_attempted": False,
+                    "live_key_loaded": False,
+                    "order_endpoint_called": False,
+                },
+            }
+        )
+
+        selected, status = long_runner._select_paper_scope_focus_for_next_cycle(
+            history_focus=history_focus,
+            provider_focus=provider_focus,
+        )
+
+        self.assertEqual(status, "HISTORY_SCOPE_CONTINUITY_MERGED_PROVIDER_DETAILS")
+        self.assertEqual(selected["sample_count"], 6)
+        self.assertEqual(selected["sample_deficit"], 24)
+        self.assertEqual(selected["mutated_paper_candidate_spec"]["mutation_id"], "mutation-001")
+        self.assertFalse(selected["live_order_allowed"])
+
+    def test_long_runner_uses_history_scope_when_provider_suggests_different_candidate(self):
+        from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
+            build_upbit_paper_runtime_sample_history,
+            validate_upbit_paper_runtime_sample_history_sources,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first_loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="long-runner-history-scope-seed",
+                requested_cycle_count=1,
+            )
+            self.assertEqual(first_loop["loop_status"], "PASS")
+            history = build_upbit_paper_runtime_sample_history(root=root, session_id="mvp1_upbit_paper_launcher")
+            self.assertEqual(
+                validate_upbit_paper_runtime_sample_history_sources(root=root, history=history).status,
+                "PASS",
+            )
+            active_scope = history["active_candidate_scope"]
+            self.assertIsInstance(active_scope, dict)
+
+            provider_focus = {
+                "source": "CANDIDATE_GENERATION_PUBLIC_REPLAY_REHYDRATION",
+                "candidate_id": "KRW-WIF-vwap-mean-reversion",
+                "symbol": "KRW-WIF",
+                "strategy_id": "vwap_mean_reversion",
+                "parameter_hash": "D" * 64,
+                "sample_count": 0,
+                "sample_deficit": 30,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+
+            def provider(**_kwargs):
+                return {"paper_scope_focus": provider_focus}
+
+            report = run_upbit_paper_long_running_runner(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                runner_id="long-runner-history-scope-continuity",
+                max_cycles=1,
+                cycle_interval_seconds=0,
+                sleep_fn=lambda _seconds: None,
+                attempt_public_symbol_discovery=False,
+                attempt_network_market_data=False,
+                refresh_dashboard=False,
+                emit_console_status=False,
+                paper_trade_intent_inputs_provider=provider,
+            )
+
+        self.assertEqual(report["runner_status"], RUNNER_STATUS_STOPPED)
+        self.assertEqual(report["completed_cycle_count"], 1)
+        self.assertTrue(report["paper_scope_continuity_requested"])
+        self.assertEqual(report["paper_scope_continuity_requested_candidate_id"], active_scope["candidate_id"])
+        self.assertNotEqual(report["paper_scope_continuity_requested_candidate_id"], provider_focus["candidate_id"])
+        self.assertGreaterEqual(report["paper_scope_sample_count"], 2)
+        self.assertFalse(report["live_order_allowed"])
+
     def test_profitability_sample_selection_prefers_entry_review_over_later_no_trade(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
 
