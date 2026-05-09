@@ -2579,6 +2579,9 @@ def build_launcher_dashboard_artifacts(
     )
     upbit_paper_persistent_loop_report = load_scoped_upbit_paper_persistent_loop_report(report, root)
     upbit_paper_long_runner_status_report = load_scoped_upbit_paper_long_runner_status_report(report, root)
+    upbit_paper_runtime_sample_history_report = _load_dashboard_json_artifact(
+        paths["upbit_paper_runtime_sample_history"]
+    )
     upbit_paper_long_runner_retention_manifest = load_scoped_upbit_paper_long_runner_retention_manifest(report, root)
     upbit_paper_runtime_recovery_guard_report = load_scoped_upbit_paper_runtime_recovery_guard_report(report, root)
     upbit_paper_runtime_evidence_collection_profile_report = (
@@ -2826,6 +2829,7 @@ def build_launcher_dashboard_artifacts(
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_long_runner_status_report=upbit_paper_long_runner_status_report,
+        upbit_paper_runtime_sample_history_report=upbit_paper_runtime_sample_history_report,
         upbit_paper_long_runner_retention_manifest=upbit_paper_long_runner_retention_manifest,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
         upbit_paper_runtime_evidence_collection_profile_report=upbit_paper_runtime_evidence_collection_profile_report,
@@ -2848,6 +2852,7 @@ def build_launcher_dashboard_artifacts(
         "paper_continuous_current_evidence_writer_report": paper_continuous_current_evidence_writer_report,
         "paper_runtime_truth_state_report": paper_runtime_truth_state_report,
         "upbit_paper_long_runner_status_report": upbit_paper_long_runner_status_report,
+        "upbit_paper_runtime_sample_history_report": upbit_paper_runtime_sample_history_report,
         "upbit_paper_long_runner_retention_manifest": upbit_paper_long_runner_retention_manifest,
         "summary": summary,
         "dashboard_shell": dashboard,

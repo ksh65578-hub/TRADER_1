@@ -2716,6 +2716,73 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("accepted_cycle_sample_count", html)
         self.assertIn("Start PAPER again so runner status, sample history", html)
 
+    def test_dashboard_demotes_raw_runner_against_current_sample_history_report(self):
+        session_id = "test_read_only_dashboard_runner_ops_sample_history_current_guard"
+        summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+        latest_sample_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        runner_status = runner_status_fixture(session_id=session_id)
+        runner_status.update(
+            {
+                "runtime_sample_history_status": "PASS",
+                "runtime_sample_history_source_consistency_status": "PASS",
+                "runtime_sample_history_source_consistency_issues": [],
+                "runtime_sample_history_source_consistency_blocker_code": None,
+                "runtime_sample_history_companion_accepted_cycle_sample_count": 14,
+                "runtime_sample_history_companion_active_candidate_id": "KRW-PROS-pullback-trend-long",
+                "runtime_sample_history_companion_active_sample_count": 7,
+                "runtime_sample_count": 14,
+                "paper_scope_candidate_id": "KRW-PROS-pullback-trend-long",
+                "paper_scope_strategy_id": "pullback_trend",
+                "paper_scope_symbol": "KRW-PROS",
+                "paper_scope_sample_count": 7,
+                "paper_scope_sample_deficit": 23,
+                "paper_scope_latest_sample_at_utc": latest_sample_at,
+            }
+        )
+        runner_status["status_hash"] = upbit_paper_long_runner_status_hash(runner_status)
+        sample_history = {
+            "schema_id": "trader1.upbit_paper_runtime_sample_history.v1",
+            "generated_at_utc": latest_sample_at,
+            "accepted_cycle_sample_count": 2,
+            "active_candidate_scope": {
+                "candidate_id": "KRW-AXL-pullback-trend-long",
+                "strategy_id": "pullback_trend",
+                "parameter_hash": "D" * 64,
+                "symbol": "KRW-AXL",
+                "sample_count": 1,
+                "latest_sample_at_utc": latest_sample_at,
+            },
+            "latest_sample_at_utc": latest_sample_at,
+        }
+
+        dashboard = build_read_only_dashboard_shell(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            upbit_paper_long_runner_status_report=runner_status,
+            upbit_paper_runtime_sample_history_report=sample_history,
+            upbit_paper_long_runner_retention_manifest=runner_retention_manifest_fixture(session_id=session_id),
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        runner = dashboard["paper_runner_operations_status"]
+        self.assertEqual(runner["status"], "STALE")
+        self.assertEqual(runner["runtime_sample_history_status"], "STALE")
+        self.assertEqual(runner["runtime_sample_history_source_consistency_status"], "MISMATCH")
+        self.assertEqual(runner["runtime_sample_count"], 2)
+        self.assertEqual(runner["paper_scope_candidate_id"], "KRW-AXL-pullback-trend-long")
+        self.assertEqual(runner["paper_scope_sample_count"], 1)
+        self.assertEqual(runner["primary_blocker_code"], "RUNTIME_SAMPLE_HISTORY_COMPANION_MISMATCH")
+        source_by_id = {source["artifact_id"]: source for source in dashboard["source_artifacts"]}
+        self.assertEqual(source_by_id["PAPER_LONG_RUNNER_STATUS"]["freshness_status"], "STALE")
+        self.assertFalse(runner["live_order_allowed"])
+        self.assertFalse(runner["can_live_trade"])
+
     def test_dashboard_live_answer_prefers_current_runner_scope_deficit_over_rollup(self):
         rollup = profitability_maturity_rollup_fixture()
         dashboard = build_dashboard_with_runner_operations(profitability_maturity_rollup_report=rollup)
