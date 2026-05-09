@@ -309,8 +309,17 @@ def _active_candidate_scope_fields(
         }
     # Use the active scope as the next collection target.  A floor-met scope
     # remains visible in candidate_scope_sample_summaries, but it must not pin
-    # PAPER focus while other candidate scopes still need samples.
-    active = next((summary for summary in summaries if _safe_int(summary.get("sample_deficit")) > 0), summaries[0])
+    # PAPER focus while other candidate scopes still need samples.  Among
+    # incomplete scopes, prefer candidates that most recently remained
+    # PAPER_ENTRY_REVIEW so runtime can collect executable PAPER entry/exit
+    # evidence instead of repeatedly sampling a stale no-trade regime mismatch.
+    incomplete_summaries = [summary for summary in summaries if _safe_int(summary.get("sample_deficit")) > 0]
+    entry_viable_summaries = [
+        summary
+        for summary in incomplete_summaries
+        if str(summary.get("latest_candidate_decision") or "") == "PAPER_ENTRY_REVIEW"
+    ]
+    active = next(iter(entry_viable_summaries or incomplete_summaries), summaries[0])
     return {
         "candidate_scope_sample_summary_count": len(summaries),
         "candidate_scope_sample_summaries": summaries,

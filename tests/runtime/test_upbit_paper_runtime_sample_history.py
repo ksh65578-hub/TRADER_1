@@ -308,6 +308,85 @@ class UpbitPaperRuntimeSampleHistoryTest(unittest.TestCase):
         self.assertIn("Collect 1 more PAPER samples", scope_fields["active_candidate_scope_next_action"])
         self.assertFalse(active["live_order_allowed"])
 
+    def test_active_scope_prefers_entry_viable_incomplete_candidate_over_no_trade_stale_scope(self):
+        stale_hash = "C" * 64
+        entry_hash = "D" * 64
+        samples = []
+        for index in range(3):
+            samples.append(
+                {
+                    "generated_at_utc": f"2026-05-07T00:01:0{index}Z",
+                    "exchange": "UPBIT",
+                    "market_type": "KRW_SPOT",
+                    "mode": "PAPER",
+                    "scorecard_symbol": "KRW-STALE",
+                    "scorecard_candidate_id": "KRW-STALE-breakout-retest-long",
+                    "scorecard_strategy_id": "breakout_retest",
+                    "scorecard_parameter_hash": stale_hash,
+                    "entry_reason_count": 0,
+                    "exit_reason_count": 1,
+                    "no_trade_reason_count": 1,
+                    "candidate_count": 3,
+                    "loop_id": f"scope-stale-{index}",
+                    "cycle_id": f"cycle-stale-{index}",
+                    "final_decision": "EXIT_POSITION",
+                    "scorecard_candidate_decision": "NO_TRADE",
+                    "sample_hash": str(index + 1) * 64,
+                    "source_runtime_cycle_hash": str(index + 4) * 64,
+                    "live_order_ready": False,
+                    "live_order_allowed": False,
+                    "can_live_trade": False,
+                    "scale_up_allowed": False,
+                    "scorecard_candidate_identity_binding_status": "BOUND",
+                    "scorecard_candidate_live_flags_clear": True,
+                }
+            )
+        samples.append(
+            {
+                "generated_at_utc": "2026-05-07T00:01:04Z",
+                "exchange": "UPBIT",
+                "market_type": "KRW_SPOT",
+                "mode": "PAPER",
+                "scorecard_symbol": "KRW-ENTRY",
+                "scorecard_candidate_id": "KRW-ENTRY-breakout-retest-long",
+                "scorecard_strategy_id": "breakout_retest",
+                "scorecard_parameter_hash": entry_hash,
+                "entry_reason_count": 1,
+                "exit_reason_count": 0,
+                "no_trade_reason_count": 0,
+                "candidate_count": 3,
+                "loop_id": "scope-entry-1",
+                "cycle_id": "cycle-entry-1",
+                "final_decision": "NO_TRADE",
+                "scorecard_candidate_decision": "PAPER_ENTRY_REVIEW",
+                "sample_hash": "8" * 64,
+                "source_runtime_cycle_hash": "9" * 64,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+                "scorecard_candidate_identity_binding_status": "BOUND",
+                "scorecard_candidate_live_flags_clear": True,
+            }
+        )
+
+        summaries = sample_history_module._candidate_scope_sample_summaries(
+            samples,
+            min_required_sample_count=5,
+        )
+        scope_fields = sample_history_module._active_candidate_scope_fields(
+            summaries,
+            min_required_sample_count=5,
+        )
+
+        self.assertEqual(summaries[0]["candidate_id"], "KRW-STALE-breakout-retest-long")
+        active = scope_fields["active_candidate_scope"]
+        self.assertEqual(active["candidate_id"], "KRW-ENTRY-breakout-retest-long")
+        self.assertEqual(active["latest_candidate_decision"], "PAPER_ENTRY_REVIEW")
+        self.assertEqual(active["sample_count"], 1)
+        self.assertEqual(active["sample_deficit"], 4)
+        self.assertFalse(active["live_order_allowed"])
+
     def test_entry_reason_evidence_counts_blocked_candidate_entry_review(self):
         runtime_cycle = {
             "entry_reasons": [],
