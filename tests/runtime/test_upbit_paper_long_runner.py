@@ -1747,6 +1747,96 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             ):
                 self.assertFalse(confirmed_stop_report[field], field)
 
+    def test_stop_file_during_inter_cycle_sleep_stops_without_waiting_full_interval(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "stop_during_inter_cycle_sleep_session"
+            stop_path = runner_stop_file_path(root, session_id)
+            root_stop_report_path = _root_stop_request_report_path(root, session_id)
+            root_stop_report_path.parent.mkdir(parents=True, exist_ok=True)
+            root_stop_report_path.write_text(
+                json.dumps(
+                    {
+                        "schema_id": "trader1.root_stop_request_report.v1",
+                        "generated_at_utc": utc_now(),
+                        "project_id": "TRADER_1",
+                        "stop_launcher_name": "STOP_UPBIT_PAPER",
+                        "target_launcher_name": "UPBIT_PAPER",
+                        "exchange": "UPBIT",
+                        "market_type": "KRW_SPOT",
+                        "mode": "PAPER",
+                        "session_id": session_id,
+                        "stop_request_status": "STOP_REQUESTED",
+                        "stop_request_method": "UPBIT_PAPER_STOP_FILE",
+                        "stop_confirmed": False,
+                        "stop_result_summary": "UPBIT PAPER stop was requested.",
+                        "runner_status_path": str(runner_status_path(root, session_id)),
+                        "runner_status_after": RUNNER_STATUS_STOPPING,
+                        "runner_running_after": False,
+                        "dashboard_refresh_requested": True,
+                        "dashboard_should_show_stopped": False,
+                        "live_order_ready": False,
+                        "live_order_allowed": False,
+                        "can_live_trade": False,
+                        "scale_up_allowed": False,
+                        "order_adapter_called": False,
+                        "private_endpoint_called": False,
+                        "credential_load_attempted": False,
+                        "live_key_loaded": False,
+                        "order_endpoint_called": False,
+                    },
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+            sleep_calls: list[float] = []
+
+            def sleep_and_signal_stop(seconds: float) -> None:
+                sleep_calls.append(seconds)
+                if not stop_path.exists():
+                    stop_path.parent.mkdir(parents=True, exist_ok=True)
+                    stop_path.write_text(
+                        f"stop requested at {utc_now()} by test pid {os.getpid()}\n",
+                        encoding="utf-8",
+                    )
+
+            report = run_upbit_paper_long_running_runner(
+                root=root,
+                session_id=session_id,
+                runner_id="stop-during-sleep-runner",
+                cycle_interval_seconds=30.0,
+                max_cycles=None,
+                sleep_fn=sleep_and_signal_stop,
+                attempt_public_symbol_discovery=False,
+                attempt_network_market_data=False,
+                refresh_dashboard=False,
+            )
+
+            self.assertTrue(sleep_calls)
+            self.assertLess(max(sleep_calls), 1.0)
+            self.assertEqual(report["runner_status"], RUNNER_STATUS_STOPPED)
+            self.assertEqual(report["stop_reason"], "STOP_FILE")
+            self.assertEqual(report["completed_cycle_count"], 1)
+            confirmed_stop_report = _load_json(root_stop_report_path)
+            self.assertEqual(confirmed_stop_report["stop_request_status"], "STOP_CONFIRMED")
+            self.assertTrue(confirmed_stop_report["stop_confirmed"])
+            self.assertTrue(confirmed_stop_report["dashboard_should_show_stopped"])
+            self.assertEqual(confirmed_stop_report["runner_status_after"], RUNNER_STATUS_STOPPED)
+            self.assertFalse(confirmed_stop_report["runner_running_after"])
+            for field in (
+                "live_order_ready",
+                "live_order_allowed",
+                "can_live_trade",
+                "scale_up_allowed",
+                "order_adapter_called",
+                "private_endpoint_called",
+                "credential_load_attempted",
+                "live_key_loaded",
+            ):
+                self.assertFalse(report[field], field)
+                self.assertFalse(confirmed_stop_report[field], field)
+            self.assertFalse(confirmed_stop_report["order_endpoint_called"])
+
     def test_operator_stop_request_writes_paper_only_stop_signal_for_active_runner(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
 
