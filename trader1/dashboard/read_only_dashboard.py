@@ -76,8 +76,10 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_
     validate_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report,
 )
 from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer import (
+    AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_STATUS,
     AUDITED_WRITER_IDEMPOTENT_STATUS,
     AUDITED_WRITER_REFRESHED_STATUS,
+    AUDITED_WRITER_UNVERIFIED_COLLECTION_STATUS,
     AUDITED_WRITER_WRITTEN_STATUS,
     validate_upbit_paper_audited_current_evidence_snapshot,
     validate_upbit_paper_repaired_current_evidence_audited_writer_report,
@@ -496,6 +498,7 @@ AUDITED_WRITER_DISPLAY_PASS_STATUSES = {
     AUDITED_WRITER_WRITTEN_STATUS,
     AUDITED_WRITER_IDEMPOTENT_STATUS,
     AUDITED_WRITER_REFRESHED_STATUS,
+    AUDITED_WRITER_UNVERIFIED_COLLECTION_STATUS,
 }
 RUNTIME_EVIDENCE_BOUNDARY_STATUSES = {
     "ACTUAL_LONG_RUN_MISSING",
@@ -641,6 +644,7 @@ UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_STATUSES = {
     "PASS_AUDITED_CURRENT_EVIDENCE_WRITTEN",
     "PASS_AUDITED_CURRENT_EVIDENCE_ALREADY_WRITTEN",
     "PASS_AUDITED_CURRENT_EVIDENCE_REFRESHED",
+    "PASS_AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_WRITTEN",
     "BLOCKED_SOURCE_IMPLEMENTATION_PREP_INVALID",
     "BLOCKED_SOURCE_LEDGER_ROLLUP_INVALID",
     "BLOCKED_AUDITED_CURRENT_EVIDENCE_TARGET_DIRTY",
@@ -3327,6 +3331,29 @@ def _audited_current_evidence_portfolio_snapshot(
             summary=summary,
             blocker_code="SCHEMA_IDENTITY_MISMATCH",
             message="Audited PAPER current-evidence portfolio hashes do not bind to the writer report.",
+        )
+    if (
+        audited_current_evidence_snapshot.get("current_evidence_status")
+        == AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_STATUS
+        or audited_current_evidence_snapshot.get("portfolio_truth_status")
+        == AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_STATUS
+        or audited_paper_portfolio_snapshot.get("snapshot_status") == "BLOCKED"
+    ):
+        blocker_code = str(
+            audited_current_evidence_snapshot.get("primary_blocker_code")
+            or audited_paper_portfolio_snapshot.get("mark_to_market_blocker_code")
+            or audited_paper_portfolio_snapshot.get("primary_blocker_code")
+            or "MEASUREMENT_MISSING"
+        )
+        return _audited_current_evidence_unverified_portfolio_snapshot(
+            exchange=exchange,
+            market_type=market_type,
+            summary=summary,
+            blocker_code=blocker_code,
+            message=(
+                "Audited PAPER artifacts are fresh and source-bound, but portfolio value truth is UNVERIFIED; "
+                "safe PAPER sample collection may continue without treating cash, equity, PnL, or positions as verified."
+            ),
         )
 
     source_age_seconds = _snapshot_age_seconds(audited_current_evidence_snapshot.get("generated_at_utc"))
@@ -19141,8 +19168,10 @@ def build_read_only_dashboard_shell(
             "PASS"
             if audited_current_result.status == "PASS"
             and _freshness_from_generated_at(audited_current_evidence_snapshot) == "PASS"
-            and audited_current_evidence_snapshot.get("current_evidence_status") == "PASS"
-            and audited_current_evidence_snapshot.get("portfolio_truth_status") == "VERIFIED_PAPER_LEDGER_ROLLUP"
+            and audited_current_evidence_snapshot.get("current_evidence_status")
+            in {"PASS", AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_STATUS}
+            and audited_current_evidence_snapshot.get("portfolio_truth_status")
+            in {"VERIFIED_PAPER_LEDGER_ROLLUP", AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_STATUS}
             and audited_current_evidence_snapshot.get("live_order_ready") is False
             and audited_current_evidence_snapshot.get("live_order_allowed") is False
             and audited_current_evidence_snapshot.get("can_live_trade") is False
@@ -19165,7 +19194,7 @@ def build_read_only_dashboard_shell(
         audited_portfolio_freshness = (
             "PASS"
             if audited_portfolio_result.status == "PASS"
-            and audited_paper_portfolio_snapshot.get("snapshot_status") == "PASS"
+            and audited_paper_portfolio_snapshot.get("snapshot_status") in {"PASS", "BLOCKED"}
             and audited_paper_portfolio_snapshot.get("source")
             in {"PAPER_LEDGER_ROLLUP", "PAPER_LEDGER_ROLLUP_PUBLIC_MARK"}
             and audited_paper_portfolio_snapshot.get("live_order_ready") is False

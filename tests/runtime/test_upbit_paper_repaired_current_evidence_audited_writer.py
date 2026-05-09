@@ -15,7 +15,9 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer 
     AUDITED_WRITER_BLOCKED_TARGET_STATUS,
     AUDITED_WRITER_IDEMPOTENT_STATUS,
     AUDITED_WRITER_REFRESHED_STATUS,
+    AUDITED_WRITER_UNVERIFIED_COLLECTION_STATUS,
     AUDITED_WRITER_WRITTEN_STATUS,
+    AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_STATUS,
     DEFAULT_AUDITED_CURRENT_EVIDENCE_MAX_UNCOMPACTED_ARCHIVES,
     EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS,
     build_upbit_paper_repaired_current_evidence_audited_writer_report,
@@ -139,6 +141,52 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
                 "positions": [
                     {
                         "symbol": "KRW-BTC",
+                        "side": "LONG",
+                        "quantity": str(quantity),
+                        "average_entry_price": str(average_entry),
+                        "cost_basis": str(cost_basis),
+                        "mark_price": str(mark),
+                        "market_value": str(market_value),
+                        "unrealized_pnl": str(unrealized),
+                        "source": "PAPER_LEDGER_ROLLUP",
+                        "paper_only": True,
+                    }
+                ],
+            }
+        )
+        portfolio["snapshot_hash"] = paper_portfolio_hash(portfolio)
+        ledger["portfolio_snapshot"] = portfolio
+        ledger["rollup_hash"] = paper_ledger_rollup_hash(ledger)
+        return ledger
+
+    def stale_krw_ada_ledger_rollup(self) -> dict:
+        ledger = deepcopy(self.source_ledger_rollup())
+        portfolio = deepcopy(ledger["portfolio_snapshot"])
+        quantity = Decimal("0.007")
+        average_entry = Decimal("1000870")
+        mark = Decimal("1000870")
+        fee = Decimal("3")
+        cost_basis = quantity * average_entry + fee
+        market_value = quantity * mark
+        unrealized = market_value - cost_basis
+        cash_available = Decimal(portfolio["cash_available"])
+        locked_balance = Decimal(portfolio["locked_balance"])
+        realized = Decimal(portfolio["realized_pnl"])
+        starting = Decimal(portfolio["starting_cash"])
+        equity = cash_available + locked_balance + market_value
+        total_pnl = realized + unrealized
+        return_pct = Decimal("0") if starting <= 0 else ((equity - starting) / starting * Decimal("100"))
+        portfolio.update(
+            {
+                "position_market_value": str(market_value),
+                "equity": str(equity),
+                "unrealized_pnl": str(unrealized),
+                "total_pnl": str(total_pnl),
+                "return_pct": str(return_pct),
+                "open_position_count": 1,
+                "positions": [
+                    {
+                        "symbol": "KRW-ADA",
                         "side": "LONG",
                         "quantity": str(quantity),
                         "average_entry_price": str(average_entry),
@@ -550,6 +598,76 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
             replay = self.build_report(root)
             self.assertEqual(replay["writer_status"], AUDITED_WRITER_IDEMPOTENT_STATUS)
             self.assertEqual(replay["artifact_written_count"], 0)
+            self.assertEqual(replay["artifact_reused_count"], 3)
+
+    def test_writer_writes_unverified_collection_artifacts_for_public_mark_basis_mismatch(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            ledger = self.stale_krw_ada_ledger_rollup()
+            public_collection = self.public_collection(close="405", symbol="KRW-ADA")
+
+            report = self.build_report(
+                root,
+                ledger=ledger,
+                public_market_data_collection_report=public_collection,
+            )
+            result = validate_upbit_paper_repaired_current_evidence_audited_writer_report(report)
+
+            self.assertEqual(result.status, "PASS", result.message)
+            self.assertEqual(report["writer_status"], AUDITED_WRITER_UNVERIFIED_COLLECTION_STATUS)
+            self.assertTrue(report["writer_passed"])
+            self.assertTrue(report["lock_acquired"])
+            self.assertTrue(report["lock_released"])
+            self.assertFalse(report["lock_present_after_run"])
+            self.assertEqual(report["artifact_written_count"], 3)
+            self.assertTrue(report["current_evidence_artifact_written"])
+            self.assertTrue(report["idempotency_manifest_written"])
+            self.assertTrue(report["portfolio_truth_artifact_written"])
+            self.assertIn("PUBLIC_MARK_PRICE_BASIS_MISMATCH", report["blocker_codes"])
+            self.assertIsNone(report["primary_blocker_code"])
+            self.assertFalse(report["live_order_ready"])
+            self.assertFalse(report["live_order_allowed"])
+            self.assertFalse(report["can_live_trade"])
+            self.assertFalse(report["scale_up_allowed"])
+
+            runtime_base = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / SESSION_ID
+            current_evidence = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[0])
+            manifest = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[1])
+            portfolio = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[2])
+
+            self.assertEqual(
+                validate_upbit_paper_audited_current_evidence_snapshot(current_evidence).status,
+                "PASS",
+            )
+            self.assertEqual(
+                validate_upbit_paper_audited_current_evidence_idempotency_manifest(manifest).status,
+                "PASS",
+            )
+            self.assertEqual(validate_paper_portfolio_snapshot(portfolio).status, "PASS")
+            self.assertEqual(
+                current_evidence["current_evidence_status"],
+                AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_STATUS,
+            )
+            self.assertEqual(
+                current_evidence["portfolio_truth_status"],
+                AUDITED_CURRENT_EVIDENCE_UNVERIFIED_COLLECTION_STATUS,
+            )
+            self.assertEqual(current_evidence["cash_status"], "UNVERIFIED")
+            self.assertEqual(current_evidence["equity_status"], "UNVERIFIED")
+            self.assertEqual(current_evidence["position_status"], "UNVERIFIED")
+            self.assertEqual(current_evidence["primary_blocker_code"], "PUBLIC_MARK_PRICE_BASIS_MISMATCH")
+            self.assertEqual(portfolio["snapshot_status"], "BLOCKED")
+            self.assertEqual(portfolio["mark_to_market_blocker_code"], "PUBLIC_MARK_PRICE_BASIS_MISMATCH")
+            self.assertFalse(portfolio["live_order_allowed"])
+            self.assertFalse(portfolio["can_live_trade"])
+            self.assertFalse(portfolio["scale_up_allowed"])
+
+            replay = self.build_report(
+                root,
+                ledger=ledger,
+                public_market_data_collection_report=public_collection,
+            )
+            self.assertEqual(replay["writer_status"], AUDITED_WRITER_IDEMPOTENT_STATUS)
             self.assertEqual(replay["artifact_reused_count"], 3)
 
     def test_invalid_source_implementation_prep_blocks_writer(self):
