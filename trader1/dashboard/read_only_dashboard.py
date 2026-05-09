@@ -19745,10 +19745,12 @@ def build_read_only_dashboard_shell(
         primary_status_text = "PAPER STATUS NOT LOADED - READ ONLY, LIVE ORDERS BLOCKED"
     if runner_is_stopping:
         next_action_value = runner_operations_status.get("next_operator_action")
-    elif stop_status_for_primary in {"STOP_REQUESTED", "STOPPED"}:
+    elif stop_status_for_primary == "STOP_REQUESTED":
         next_action_value = operator_stop_status.get("next_operator_action")
     elif runner_is_running:
         next_action_value = runner_operations_status.get("next_operator_action")
+    elif stop_status_for_primary == "STOPPED":
+        next_action_value = operator_stop_status.get("next_operator_action")
     elif reconciliation_blocks_operator_action:
         next_action_value = reconciliation_recovery_summary.get("next_operator_action")
     elif runner_primary_status == "NOT_LOADED" and profile_primary_status == "PASS":
