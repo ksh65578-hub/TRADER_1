@@ -13,6 +13,7 @@ ALLOWED_ROOT_LAUNCHERS = frozenset(
         "BINANCE_LIVE",
     }
 )
+ALLOWED_ROOT_CONTROL_LAUNCHERS = frozenset({"STOP_UPBIT_PAPER"})
 
 LAUNCHER_EXTENSIONS = frozenset({".py", ".ps1", ".bat", ".cmd", ".sh"})
 LAUNCHER_NAME_MARKERS = frozenset(
@@ -115,7 +116,11 @@ def _is_launcher_like(path: Path) -> bool:
         return False
     stem = path.stem.lower().replace("-", "_")
     logical_name = normalize_launcher_name(path)
-    return logical_name in ALLOWED_ROOT_LAUNCHERS or any(marker in stem for marker in LAUNCHER_NAME_MARKERS)
+    return (
+        logical_name in ALLOWED_ROOT_LAUNCHERS
+        or logical_name in ALLOWED_ROOT_CONTROL_LAUNCHERS
+        or any(marker in stem for marker in LAUNCHER_NAME_MARKERS)
+    )
 
 
 def _read_lower(path: Path) -> str:
@@ -177,11 +182,15 @@ def inspect_root_launchers(root: Path | str, *, require_exact_four: bool = False
         logical_name = normalize_launcher_name(path)
         text = _read_lower(path)
         issues: list[str] = []
-        allowed = logical_name in ALLOWED_ROOT_LAUNCHERS
+        allowed_trading_launcher = logical_name in ALLOWED_ROOT_LAUNCHERS
+        allowed_control_launcher = logical_name in ALLOWED_ROOT_CONTROL_LAUNCHERS
+        allowed = allowed_trading_launcher or allowed_control_launcher
         logical_name_counts[logical_name] = logical_name_counts.get(logical_name, 0) + 1
 
-        if allowed:
+        if allowed_trading_launcher:
             root_launchers_found.append(logical_name)
+            issues.extend(_content_issues(logical_name, text))
+        elif allowed_control_launcher:
             issues.extend(_content_issues(logical_name, text))
         else:
             unexpected.append(_relative(path, root_path))

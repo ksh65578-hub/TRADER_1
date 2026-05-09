@@ -82,6 +82,7 @@ UPBIT_PAPER_LONG_RUNNER_STATUS_SCHEMA_ID = "trader1.upbit_paper_long_runner_stat
 UPBIT_PAPER_LONG_RUNNER_RETENTION_SCHEMA_ID = "trader1.upbit_paper_long_runner_retention_manifest.v1"
 UPBIT_PAPER_RUNNER_START_RECONCILIATION_SCHEMA_ID = "trader1.upbit_paper_runner_start_reconciliation.v1"
 UPBIT_PAPER_LONG_RUNNER_LOCK_SCHEMA_ID = "trader1.upbit_paper_long_runner_lock.v1"
+UPBIT_PAPER_OPERATOR_STOP_SCHEMA_ID = "trader1.upbit_paper_operator_stop_request.v1"
 
 DEFAULT_SESSION_ID = "mvp1_upbit_paper_launcher"
 DEFAULT_CYCLE_INTERVAL_SECONDS = 30.0
@@ -127,7 +128,7 @@ RUNNER_STATUS_SET = {
 }
 
 LOCK_BLOCKER_CODE = "RUNTIME_SINGLE_WRITER_LOCK_ACTIVE"
-STOP_FILE_METHOD = "STOP_FILE_OR_CTRL_C"
+STOP_FILE_METHOD = "STOP_UPBIT_PAPER.py_OR_STOP_FILE_OR_CTRL_C"
 DISK_PRESSURE_BLOCKER_CODE = "RUNTIME_DISK_PRESSURE_GUARD"
 RETENTION_ARCHIVE_WRITE_METHOD = "SAME_FILESYSTEM_RENAME"
 PAPER_SHADOW_RUNTIME_REFRESH_FAILED_BLOCKER_CODE = "PAPER_SHADOW_RUNTIME_REFRESH_FAILED"
@@ -212,6 +213,10 @@ def runner_stop_file_path(root: Path, session_id: str = DEFAULT_SESSION_ID) -> P
     return runner_dir(root, session_id) / "STOP_UPBIT_PAPER.signal"
 
 
+def runner_stop_request_report_path(root: Path, session_id: str = DEFAULT_SESSION_ID) -> Path:
+    return runner_dir(root, session_id) / "operator_stop_request.json"
+
+
 def runner_start_reconciliation_path(root: Path, session_id: str = DEFAULT_SESSION_ID) -> Path:
     return runner_dir(root, session_id) / "runner_start_reconciliation.json"
 
@@ -236,6 +241,12 @@ def _json_hash(payload: dict[str, Any]) -> str:
 def upbit_paper_long_runner_status_hash(report: dict[str, Any]) -> str:
     payload = dict(report)
     payload.pop("status_hash", None)
+    return _json_hash(payload)
+
+
+def upbit_paper_operator_stop_request_hash(report: dict[str, Any]) -> str:
+    payload = dict(report)
+    payload.pop("stop_request_hash", None)
     return _json_hash(payload)
 
 
@@ -657,6 +668,182 @@ def clear_runner_stop_file_for_operator_start(
             "stop_file_present_before": report["stop_file_present_before"],
             "stop_file_cleared": report["stop_file_cleared"],
             "blocker_code": report["blocker_code"],
+            "at": generated_at,
+        },
+    )
+    return report
+
+
+def request_upbit_paper_runner_stop(
+    root: Path,
+    session_id: str = DEFAULT_SESSION_ID,
+    *,
+    reason: str = "ROOT_OPERATOR_STOP",
+    wait_timeout_seconds: float = 90.0,
+    poll_interval_seconds: float = 1.0,
+    sleep_fn: Callable[[float], None] = time.sleep,
+) -> dict[str, Any]:
+    """Write the PAPER-only stop signal and optionally wait for confirmation."""
+
+    root = Path(root)
+    generated_at = utc_now()
+    status_path = runner_status_path(root, session_id)
+    stop_path = runner_stop_file_path(root, session_id)
+    report_path = runner_stop_request_report_path(root, session_id)
+    status_before = _read_json(status_path)
+    liveness_before = runner_lock_liveness_from_status_report(status_before)
+    lock_payload = _read_json(runner_lock_path(root, session_id))
+    lock_pid = lock_payload.get("pid") if isinstance(lock_payload, dict) else None
+    lock_pid_alive = _pid_is_running(lock_pid if isinstance(lock_pid, int) else None)
+    active_runner_detected = bool(
+        _canonical_runner_already_running(root, session_id)
+        or liveness_before.get("runner_liveness_proven") is True
+        or lock_pid_alive
+    )
+    report: dict[str, Any] = {
+        "schema_id": UPBIT_PAPER_OPERATOR_STOP_SCHEMA_ID,
+        "generated_at_utc": generated_at,
+        "project_id": "TRADER_1",
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "mode": "PAPER",
+        "session_id": session_id,
+        "reason": reason,
+        "stop_request_status": "NOT_REQUESTED",
+        "stop_request_method": "STOP_FILE",
+        "runner_status_path": str(status_path),
+        "stop_file_path": str(stop_path),
+        "stop_request_report_path": str(report_path),
+        "runner_status_before": status_before.get("runner_status") if isinstance(status_before, dict) else None,
+        "runner_running_before": status_before.get("running") if isinstance(status_before, dict) else None,
+        "runner_pid_before": liveness_before.get("runner_lock_pid") or (lock_pid if isinstance(lock_pid, int) else None),
+        "runner_liveness_proven_before": bool(liveness_before.get("runner_liveness_proven") or lock_pid_alive),
+        "stop_file_written": False,
+        "stop_file_cleared_as_stale": False,
+        "wait_timeout_seconds": wait_timeout_seconds,
+        "poll_interval_seconds": poll_interval_seconds,
+        "stop_confirmed": False,
+        "runner_status_after": None,
+        "runner_running_after": None,
+        "primary_blocker_code": None,
+        "primary_blocker_message": None,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "order_adapter_called": False,
+        "private_endpoint_called": False,
+        "credential_load_attempted": False,
+        "live_key_loaded": False,
+        "order_endpoint_called": False,
+    }
+
+    if not _is_relative_to(stop_path, root) or not _is_relative_to(report_path, root):
+        report.update(
+            {
+                "stop_request_status": "BLOCKED",
+                "primary_blocker_code": "STOP_FILE_PATH_ESCAPED_WORKSPACE",
+                "primary_blocker_message": "Runner stop file path is outside the configured workspace root.",
+            }
+        )
+    elif not active_runner_detected:
+        if stop_path.exists():
+            try:
+                stop_path.unlink()
+                report["stop_file_cleared_as_stale"] = True
+            except OSError as exc:
+                report.update(
+                    {
+                        "stop_request_status": "BLOCKED",
+                        "primary_blocker_code": "STALE_STOP_FILE_CLEAR_FAILED",
+                        "primary_blocker_message": str(exc),
+                    }
+                )
+        if report["stop_request_status"] != "BLOCKED":
+            report.update(
+                {
+                    "stop_request_status": "NO_RUNNING_RUNNER",
+                    "stop_confirmed": True,
+                    "primary_blocker_message": "No active UPBIT PAPER runner was detected.",
+                }
+            )
+    else:
+        stop_signal = {
+            "schema_id": "trader1.upbit_paper_runner_stop_signal.v1",
+            "generated_at_utc": generated_at,
+            "project_id": "TRADER_1",
+            "exchange": "UPBIT",
+            "market_type": "KRW_SPOT",
+            "mode": "PAPER",
+            "session_id": session_id,
+            "reason": reason,
+            "runner_status_path": str(status_path),
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+            "order_adapter_called": False,
+            "private_endpoint_called": False,
+            "credential_load_attempted": False,
+            "live_key_loaded": False,
+            "order_endpoint_called": False,
+        }
+        stop_signal["stop_signal_hash"] = _json_hash(stop_signal)
+        try:
+            durable_atomic_write_json(stop_path, stop_signal)
+            report["stop_file_written"] = True
+            report["stop_request_status"] = "STOP_REQUESTED"
+        except OSError as exc:
+            report.update(
+                {
+                    "stop_request_status": "BLOCKED",
+                    "primary_blocker_code": "STOP_FILE_WRITE_FAILED",
+                    "primary_blocker_message": str(exc),
+                }
+            )
+
+    if report["stop_request_status"] == "STOP_REQUESTED":
+        deadline = time.monotonic() + max(0.0, float(wait_timeout_seconds))
+        while True:
+            status_after = _read_json(status_path)
+            report["runner_status_after"] = (
+                status_after.get("runner_status") if isinstance(status_after, dict) else None
+            )
+            report["runner_running_after"] = status_after.get("running") if isinstance(status_after, dict) else None
+            if (
+                isinstance(status_after, dict)
+                and status_after.get("runner_status") == RUNNER_STATUS_STOPPED
+                and status_after.get("stop_reason") == "STOP_FILE"
+            ):
+                report["stop_request_status"] = "STOP_CONFIRMED"
+                report["stop_confirmed"] = True
+                break
+            if time.monotonic() >= deadline:
+                if wait_timeout_seconds <= 0:
+                    break
+                report.update(
+                    {
+                        "stop_request_status": "STOP_REQUEST_TIMEOUT",
+                        "primary_blocker_code": "STOP_CONFIRMATION_TIMEOUT",
+                        "primary_blocker_message": (
+                            "Stop signal was written, but the runner has not confirmed STOPPED yet."
+                        ),
+                    }
+                )
+                break
+            sleep_fn(max(0.05, float(poll_interval_seconds)))
+
+    report["stop_request_hash"] = upbit_paper_operator_stop_request_hash(report)
+    durable_atomic_write_json(report_path, report)
+    _append_log(
+        root,
+        session_id,
+        {
+            "event": "operator_stop_request",
+            "status": report["stop_request_status"],
+            "stop_file_written": report["stop_file_written"],
+            "stop_confirmed": report["stop_confirmed"],
+            "blocker_code": report["primary_blocker_code"],
             "at": generated_at,
         },
     )
@@ -3245,7 +3432,11 @@ def build_runner_status_report(
         "cycle_interval_seconds": cycle_interval_seconds,
         "next_cycle_eta": next_cycle_eta,
         "stop_method": STOP_FILE_METHOD,
+        "stop_launcher_path": str(root / "STOP_UPBIT_PAPER.py"),
         "stop_reason": stop_reason,
+        "console_lifecycle_policy": "BACKGROUND_RUNNER_STATUS_DASHBOARD",
+        "console_close_does_not_stop_runner": True,
+        "dashboard_close_does_not_stop_runner": True,
         "primary_blocker_code": primary_blocker_code,
         "primary_blocker_message": primary_blocker_message,
         "actual_long_running_runner": True,
@@ -3853,7 +4044,9 @@ def run_upbit_paper_long_running_runner(
             print("TRADER_1 UPBIT_PAPER runner started", flush=True)
             print(f"runner_status_path={runner_status_path(root, session_id)}", flush=True)
             print(f"dashboard_path={runner_runtime_base(root, session_id) / 'dashboard' / 'index.html'}", flush=True)
+            print(f"stop_launcher_path={root / 'STOP_UPBIT_PAPER.py'}", flush=True)
             print(f"stop_file_path={runner_stop_file_path(root, session_id)}", flush=True)
+            print("background_runner_policy=dashboard_status_plus_STOP_UPBIT_PAPER", flush=True)
             print("live_order_ready=false live_order_allowed=false can_live_trade=false scale_up_allowed=false", flush=True)
         while True:
             heartbeat_runner_lock(lock, session_id)
@@ -4377,13 +4570,24 @@ def _should_hold_on_exit(report: dict[str, Any]) -> bool:
     return report.get("stop_reason") == "MAX_CYCLES_REACHED"
 
 
-def _hold_console_on_exit_if_needed(report: dict[str, Any]) -> None:
+def _hold_console_on_exit_if_needed(report: dict[str, Any], *, already_running: bool = False) -> None:
     if not _should_hold_on_exit(report):
         return
-    message = (
-        "UPBIT_PAPER stopped. Check runner_status_path above. "
-        "Press Enter to close this window."
-    )
+    if already_running:
+        message = (
+            "UPBIT_PAPER is already running in the background. "
+            "Use STOP_UPBIT_PAPER.py to stop it. Press Enter to close this duplicate window."
+        )
+    elif report.get("runner_status") == RUNNER_STATUS_LOCKED:
+        message = (
+            "UPBIT_PAPER did not start because another runner lock is active. "
+            "Check runner_status_path above. Press Enter to close this window."
+        )
+    else:
+        message = (
+            "UPBIT_PAPER stopped. Check runner_status_path above. "
+            "Press Enter to close this window."
+        )
     if sys.stdin is not None and sys.stdin.isatty():
         try:
             input(message)
@@ -4405,6 +4609,33 @@ def _canonical_runner_already_running(root: Path, session_id: str = DEFAULT_SESS
         and canonical.get("running") is True
         and liveness.get("runner_liveness_proven") is True
     )
+
+
+def root_upbit_paper_stop_main(root: Path = ROOT) -> int:
+    wait_timeout = _float_env("TRADER1_UPBIT_PAPER_STOP_WAIT_SECONDS", 90.0)
+    poll_interval = _float_env("TRADER1_UPBIT_PAPER_STOP_POLL_SECONDS", 1.0)
+    report = request_upbit_paper_runner_stop(
+        root=root,
+        wait_timeout_seconds=wait_timeout,
+        poll_interval_seconds=poll_interval,
+    )
+    print(f"TRADER_1 STOP_UPBIT_PAPER status={report.get('stop_request_status')}", flush=True)
+    print(f"runner_status_path={report.get('runner_status_path')}", flush=True)
+    print(f"stop_file_path={report.get('stop_file_path')}", flush=True)
+    print(f"stop_request_report_path={report.get('stop_request_report_path')}", flush=True)
+    print(f"runner_pid={report.get('runner_pid_before')}", flush=True)
+    print(f"stop_file_written={str(report.get('stop_file_written') is True).lower()}", flush=True)
+    print(f"stop_confirmed={str(report.get('stop_confirmed') is True).lower()}", flush=True)
+    if report.get("primary_blocker_code"):
+        print(f"primary_blocker_code={report.get('primary_blocker_code')}", flush=True)
+        print(str(report.get("primary_blocker_message") or ""), flush=True)
+    print("live_order_ready=false live_order_allowed=false can_live_trade=false scale_up_allowed=false", flush=True)
+    if sys.stdin is not None and sys.stdin.isatty():
+        try:
+            input("STOP_UPBIT_PAPER finished. Press Enter to close this window.")
+        except EOFError:
+            pass
+    return 0 if report.get("stop_request_status") in {"STOP_CONFIRMED", "NO_RUNNING_RUNNER"} else 1
 
 
 def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
@@ -4432,7 +4663,17 @@ def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
         "TRADER1_UPBIT_PAPER_RUNTIME_DISK_PRESSURE_MAX_BYTES",
         DEFAULT_RUNTIME_DISK_PRESSURE_MAX_BYTES,
     )
-    if not _bool_env("TRADER1_UPBIT_PAPER_RESPECT_EXISTING_STOP_FILE", False):
+    canonical_running_before_start = _canonical_runner_already_running(root)
+    if canonical_running_before_start:
+        print("TRADER_1 UPBIT_PAPER background_runner_active=true", flush=True)
+        print(f"runner_status_path={runner_status_path(root)}", flush=True)
+        print(f"stop_launcher_path={root / 'STOP_UPBIT_PAPER.py'}", flush=True)
+        print(f"stop_file_path={runner_stop_file_path(root)}", flush=True)
+        print("dashboard_close_does_not_stop_runner=true console_close_does_not_stop_runner=true", flush=True)
+    if (
+        not canonical_running_before_start
+        and not _bool_env("TRADER1_UPBIT_PAPER_RESPECT_EXISTING_STOP_FILE", False)
+    ):
         start_reconciliation = clear_runner_stop_file_for_operator_start(
             root,
             DEFAULT_SESSION_ID,
@@ -4504,10 +4745,16 @@ def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
             print(f"dashboard_open_blocker_code={dashboard_open_result.blocker_code}")
             print(f"dashboard_open_blocker_message={dashboard_open_result.blocker_message}")
     print("live_order_ready=false live_order_allowed=false can_live_trade=false scale_up_allowed=false")
-    _hold_console_on_exit_if_needed(report)
+    already_running = report.get("runner_status") == RUNNER_STATUS_LOCKED and _canonical_runner_already_running(root)
+    if already_running:
+        print("already_running=true")
+        print("background_runner_active=true")
+        print(f"stop_launcher_path={root / 'STOP_UPBIT_PAPER.py'}")
+        print(f"stop_file_path={runner_stop_file_path(root)}")
+        print("dashboard_is_status_only=true dashboard_close_does_not_stop_runner=true")
+    _hold_console_on_exit_if_needed(report, already_running=already_running)
     if report.get("runner_status") in {RUNNER_STATUS_STOPPED}:
         return 0
-    if report.get("runner_status") == RUNNER_STATUS_LOCKED and _canonical_runner_already_running(root):
-        print("already_running=true")
+    if already_running:
         return 0
     return 1

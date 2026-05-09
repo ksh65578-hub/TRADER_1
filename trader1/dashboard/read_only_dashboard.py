@@ -6373,7 +6373,12 @@ def _paper_runner_operations_status(
         "unrealized_pnl": None,
         "last_decision": "NOT_AVAILABLE",
         "last_blocker": None,
-        "stop_method": "STOP_FILE_OR_CTRL_C",
+        "stop_method": "STOP_UPBIT_PAPER.py_OR_STOP_FILE_OR_CTRL_C",
+        "stop_launcher_path": "STOP_UPBIT_PAPER.py",
+        "stop_file_path": "NOT_LOADED",
+        "console_lifecycle_policy": "BACKGROUND_RUNNER_STATUS_DASHBOARD",
+        "console_close_does_not_stop_runner": True,
+        "dashboard_close_does_not_stop_runner": True,
         "log_path": "NOT_LOADED",
         "dashboard_open_attempted": False,
         "dashboard_opened": False,
@@ -6644,7 +6649,22 @@ def _paper_runner_operations_status(
             "unrealized_pnl": safe_value(runner_status_report.get("unrealized_pnl")),
             "last_decision": str(runner_status_report.get("last_decision") or "NOT_AVAILABLE"),
             "last_blocker": safe_value(runner_status_report.get("last_blocker")),
-            "stop_method": str(runner_status_report.get("stop_method") or "STOP_FILE_OR_CTRL_C"),
+            "stop_method": str(
+                runner_status_report.get("stop_method") or "STOP_UPBIT_PAPER.py_OR_STOP_FILE_OR_CTRL_C"
+            ),
+            "stop_launcher_path": str(runner_status_report.get("stop_launcher_path") or "STOP_UPBIT_PAPER.py"),
+            "stop_file_path": str(runner_status_report.get("stop_file_path") or "NOT_LOADED"),
+            "console_lifecycle_policy": str(
+                runner_status_report.get("console_lifecycle_policy") or "BACKGROUND_RUNNER_STATUS_DASHBOARD"
+            ),
+            "console_close_does_not_stop_runner": runner_status_report.get(
+                "console_close_does_not_stop_runner"
+            )
+            is not False,
+            "dashboard_close_does_not_stop_runner": runner_status_report.get(
+                "dashboard_close_does_not_stop_runner"
+            )
+            is not False,
             "log_path": str(runner_status_report.get("log_path") or "NOT_LOADED"),
             "dashboard_open_attempted": runner_status_report.get("dashboard_open_attempted") is True,
             "dashboard_opened": runner_status_report.get("dashboard_opened") is True,
@@ -26410,6 +26430,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<div><dt>Persistent runtime</dt><dd class=\"pill {status_class(shadow_persistent.get('status'))}\">{safe_text(shadow_persistent_status_display)}</dd></div>"
         f"<div><dt>PAPER loop</dt><dd class=\"pill {status_class(paper_persistent_loop.get('status'))}\">{safe_text(paper_persistent_loop_status_display)}</dd></div>"
         f"<div><dt>PAPER runner</dt><dd class=\"pill {status_class(paper_runner_operations.get('status'))}\">{safe_text(paper_runner_status_display)}</dd></div>"
+        f"<div><dt>Runner control</dt><dd>{safe_text(paper_runner_operations.get('console_lifecycle_policy', 'BACKGROUND_RUNNER_STATUS_DASHBOARD'))}<br>"
+        f"stop={safe_text(paper_runner_operations.get('stop_launcher_path', 'STOP_UPBIT_PAPER.py'))}</dd></div>"
         f"<div><dt>Runner cycles</dt><dd>{safe_text(paper_runner_operations.get('completed_cycle_count', 0))} ok / {safe_text(paper_runner_operations.get('failed_cycle_count', 0))} fail</dd></div>"
         f"<div><dt>Next cycle</dt><dd>{safe_text(paper_runner_operations.get('next_cycle_eta') or 'not scheduled')}</dd></div>"
         f"<div><dt>Evidence refresh</dt><dd class=\"pill {status_class(paper_runner_operations.get('profitability_evidence_refresh_status'))}\">{safe_text(paper_runner_evidence_display)}</dd></div>"
@@ -26448,6 +26470,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<div><dt>Retention</dt><dd class=\"pill {status_class(paper_runner_operations.get('artifact_retention_status'))}\">{safe_text(paper_runner_retention_display)}</dd></div>"
         f"<div><dt>Disk pressure</dt><dd class=\"pill {status_class(paper_runner_operations.get('disk_pressure_status'))}\">{safe_text(paper_runner_disk_display)}</dd></div>"
         f"<div><dt>Runner log</dt><dd>{safe_text(paper_runner_operations.get('log_path', 'NOT_LOADED'))}</dd></div>"
+        f"<div><dt>Stop signal</dt><dd>{safe_text(paper_runner_operations.get('stop_file_path', 'NOT_LOADED'))}</dd></div>"
         f"<div><dt>Dashboard open</dt><dd>{safe_text(paper_runner_dashboard_open_display)} via {safe_text(paper_runner_operations.get('dashboard_open_method', 'NOT_ATTEMPTED'))}</dd></div>"
         f"<div><dt>Dashboard target</dt><dd>{safe_text(paper_runner_operations.get('dashboard_open_target', 'NOT_LOADED'))}</dd></div>"
         f"<div><dt>PAPER recovery</dt><dd class=\"pill {status_class(paper_recovery_guard.get('status'))}\">{safe_text(paper_recovery_guard_status_display)}</dd></div>"

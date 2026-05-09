@@ -8,12 +8,14 @@ from unittest.mock import patch
 from trader1.runtime.paper.upbit_paper_long_runner import (
     DashboardOpenResult,
     LOCK_BLOCKER_CODE,
+    RUNNER_STATUS_RUNNING,
     RUNNER_STATUS_LOCKED,
     RUNNER_STATUS_BLOCKED,
     RUNNER_STATUS_STOPPED,
     DISK_PRESSURE_BLOCKER_CODE,
     acquire_runner_lock,
     apply_runner_artifact_retention,
+    build_runner_status_report,
     clear_runner_stop_file_for_operator_start,
     open_runner_dashboard,
     open_runner_dashboard_result,
@@ -23,7 +25,9 @@ from trader1.runtime.paper.upbit_paper_long_runner import (
     paper_runtime_sample_history_path,
     paper_shadow_evidence_accumulation_path,
     release_runner_lock,
+    request_upbit_paper_runner_stop,
     root_upbit_paper_long_runner_main,
+    root_upbit_paper_stop_main,
     run_upbit_paper_long_running_runner,
     runner_blocked_start_status_path,
     runner_dashboard_path,
@@ -34,6 +38,7 @@ from trader1.runtime.paper.upbit_paper_long_runner import (
     runner_start_reconciliation_path,
     runner_status_path,
     runner_stop_file_path,
+    runner_stop_request_report_path,
     shadow_persistent_runtime_path,
     shadow_runtime_harness_path,
     shadow_runtime_orchestration_path,
@@ -1513,6 +1518,78 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertEqual(report["completed_cycle_count"], 0)
             self.assertEqual(validate_upbit_paper_long_runner_status_report(report)["status"], "PASS")
 
+    def test_operator_stop_request_writes_paper_only_stop_signal_for_active_runner(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "operator_stop_session"
+            lock = acquire_runner_lock(root, session_id)
+            self.assertTrue(lock.acquired)
+            try:
+                status = build_runner_status_report(
+                    root=root,
+                    runner_id="operator-stop-runner",
+                    session_id=session_id,
+                    runner_status=RUNNER_STATUS_RUNNING,
+                    started_at_utc=utc_now(),
+                    completed_cycle_count=0,
+                    failed_cycle_count=0,
+                    cycle_interval_seconds=30,
+                )
+                long_runner._write_runner_status(runner_status_path(root, session_id), status)
+
+                stop_report = request_upbit_paper_runner_stop(
+                    root,
+                    session_id,
+                    wait_timeout_seconds=0,
+                    sleep_fn=lambda _seconds: None,
+                )
+                stop_signal = _load_json(runner_stop_file_path(root, session_id))
+                persisted = _load_json(runner_stop_request_report_path(root, session_id))
+
+                self.assertEqual(stop_report["stop_request_status"], "STOP_REQUESTED")
+                self.assertTrue(stop_report["stop_file_written"])
+                self.assertFalse(stop_report["stop_confirmed"])
+                self.assertEqual(persisted["stop_request_hash"], stop_report["stop_request_hash"])
+                self.assertEqual(stop_signal["mode"], "PAPER")
+                for field in (
+                    "live_order_ready",
+                    "live_order_allowed",
+                    "can_live_trade",
+                    "scale_up_allowed",
+                    "order_adapter_called",
+                    "private_endpoint_called",
+                    "credential_load_attempted",
+                    "live_key_loaded",
+                    "order_endpoint_called",
+                ):
+                    self.assertFalse(stop_report[field], field)
+                    self.assertFalse(stop_signal[field], field)
+            finally:
+                release_runner_lock(lock)
+
+    def test_operator_stop_request_without_runner_does_not_leave_future_stop_signal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "no_runner_stop_session"
+            stop_path = runner_stop_file_path(root, session_id)
+            stop_path.parent.mkdir(parents=True, exist_ok=True)
+            stop_path.write_text("stale stop\n", encoding="utf-8")
+
+            stop_report = request_upbit_paper_runner_stop(
+                root,
+                session_id,
+                wait_timeout_seconds=0,
+                sleep_fn=lambda _seconds: None,
+            )
+
+            self.assertEqual(stop_report["stop_request_status"], "NO_RUNNING_RUNNER")
+            self.assertTrue(stop_report["stop_confirmed"])
+            self.assertTrue(stop_report["stop_file_cleared_as_stale"])
+            self.assertFalse(stop_path.exists())
+            self.assertFalse(stop_report["live_order_allowed"])
+
     def test_operator_start_reconciliation_clears_stale_stop_file_before_start(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -1596,6 +1673,63 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertFalse(observed["stop_file_exists_at_runner_call"])
             self.assertFalse(stop_path.exists())
             self.assertTrue(runner_start_reconciliation_path(root).exists())
+
+    def test_root_operator_duplicate_start_does_not_clear_active_stop_request(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            stop_path = runner_stop_file_path(root)
+            stop_path.parent.mkdir(parents=True, exist_ok=True)
+            lock = acquire_runner_lock(root, "mvp1_upbit_paper_launcher")
+            self.assertTrue(lock.acquired)
+            try:
+                status = build_runner_status_report(
+                    root=root,
+                    runner_id="already-running",
+                    session_id="mvp1_upbit_paper_launcher",
+                    runner_status=RUNNER_STATUS_RUNNING,
+                    started_at_utc=utc_now(),
+                    completed_cycle_count=0,
+                    failed_cycle_count=0,
+                    cycle_interval_seconds=30,
+                )
+                long_runner._write_runner_status(runner_status_path(root), status)
+                stop_path.write_text("operator stop already requested\n", encoding="utf-8")
+                observed: dict[str, bool] = {}
+
+                def fake_run(**kwargs):
+                    observed["stop_file_exists_at_runner_call"] = runner_stop_file_path(kwargs["root"]).exists()
+                    return build_runner_status_report(
+                        root=kwargs["root"],
+                        runner_id="duplicate-start",
+                        session_id="mvp1_upbit_paper_launcher",
+                        runner_status=RUNNER_STATUS_LOCKED,
+                        started_at_utc=utc_now(),
+                        completed_cycle_count=0,
+                        failed_cycle_count=0,
+                        cycle_interval_seconds=30,
+                        primary_blocker_code=LOCK_BLOCKER_CODE,
+                        primary_blocker_message="Another runner owns this session lock.",
+                    )
+
+                with patch.dict(
+                    os.environ,
+                    {
+                        "TRADER1_UPBIT_PAPER_SAFE_CHECK_ONLY": "false",
+                        "TRADER1_UPBIT_PAPER_REFRESH_DASHBOARD": "false",
+                        "TRADER1_UPBIT_PAPER_OPEN_DASHBOARD": "false",
+                        "TRADER1_UPBIT_PAPER_HOLD_ON_EXIT": "false",
+                    },
+                ), patch.object(long_runner, "run_upbit_paper_long_running_runner", side_effect=fake_run):
+                    exit_code = long_runner.root_upbit_paper_long_runner_main(root)
+
+                self.assertEqual(exit_code, 0)
+                self.assertTrue(observed["stop_file_exists_at_runner_call"])
+                self.assertTrue(stop_path.exists())
+                self.assertFalse(status["live_order_allowed"])
+            finally:
+                release_runner_lock(lock)
 
     def test_root_operator_start_does_not_open_stale_dashboard_when_preopen_refresh_fails(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner

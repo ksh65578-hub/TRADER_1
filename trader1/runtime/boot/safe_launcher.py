@@ -370,6 +370,7 @@ def source_identity_files() -> list[Path]:
         "UPBIT_LIVE.py",
         "BINANCE_PAPER.py",
         "BINANCE_LIVE.py",
+        "STOP_UPBIT_PAPER.py",
     ):
         path = ROOT / filename
         if path.exists():

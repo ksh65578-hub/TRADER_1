@@ -12,7 +12,8 @@
     "UPBIT_PAPER.py",
     "UPBIT_LIVE.py",
     "BINANCE_PAPER.py",
-    "BINANCE_LIVE.py"
+    "BINANCE_LIVE.py",
+    "STOP_UPBIT_PAPER.py"
   ],
   "deny_paths": [
     "system/",
