@@ -913,8 +913,21 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
                 )
 
         self.assertEqual(len(calls), 2)
-        self.assertEqual(calls[1]["target_count"], long_runner.DEFAULT_ALTERNATIVE_REPLAY_MATURITY_EXPANSION_TARGET_COUNT)
-        self.assertEqual(calls[1]["max_replay_windows"], long_runner.DEFAULT_ALTERNATIVE_REPLAY_MATURITY_EXPANSION_MAX_WINDOWS)
+        expected_expansion_target = long_runner._alternative_replay_closed_trade_maturity_expansion_target(
+            {
+                "sample_count": 415,
+                "replay_closed_trade_sample_count": 3,
+                "min_required_closed_trade_sample_count": 30,
+                "replay_closed_trade_deficit": 27,
+            }
+        )
+        self.assertGreater(expected_expansion_target, 2400)
+        self.assertLessEqual(
+            expected_expansion_target,
+            long_runner.DEFAULT_ALTERNATIVE_REPLAY_MATURITY_EXPANSION_MAX_TARGET_COUNT,
+        )
+        self.assertEqual(calls[1]["target_count"], expected_expansion_target)
+        self.assertEqual(calls[1]["max_replay_windows"], expected_expansion_target)
         self.assertEqual(calls[1]["candidate_limit"], 1)
         self.assertEqual(
             calls[1]["candidate_generation_report"]["candidate_items"][0]["candidate_id"],
