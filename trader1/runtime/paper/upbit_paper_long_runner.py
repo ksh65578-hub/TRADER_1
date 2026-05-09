@@ -435,6 +435,15 @@ def _runner_status_matches_expected_pid(status: dict[str, Any], expected_runner_
     return runner_id.endswith(f"-{expected_runner_pid}")
 
 
+def _dashboard_status_channel_matches_expected_pid(
+    channel: dict[str, Any],
+    expected_runner_pid: int | None,
+) -> bool:
+    if expected_runner_pid is None:
+        return True
+    return _int_value(channel.get("dashboard_status_channel_runner_pid"), -1) == expected_runner_pid
+
+
 def _dashboard_status_channel_fields(root: Path, session_id: str = DEFAULT_SESSION_ID) -> dict[str, Any]:
     channel = _dashboard_status_channel_report(root, session_id)
     if not isinstance(channel, dict):
@@ -481,12 +490,14 @@ def _dashboard_status_channel_url_from_artifacts(
             and _runner_status_matches_expected_pid(status, expected_runner_pid)
         ):
             return url
-    if expected_runner_pid is not None:
-        return None
     channel = _dashboard_status_channel_report(root, session_id)
     if isinstance(channel, dict):
         url = _safe_local_dashboard_url(channel.get("dashboard_status_channel_url"))
-        if url and channel.get("dashboard_status_channel_status") == "RUNNING":
+        if (
+            url
+            and channel.get("dashboard_status_channel_status") == "RUNNING"
+            and _dashboard_status_channel_matches_expected_pid(channel, expected_runner_pid)
+        ):
             return url
     return None
 
@@ -716,6 +727,7 @@ def _dashboard_status_channel_report_payload(
         "dashboard_status_channel_host": DASHBOARD_STATUS_CHANNEL_HOST,
         "dashboard_status_channel_source": "runner_status.json",
         "dashboard_status_channel_path": str(runner_dashboard_status_channel_path(root, session_id)),
+        "dashboard_status_channel_runner_pid": os.getpid(),
         "primary_blocker_code": blocker_code,
         "primary_blocker_message": blocker_message,
         "display_only": True,
