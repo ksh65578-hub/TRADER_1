@@ -1,6 +1,7 @@
 import json
 import os
 import tempfile
+import time
 import unittest
 import urllib.request
 from pathlib import Path
@@ -52,6 +53,7 @@ from trader1.runtime.paper.upbit_paper_long_runner import (
     utc_now,
     validate_upbit_paper_long_runner_status_report,
     validate_upbit_paper_long_runner_retention_manifest,
+    _dashboard_status_channel_payload,
 )
 from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
 from trader1.runtime.paper.upbit_paper_runtime import upbit_paper_runtime_cycle_hash
@@ -2629,6 +2631,12 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertEqual(channel_report["dashboard_status_channel_status"], "STOPPED")
             self.assertEqual(payload["schema_id"], "trader1.dashboard_status_channel_payload.v1")
             self.assertEqual(payload["runner_status"], RUNNER_STATUS_RUNNING)
+            self.assertEqual(payload["channel_status"], RUNNER_STATUS_RUNNING)
+            self.assertEqual(payload["status_channel_heartbeat_status"], "FRESH")
+            self.assertTrue(payload["status_channel_primary_truth"])
+            self.assertTrue(payload["file_freshness_is_fallback"])
+            self.assertIsInstance(payload["runner_status_source_age_seconds"], int)
+            self.assertFalse(payload["stop_requested"])
             self.assertEqual(payload["completed_cycle_count"], 2)
             self.assertTrue(payload["live_flag_drift_detected"])
             self.assertFalse(payload["live_order_ready"])
@@ -2638,6 +2646,65 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertEqual(stopped_payload["runner_status"], RUNNER_STATUS_STOPPED)
             self.assertFalse(stopped_payload["running"])
             self.assertEqual(stopped_payload["stop_reason"], "STOP_FILE")
+
+    def test_runner_dashboard_status_channel_stop_signal_is_immediate_and_paper_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "dashboard_channel_stop_session"
+            runner_dashboard_path(root, session_id).parent.mkdir(parents=True, exist_ok=True)
+            runner_dashboard_path(root, session_id).write_text("<!doctype html><title>TRADER_1</title>", encoding="utf-8")
+            status = build_runner_status_report(
+                root=root,
+                runner_id="runner-channel-stop-test",
+                session_id=session_id,
+                runner_status=RUNNER_STATUS_RUNNING,
+                started_at_utc=utc_now(),
+                completed_cycle_count=7,
+                failed_cycle_count=0,
+                cycle_interval_seconds=30,
+            )
+            status_path = runner_status_path(root, session_id)
+            status_path.parent.mkdir(parents=True, exist_ok=True)
+            status_path.write_text(json.dumps(status), encoding="utf-8")
+
+            handle = start_runner_dashboard_status_channel(root, session_id)
+            self.assertIsNotNone(handle)
+            try:
+                runner_stop_file_path(root, session_id).write_text(
+                    json.dumps(
+                        {
+                            "mode": "PAPER",
+                            "requested_at_utc": utc_now(),
+                            "live_order_ready": False,
+                            "live_order_allowed": False,
+                            "can_live_trade": False,
+                            "scale_up_allowed": False,
+                        },
+                        sort_keys=True,
+                    ),
+                    encoding="utf-8",
+                )
+                stop_payload = _dashboard_status_channel_payload(root, session_id)
+                deadline = time.time() + 2.0
+                channel_report = {}
+                while time.time() < deadline:
+                    loaded = _load_json(runner_dashboard_status_channel_path(root, session_id))
+                    channel_report = loaded if isinstance(loaded, dict) else {}
+                    if channel_report.get("dashboard_status_channel_status") == "STOPPING":
+                        break
+                    time.sleep(0.05)
+            finally:
+                stop_runner_dashboard_status_channel(handle, root=root, session_id=session_id)
+
+            self.assertEqual(stop_payload["runner_status"], "STOPPING")
+            self.assertEqual(stop_payload["channel_status"], "STOPPING")
+            self.assertTrue(stop_payload["stop_requested"])
+            self.assertTrue(stop_payload["dashboard_shutdown_expected"])
+            self.assertEqual(channel_report.get("dashboard_status_channel_status"), "STOPPING")
+            self.assertFalse(stop_payload["live_order_ready"])
+            self.assertFalse(stop_payload["live_order_allowed"])
+            self.assertFalse(stop_payload["can_live_trade"])
+            self.assertFalse(stop_payload["scale_up_allowed"])
 
     def test_runner_dashboard_opener_falls_back_to_read_only_file_uri_without_status_channel(self):
         with tempfile.TemporaryDirectory() as tmp:

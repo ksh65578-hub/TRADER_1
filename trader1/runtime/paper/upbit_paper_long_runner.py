@@ -162,7 +162,8 @@ DASHBOARD_STATUS_CHANNEL_HOST = "127.0.0.1"
 DASHBOARD_STATUS_CHANNEL_MODE = "LOCAL_READ_ONLY_HTTP_SSE"
 DASHBOARD_STATUS_CHANNEL_SCHEMA_ID = "trader1.dashboard_status_channel.v1"
 DASHBOARD_STATUS_CHANNEL_PAYLOAD_SCHEMA_ID = "trader1.dashboard_status_channel_payload.v1"
-DEFAULT_DASHBOARD_STATUS_CHANNEL_SHUTDOWN_GRACE_SECONDS = 3.0
+DEFAULT_DASHBOARD_STATUS_CHANNEL_SHUTDOWN_GRACE_SECONDS = 0.0
+DEFAULT_DASHBOARD_STATUS_CHANNEL_STOP_POLL_SECONDS = 0.25
 
 LIVE_FALSE_FLAGS = (
     "live_order_ready",
@@ -207,6 +208,15 @@ class DashboardStatusChannelHandle:
     thread: threading.Thread
     url: str
     report_path: Path
+    stop_watcher: threading.Thread | None = None
+
+
+class _QuietDashboardStatusChannelServer(ThreadingHTTPServer):
+    def handle_error(self, request: Any, client_address: Any) -> None:
+        exc = sys.exc_info()[1]
+        if isinstance(exc, (BrokenPipeError, ConnectionAbortedError, ConnectionResetError, OSError)):
+            return
+        super().handle_error(request, client_address)
 
 
 def utc_now() -> str:
@@ -424,16 +434,39 @@ def _dashboard_refresh_error_is_nonblocking_writer_unavailable(
     return not drifted
 
 
+def _runner_status_source_age_seconds(status: dict[str, Any], source_path: Path) -> int | None:
+    generated_at = _parse_utc(status.get("generated_at_utc"))
+    now = datetime.now(timezone.utc)
+    if generated_at is not None:
+        return int(max(0.0, (now - generated_at.astimezone(timezone.utc)).total_seconds()))
+    try:
+        return int(max(0.0, now.timestamp() - source_path.stat().st_mtime))
+    except OSError:
+        return None
+
+
 def _dashboard_status_channel_payload(root: Path, session_id: str = DEFAULT_SESSION_ID) -> dict[str, Any]:
-    status = _read_json(runner_status_path(root, session_id))
+    source_path = runner_status_path(root, session_id)
+    stop_path = runner_stop_file_path(root, session_id)
+    status = _read_json(source_path)
     status = status if isinstance(status, dict) else {}
     drift_fields = [
         field
         for field in (*LIVE_FALSE_FLAGS, "order_endpoint_called", "can_submit_order")
         if status.get(field) is True
     ]
-    running = status.get("running") is True and status.get("runner_status") == RUNNER_STATUS_RUNNING
-    channel_status = "RUNNING" if running else str(status.get("runner_status") or "NOT_LOADED")
+    stop_requested = stop_path.exists()
+    source_age_seconds = _runner_status_source_age_seconds(status, source_path)
+    raw_runner_status = str(status.get("runner_status") or "NOT_LOADED")
+    raw_running = status.get("running") is True and raw_runner_status == RUNNER_STATUS_RUNNING
+    running = raw_running and not stop_requested
+    effective_runner_status = "STOPPING" if stop_requested else raw_runner_status
+    if stop_requested:
+        channel_status = "STOPPING"
+    elif running:
+        channel_status = "RUNNING"
+    else:
+        channel_status = raw_runner_status
     payload = {
         "schema_id": DASHBOARD_STATUS_CHANNEL_PAYLOAD_SCHEMA_ID,
         "generated_at_utc": utc_now(),
@@ -444,9 +477,15 @@ def _dashboard_status_channel_payload(root: Path, session_id: str = DEFAULT_SESS
         "session_id": session_id,
         "channel_status": channel_status,
         "channel_mode": DASHBOARD_STATUS_CHANNEL_MODE,
+        "status_channel_heartbeat_status": "FRESH",
+        "status_channel_primary_truth": True,
+        "file_freshness_is_fallback": True,
         "source": "runner_status.json",
-        "source_path": str(runner_status_path(root, session_id)),
-        "runner_status": str(status.get("runner_status") or "NOT_LOADED"),
+        "source_path": str(source_path),
+        "runner_status_source_generated_at_utc": status.get("generated_at_utc"),
+        "runner_status_source_age_seconds": source_age_seconds,
+        "runner_status_source_status": raw_runner_status,
+        "runner_status": effective_runner_status,
         "running": running,
         "completed_cycle_count": _int_value(status.get("completed_cycle_count"), 0),
         "failed_cycle_count": _int_value(status.get("failed_cycle_count"), 0),
@@ -471,7 +510,9 @@ def _dashboard_status_channel_payload(root: Path, session_id: str = DEFAULT_SESS
         ),
         "paper_scope_sample_deficit": _int_value(status.get("paper_scope_sample_deficit"), 0),
         "stop_launcher_path": str(root / "STOP_UPBIT_PAPER.py"),
-        "stop_file_path": str(runner_stop_file_path(root, session_id)),
+        "stop_file_path": str(stop_path),
+        "stop_requested": stop_requested,
+        "dashboard_shutdown_expected": stop_requested,
         "live_flag_drift_detected": bool(drift_fields),
         "live_flag_drift_fields": drift_fields,
         "live_order_ready": False,
@@ -533,6 +574,29 @@ def start_runner_dashboard_status_channel(
     root = Path(root)
     report_path = runner_dashboard_status_channel_path(root, session_id)
 
+    def stop_file_watcher(server: ThreadingHTTPServer, url: str) -> None:
+        stop_path = runner_stop_file_path(root, session_id)
+        while not getattr(server, "dashboard_channel_stop", False):
+            if stop_path.exists():
+                durable_atomic_write_json(
+                    report_path,
+                    _dashboard_status_channel_report_payload(
+                        root=root,
+                        session_id=session_id,
+                        url=url,
+                        status="STOPPING",
+                        blocker_code=None,
+                        blocker_message="Operator stop requested; local runner status channel is shutting down.",
+                    ),
+                )
+                setattr(server, "dashboard_channel_stop", True)
+                try:
+                    server.shutdown()
+                except OSError:
+                    pass
+                return
+            time.sleep(DEFAULT_DASHBOARD_STATUS_CHANNEL_STOP_POLL_SECONDS)
+
     def handler_factory() -> type[BaseHTTPRequestHandler]:
         channel_root = root
         channel_session_id = session_id
@@ -579,6 +643,8 @@ def start_runner_dashboard_status_channel(
                         self.wfile.flush()
                     except (BrokenPipeError, ConnectionResetError, OSError):
                         break
+                    if payload.get("stop_requested") is True:
+                        break
                     time.sleep(1.0)
 
             def do_GET(self) -> None:
@@ -608,12 +674,19 @@ def start_runner_dashboard_status_channel(
         return DashboardStatusChannelHandler
 
     try:
-        server = ThreadingHTTPServer((DASHBOARD_STATUS_CHANNEL_HOST, 0), handler_factory())
+        server = _QuietDashboardStatusChannelServer((DASHBOARD_STATUS_CHANNEL_HOST, 0), handler_factory())
         server.daemon_threads = True
         setattr(server, "dashboard_channel_stop", False)
         url = f"http://{DASHBOARD_STATUS_CHANNEL_HOST}:{server.server_port}/"
         thread = threading.Thread(target=server.serve_forever, name="trader1-dashboard-status-channel", daemon=True)
         thread.start()
+        stop_watcher = threading.Thread(
+            target=stop_file_watcher,
+            args=(server, url),
+            name="trader1-dashboard-status-channel-stop-watcher",
+            daemon=True,
+        )
+        stop_watcher.start()
         durable_atomic_write_json(
             report_path,
             _dashboard_status_channel_report_payload(
@@ -623,7 +696,13 @@ def start_runner_dashboard_status_channel(
                 status="RUNNING",
             ),
         )
-        return DashboardStatusChannelHandle(server=server, thread=thread, url=url, report_path=report_path)
+        return DashboardStatusChannelHandle(
+            server=server,
+            thread=thread,
+            url=url,
+            report_path=report_path,
+            stop_watcher=stop_watcher,
+        )
     except Exception as exc:
         durable_atomic_write_json(
             report_path,
@@ -668,6 +747,8 @@ def stop_runner_dashboard_status_channel(
         finally:
             handle.server.server_close()
             handle.thread.join(timeout=1.0)
+            if handle.stop_watcher is not None and handle.stop_watcher is not threading.current_thread():
+                handle.stop_watcher.join(timeout=1.0)
 
 
 def _int_value(value: Any, default: int = 0) -> int:
@@ -5050,6 +5131,40 @@ def run_upbit_paper_long_running_runner(
                     "at": utc_now(),
                 },
             )
+            post_cycle_running = build_runner_status_report(
+                root=root,
+                runner_id=runner_id,
+                session_id=session_id,
+                runner_status=RUNNER_STATUS_RUNNING,
+                started_at_utc=started_at,
+                completed_cycle_count=completed,
+                failed_cycle_count=failed,
+                cycle_interval_seconds=cycle_interval_seconds,
+                loop_report=last_loop_report,
+                next_cycle_eta=utc_now(),
+                dashboard_open_result=dashboard_open_result,
+            )
+            _write_runner_status(status_path, post_cycle_running)
+            if runner_stop_file_path(root, session_id).exists():
+                final = build_runner_status_report(
+                    root=root,
+                    runner_id=runner_id,
+                    session_id=session_id,
+                    runner_status=RUNNER_STATUS_STOPPED,
+                    started_at_utc=started_at,
+                    completed_cycle_count=completed,
+                    failed_cycle_count=failed,
+                    cycle_interval_seconds=cycle_interval_seconds,
+                    loop_report=last_loop_report,
+                    stop_reason="STOP_FILE",
+                    dashboard_open_result=dashboard_open_result,
+                )
+                _write_runner_status(status_path, final)
+                _refresh_dashboard_after_runner_status(root, session_id, refresh_dashboard=refresh_dashboard)
+                if emit_console_status:
+                    _emit_console_status(final)
+                _append_log(root, session_id, {"event": "runner_stopped", "reason": "STOP_FILE", "at": utc_now()})
+                return final
             if refresh_dashboard:
                 try:
                     _maybe_refresh_dashboard(root, session_id=session_id)
