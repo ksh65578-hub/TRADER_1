@@ -538,6 +538,248 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
         self.assertFalse(generation_report["can_live_trade"])
         self.assertFalse(generation_report["scale_up_allowed"])
 
+    def test_profitability_refresh_runs_bounded_public_discovery_for_retired_candidate(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+        from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
+        from trader1.research.profitability.candidate_scorecard import stable_hash, validate_candidate_generation_report
+        from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
+        from trader1.runtime.portfolio.paper_portfolio import build_paper_portfolio_snapshot_from_fill
+
+        session_id = "mvp1_upbit_paper_launcher"
+        weak_btc = build_upbit_public_candle_fixture(symbol="KRW-BTC", session_id=session_id, profile="WEAK_RANGE")
+        for candle in weak_btc["candles"]:
+            candle["volume"] = "1"
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id=session_id,
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(strong_eth["candles"], start=1):
+            candle["volume"] = str(8 + index * 2)
+        focus_orca = build_upbit_public_candle_fixture(
+            symbol="KRW-ORCA",
+            session_id=session_id,
+            profile="UPTREND_PULLBACK",
+        )
+        orca_closes = ["980000", "988000", "1004000", "997000", "1009000", "1002050"]
+        for index, candle in enumerate(focus_orca["candles"], start=1):
+            price = int(orca_closes[index - 1])
+            candle["open"] = str(price - 1200)
+            candle["high"] = str(price + 2500)
+            candle["low"] = str(price - 2500)
+            candle["close"] = orca_closes[index - 1]
+            candle["volume"] = str(1 + index * 0.1)
+        mark_price = weak_btc["candles"][-1]["close"]
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id=session_id,
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.005",
+            fill_price=mark_price,
+            mark_price=mark_price,
+            fee_amount="2.5",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-candidate-generation-runtime-discovery",
+            source_paper_ledger_head_hash="D" * 64,
+        )
+        focus_candidate_id = "KRW-ORCA-pullback-trend-long"
+        focus_parameter_hash = stable_hash(f"{focus_candidate_id}:PULLBACK_TREND_LONG:KRW-ORCA")
+        discovery_runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="candidate-generation-runtime-discovery-alt",
+            session_id=session_id,
+            symbol="KRW-BTC",
+            market_data_universe=[weak_btc, strong_eth, focus_orca],
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+            paper_scope_focus={
+                "source": "TEST_ACTIVE_CANDIDATE_SCOPE",
+                "candidate_id": focus_candidate_id,
+                "symbol": "KRW-ORCA",
+                "strategy_id": "trend_pullback",
+                "parameter_hash": focus_parameter_hash,
+                "sample_count": 1,
+                "sample_deficit": 29,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+        )
+        discovery_context = {
+            "status": "PASS",
+            "blocker_code": None,
+            "message": "test discovery",
+            "symbol_count": 1,
+            "ranked_symbol_count": 1,
+            "eligible_symbol_count": 1,
+            "evaluated_candidate_count": 3,
+            "paper_entry_review_candidate_count": 1,
+            "adaptive_expansion_attempted": False,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+        def fake_replay(**kwargs):
+            self.assertEqual(kwargs["candidate_generation_report"]["generation_status"], "ALTERNATIVE_REVIEW_READY")
+            return {
+                "status": "BLOCKED",
+                "blocker_code": "PUBLIC_REPLAY_ROBUSTNESS_FAILED",
+                "message": "test replay blocked",
+                "candidate_id": "KRW-ETH-pullback-trend-long",
+                "symbol": "KRW-ETH",
+                "replay_status": "BLOCKED",
+                "sample_count": 0,
+                "replay_closed_trade_sample_count": 0,
+                "replay_closed_trade_deficit": 30,
+                "replay_closed_trade_maturity_status": "BLOCKED",
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="candidate-generation-runtime-discovery",
+                requested_cycle_count=1,
+            )
+            self.assertEqual(loop["loop_status"], "PASS")
+
+            with patch(
+                "tools.run_upbit_paper_candidate_scorecard._build_bounded_public_discovery_runtime_cycle",
+                return_value=(discovery_runtime, discovery_context),
+            ), patch(
+                "tools.run_upbit_paper_candidate_scorecard._build_and_write_alternative_public_replay",
+                side_effect=fake_replay,
+            ):
+                refresh = long_runner.refresh_non_live_profitability_evidence_from_runtime(root, session_id)
+
+            generation_path = long_runner.paper_candidate_generation_report_path(root, session_id)
+            discovery_path = long_runner.paper_candidate_generation_discovery_runtime_path(root, session_id)
+            generation_report = _load_json(generation_path)
+            written_discovery_runtime = _load_json(discovery_path)
+
+        self.assertEqual(refresh["status"], long_runner.NON_LIVE_PROFITABILITY_REFRESH_BLOCKED)
+        self.assertEqual(refresh["blocker_code"], "PAPER_SHADOW_RUNTIME_ARTIFACT_MISSING")
+        self.assertEqual(refresh["candidate_discovery_status"], "PASS")
+        self.assertEqual(refresh["candidate_discovery_runtime_cycle_path"], str(discovery_path.relative_to(root)).replace("\\", "/"))
+        self.assertEqual(refresh["alternative_public_replay_status"], "BLOCKED")
+        self.assertEqual(generation_report["generation_status"], "ALTERNATIVE_REVIEW_READY")
+        self.assertEqual(generation_report["best_alternative_candidate_id"], "KRW-ETH-pullback-trend-long")
+        self.assertEqual(written_discovery_runtime["cycle_id"], discovery_runtime["cycle_id"])
+        self.assertEqual(validate_candidate_generation_report(generation_report)[0], "PASS")
+        self.assertFalse(generation_report["live_order_ready"])
+        self.assertFalse(generation_report["live_order_allowed"])
+        self.assertFalse(generation_report["can_live_trade"])
+        self.assertFalse(generation_report["scale_up_allowed"])
+
+    def test_profitability_refresh_runs_public_replay_for_existing_review_ready_alternative(self):
+        import copy
+
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+        from trader1.research.profitability.candidate_scorecard import (
+            candidate_generation_report_from_upbit_paper_runtime_cycle,
+            candidate_scorecard_from_upbit_paper_runtime_cycle,
+            validate_candidate_generation_report,
+        )
+        from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
+
+        session_id = "mvp1_upbit_paper_launcher"
+        runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="candidate-generation-existing-review-ready-alt",
+            session_id=session_id,
+        )
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses={
+                "oos_status": "FAIL",
+                "walk_forward_status": "FAIL",
+                "bootstrap_status": "FAIL",
+                "overfit_status": "HIGH",
+            },
+            robustness_source_evidence_ids=[
+                "public_replay_robustness:replay-candidate-generation-existing-review-ready-alt:" + "A" * 64,
+                "public_market_data:KRW-BTC:" + "B" * 64,
+            ],
+        )
+        selected = runtime["selected_candidate"]
+        for index, symbol in enumerate(["KRW-ETH", "KRW-XRP", "KRW-SOL", "KRW-ADA", "KRW-AVAX"], start=1):
+            alternative = copy.deepcopy(selected)
+            alternative["candidate_id"] = f"{symbol}-pullback-trend-long"
+            alternative["symbol"] = symbol
+            alternative["candidate_selection_score"] = max(0.01, float(selected["candidate_selection_score"]) - index * 0.01)
+            alternative["net_ev_after_cost_bps"] = float(selected["net_ev_after_cost_bps"]) + 6.0 - index * 0.1
+            runtime["strategy_candidates"].append(alternative)
+        generation_report = candidate_generation_report_from_upbit_paper_runtime_cycle(
+            runtime,
+            candidate_scorecard=scorecard,
+        )
+        self.assertEqual(generation_report["generation_status"], "ALTERNATIVE_REVIEW_READY")
+
+        def fake_replay(**kwargs):
+            self.assertEqual(kwargs["candidate_generation_report"]["generation_status"], "ALTERNATIVE_REVIEW_READY")
+            self.assertIsNone(kwargs["candidate_discovery_runtime"])
+            return {
+                "status": "BLOCKED",
+                "blocker_code": "REPLAY_CLOSED_TRADES_MISSING",
+                "message": "test same-runtime replay blocked",
+                "candidate_id": generation_report["best_alternative_candidate_id"],
+                "symbol": generation_report["best_alternative_symbol"],
+                "replay_status": "BLOCKED",
+                "sample_count": 7,
+                "replay_closed_trade_sample_count": 0,
+                "replay_closed_trade_deficit": 30,
+                "replay_closed_trade_maturity_status": "BLOCKED",
+                "replay_closed_trade_maturity_blocker_code": "REPLAY_CLOSED_TRADES_MISSING",
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with patch(
+                "tools.run_upbit_paper_candidate_scorecard._build_bounded_public_discovery_runtime_cycle",
+                side_effect=AssertionError("discovery should not run for an existing review-ready alternative"),
+            ), patch(
+                "tools.run_upbit_paper_candidate_scorecard._build_and_write_alternative_public_replay",
+                side_effect=fake_replay,
+            ):
+                updated_report, public_review_fields, discovery_runtime = (
+                    long_runner._review_public_alternatives_for_candidate_generation(
+                        root=root,
+                        session_id=session_id,
+                        runtime=runtime,
+                        scorecard=scorecard,
+                        history={"history_id": "existing-review-ready-history", "history_hash": "H" * 64, "samples": []},
+                        candidate_generation_report=generation_report,
+                    )
+                )
+
+        self.assertIsNone(discovery_runtime)
+        self.assertEqual(updated_report["generation_status"], "ALTERNATIVE_REVIEW_READY")
+        self.assertEqual(validate_candidate_generation_report(updated_report, candidate_scorecard=scorecard)[0], "PASS")
+        self.assertEqual(public_review_fields["candidate_discovery_status"], "NOT_REQUESTED")
+        self.assertEqual(public_review_fields["alternative_public_replay_status"], "BLOCKED")
+        self.assertEqual(public_review_fields["alternative_public_replay_blocker_code"], "REPLAY_CLOSED_TRADES_MISSING")
+        self.assertEqual(
+            public_review_fields["alternative_public_replay_candidate_id"],
+            generation_report["best_alternative_candidate_id"],
+        )
+        self.assertFalse(updated_report["live_order_ready"])
+        self.assertFalse(updated_report["live_order_allowed"])
+        self.assertFalse(updated_report["can_live_trade"])
+        self.assertFalse(updated_report["scale_up_allowed"])
+
     def test_paper_scope_progress_prefers_candidate_scope_over_general_evidence_count(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
 

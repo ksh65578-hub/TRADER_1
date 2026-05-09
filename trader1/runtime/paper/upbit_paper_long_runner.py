@@ -85,6 +85,14 @@ DEFAULT_SESSION_ID = "mvp1_upbit_paper_launcher"
 DEFAULT_CYCLE_INTERVAL_SECONDS = 30.0
 DEFAULT_LOCK_STALE_AFTER_SECONDS = 15 * 60
 DEFAULT_RETENTION_MAX_ACTIVE_ARTIFACTS_PER_GROUP = 500
+DEFAULT_CANDIDATE_DISCOVERY_SYMBOL_LIMIT = 12
+DEFAULT_CANDIDATE_DISCOVERY_TIMEOUT_SECONDS = 3.0
+DEFAULT_ALTERNATIVE_REPLAY_TARGET_COUNT = 420
+DEFAULT_ALTERNATIVE_REPLAY_PAGE_SIZE = 200
+DEFAULT_ALTERNATIVE_REPLAY_TIMEOUT_SECONDS = 3.0
+DEFAULT_ALTERNATIVE_REPLAY_MAX_WINDOWS = 420
+DEFAULT_ALTERNATIVE_REPLAY_MIN_REQUIRED_SAMPLE_COUNT = 300
+DEFAULT_ALTERNATIVE_REPLAY_CANDIDATE_LIMIT = 5
 DEFAULT_RETENTION_MAX_ACTIVE_ARTIFACTS_BY_GROUP = {
     "paper_runtime_cycles": 240,
     "persistent_loop_reports": 120,
@@ -712,6 +720,10 @@ def paper_candidate_generation_report_path(root: Path, session_id: str = DEFAULT
     return runner_runtime_base(root, session_id) / "profitability" / "candidate_generation_report.json"
 
 
+def paper_candidate_generation_discovery_runtime_path(root: Path, session_id: str = DEFAULT_SESSION_ID) -> Path:
+    return runner_runtime_base(root, session_id) / "profitability" / "candidate_generation_discovery_runtime_cycle.json"
+
+
 def paper_overfit_diagnostic_path(root: Path, session_id: str = DEFAULT_SESSION_ID) -> Path:
     return runner_runtime_base(root, session_id) / "profitability" / "overfit_diagnostic_report.json"
 
@@ -951,6 +963,246 @@ def _paper_scope_progress_fields(
             else 0
         ),
     }
+
+
+def _candidate_generation_public_review_blocked_fields(
+    *,
+    discovery_status: str = "NOT_REQUESTED",
+    discovery_blocker_code: str | None = None,
+    discovery_message: str = "bounded public candidate discovery was not requested",
+    discovery_symbol_count: int = 0,
+    alternative_replay_status: str = "NOT_REQUIRED",
+    alternative_replay_blocker_code: str | None = None,
+    alternative_replay_message: str = "alternative public replay is not required until a bounded candidate is review-ready",
+    candidate_discovery_runtime_path: str | None = None,
+    alternative_replay_context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    replay = alternative_replay_context if isinstance(alternative_replay_context, dict) else {}
+    return {
+        "candidate_discovery_status": discovery_status,
+        "candidate_discovery_blocker_code": discovery_blocker_code,
+        "candidate_discovery_message": discovery_message,
+        "candidate_discovery_runtime_cycle_path": candidate_discovery_runtime_path,
+        "candidate_discovery_symbol_count": _int_value(discovery_symbol_count, 0),
+        "alternative_public_replay_status": alternative_replay_status,
+        "alternative_public_replay_blocker_code": alternative_replay_blocker_code,
+        "alternative_public_replay_message": alternative_replay_message,
+        "alternative_public_replay_report_path": replay.get("report_path"),
+        "alternative_public_replay_candidate_id": replay.get("candidate_id"),
+        "alternative_public_replay_symbol": replay.get("symbol"),
+        "alternative_public_replay_replay_status": replay.get("replay_status"),
+        "alternative_public_replay_sample_count": _int_value(replay.get("sample_count"), 0),
+        "alternative_public_replay_closed_trade_sample_count": _int_value(
+            replay.get("replay_closed_trade_sample_count"), 0
+        ),
+        "alternative_public_replay_closed_trade_deficit": _int_value(replay.get("replay_closed_trade_deficit"), 0),
+        "alternative_public_replay_closed_trade_maturity_status": replay.get("replay_closed_trade_maturity_status"),
+        "alternative_public_replay_closed_trade_maturity_blocker_code": replay.get(
+            "replay_closed_trade_maturity_blocker_code"
+        ),
+    }
+
+
+def _candidate_generation_public_review_fields(
+    *,
+    discovery_context: dict[str, Any],
+    alternative_replay_context: dict[str, Any],
+    candidate_discovery_runtime_path: Path | None,
+    root: Path,
+) -> dict[str, Any]:
+    return {
+        **_candidate_generation_public_review_blocked_fields(
+            discovery_status=str(discovery_context.get("status") or "NOT_REQUESTED"),
+            discovery_blocker_code=discovery_context.get("blocker_code"),
+            discovery_message=str(discovery_context.get("message") or ""),
+            discovery_symbol_count=_int_value(discovery_context.get("symbol_count"), 0),
+            alternative_replay_status=str(alternative_replay_context.get("status") or "NOT_REQUIRED"),
+            alternative_replay_blocker_code=alternative_replay_context.get("blocker_code"),
+            alternative_replay_message=str(alternative_replay_context.get("message") or ""),
+            candidate_discovery_runtime_path=(
+                _relative_runtime_path(candidate_discovery_runtime_path, root)
+                if candidate_discovery_runtime_path is not None
+                else None
+            ),
+            alternative_replay_context=alternative_replay_context,
+        ),
+        "candidate_discovery_ranked_symbol_count": _int_value(discovery_context.get("ranked_symbol_count"), 0),
+        "candidate_discovery_eligible_symbol_count": _int_value(discovery_context.get("eligible_symbol_count"), 0),
+        "candidate_discovery_evaluated_candidate_count": _int_value(
+            discovery_context.get("evaluated_candidate_count"), 0
+        ),
+        "candidate_discovery_paper_entry_review_candidate_count": _int_value(
+            discovery_context.get("paper_entry_review_candidate_count"), 0
+        ),
+        "candidate_discovery_adaptive_expansion_attempted": bool(
+            discovery_context.get("adaptive_expansion_attempted")
+        ),
+        "alternative_public_replay_primary_blocker_code": alternative_replay_context.get("primary_blocker_code"),
+        "alternative_public_replay_strategy_exit_policy_sample_count": _int_value(
+            alternative_replay_context.get("replay_strategy_exit_policy_sample_count"), 0
+        ),
+        "alternative_public_replay_profit_factor": _float_value(
+            alternative_replay_context.get("replay_profit_factor"), 0.0
+        ),
+        "alternative_public_replay_profit_factor_status": alternative_replay_context.get("replay_profit_factor_status"),
+        "alternative_public_replay_realized_vs_expected_edge_bps": _float_value(
+            alternative_replay_context.get("replay_realized_vs_expected_edge_bps"), 0.0
+        ),
+        "alternative_public_replay_realized_vs_expected_edge_status": alternative_replay_context.get(
+            "replay_realized_vs_expected_edge_status"
+        ),
+    }
+
+
+def _review_public_alternatives_for_candidate_generation(
+    *,
+    root: Path,
+    session_id: str,
+    runtime: dict[str, Any],
+    scorecard: dict[str, Any],
+    history: dict[str, Any],
+    candidate_generation_report: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any] | None]:
+    generation_status = str(candidate_generation_report.get("generation_status") or "")
+    current_alternative_count = _int_value(candidate_generation_report.get("alternative_candidate_count"), 0)
+    min_candidate_review_pool = max(2, min(DEFAULT_ALTERNATIVE_REPLAY_CANDIDATE_LIMIT, 12))
+    discovery_needed = (
+        candidate_generation_report.get("selected_candidate_retired_for_ranking") is True
+        and (
+            generation_status == "NO_ALTERNATIVE_READY"
+            or current_alternative_count < min_candidate_review_pool
+        )
+    )
+    public_replay_needed = (
+        candidate_generation_report.get("selected_candidate_retired_for_ranking") is True
+        and generation_status == "ALTERNATIVE_REVIEW_READY"
+    )
+    if not discovery_needed and not public_replay_needed:
+        return (
+            candidate_generation_report,
+            _candidate_generation_public_review_blocked_fields(),
+            None,
+        )
+
+    try:
+        from tools.run_upbit_paper_candidate_scorecard import (
+            _build_and_write_alternative_public_replay,
+            _build_bounded_public_discovery_runtime_cycle,
+        )
+    except Exception as exc:  # pragma: no cover - import failure is environment-specific.
+        return (
+            candidate_generation_report,
+            _candidate_generation_public_review_blocked_fields(
+                discovery_status="BLOCKED",
+                discovery_blocker_code="CANDIDATE_PUBLIC_DISCOVERY_UNAVAILABLE",
+                discovery_message=str(exc),
+            ),
+            None,
+        )
+
+    candidate_discovery_runtime = None
+    discovery_context = {
+        "status": "NOT_REQUESTED",
+        "blocker_code": None,
+        "message": "bounded public candidate discovery was not requested",
+        "symbol_count": 0,
+    }
+    if discovery_needed:
+        candidate_discovery_runtime, discovery_context = _build_bounded_public_discovery_runtime_cycle(
+            session_id=session_id,
+            symbol_limit=DEFAULT_CANDIDATE_DISCOVERY_SYMBOL_LIMIT,
+            timeout_seconds=DEFAULT_CANDIDATE_DISCOVERY_TIMEOUT_SECONDS,
+            min_review_ready_candidate_count=min_candidate_review_pool,
+        )
+        if candidate_discovery_runtime is not None:
+            discovered_generation = candidate_generation_report_from_upbit_paper_runtime_cycle(
+                runtime,
+                candidate_scorecard=scorecard,
+                additional_runtime_cycle_reports=[candidate_discovery_runtime],
+            )
+            validation_status, generation_message, generation_blocker = validate_candidate_generation_report(
+                discovered_generation,
+                candidate_scorecard=scorecard,
+            )
+            if validation_status == "PASS":
+                candidate_generation_report = discovered_generation
+            else:
+                return (
+                    candidate_generation_report,
+                    _candidate_generation_public_review_blocked_fields(
+                        discovery_status="BLOCKED",
+                        discovery_blocker_code=generation_blocker or "CANDIDATE_GENERATION_CONTRACT_FAILED",
+                        discovery_message=generation_message,
+                    ),
+                    candidate_discovery_runtime,
+                )
+
+    if candidate_generation_report.get("generation_status") != "ALTERNATIVE_REVIEW_READY":
+        discovery_path = (
+            paper_candidate_generation_discovery_runtime_path(root, session_id)
+            if candidate_discovery_runtime is not None
+            else None
+        )
+        fields = _candidate_generation_public_review_fields(
+            discovery_context=discovery_context,
+            alternative_replay_context={
+                "status": "NOT_REQUIRED",
+                "blocker_code": None,
+                "message": "alternative public replay is not required until a bounded candidate is review-ready",
+            },
+            candidate_discovery_runtime_path=discovery_path,
+            root=root,
+        )
+        return candidate_generation_report, fields, candidate_discovery_runtime
+
+    alternative_replay_context = _build_and_write_alternative_public_replay(
+        root=root,
+        session_id=session_id,
+        candidate_generation_report=candidate_generation_report,
+        history=history,
+        runtime_cycle_report=runtime,
+        candidate_discovery_runtime=candidate_discovery_runtime,
+        target_count=DEFAULT_ALTERNATIVE_REPLAY_TARGET_COUNT,
+        page_size=DEFAULT_ALTERNATIVE_REPLAY_PAGE_SIZE,
+        timeout_seconds=DEFAULT_ALTERNATIVE_REPLAY_TIMEOUT_SECONDS,
+        max_replay_windows=DEFAULT_ALTERNATIVE_REPLAY_MAX_WINDOWS,
+        min_required_sample_count=DEFAULT_ALTERNATIVE_REPLAY_MIN_REQUIRED_SAMPLE_COUNT,
+        candidate_limit=DEFAULT_ALTERNATIVE_REPLAY_CANDIDATE_LIMIT,
+    )
+    if isinstance(alternative_replay_context.get("report"), dict):
+        reviewed_generation = candidate_generation_report_from_upbit_paper_runtime_cycle(
+            runtime,
+            candidate_scorecard=scorecard,
+            additional_runtime_cycle_reports=(
+                [candidate_discovery_runtime] if candidate_discovery_runtime is not None else None
+            ),
+            best_alternative_public_replay_report=alternative_replay_context["report"],
+            preferred_alternative_candidate_id=str(alternative_replay_context.get("candidate_id") or ""),
+        )
+        generation_status, generation_message, generation_blocker = validate_candidate_generation_report(
+            reviewed_generation,
+            candidate_scorecard=scorecard,
+        )
+        if generation_status == "PASS":
+            candidate_generation_report = reviewed_generation
+        else:
+            alternative_replay_context = dict(alternative_replay_context)
+            alternative_replay_context["status"] = "BLOCKED"
+            alternative_replay_context["blocker_code"] = generation_blocker or "CANDIDATE_GENERATION_CONTRACT_FAILED"
+            alternative_replay_context["message"] = generation_message
+
+    discovery_path = (
+        paper_candidate_generation_discovery_runtime_path(root, session_id)
+        if candidate_discovery_runtime is not None
+        else None
+    )
+    fields = _candidate_generation_public_review_fields(
+        discovery_context=discovery_context,
+        alternative_replay_context=alternative_replay_context,
+        candidate_discovery_runtime_path=discovery_path,
+        root=root,
+    )
+    return candidate_generation_report, fields, candidate_discovery_runtime
 
 
 def _paper_scope_continuity_focus_from_history(
@@ -1570,6 +1822,17 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
             "scale_up_allowed": False,
         }
 
+    candidate_generation_report, public_review_fields, candidate_discovery_runtime = (
+        _review_public_alternatives_for_candidate_generation(
+            root=root,
+            session_id=session_id,
+            runtime=runtime,
+            scorecard=scorecard,
+            history=history,
+            candidate_generation_report=candidate_generation_report,
+        )
+    )
+
     history_path = write_upbit_paper_runtime_sample_history(root=root, history=history)
     diagnostic_path = write_overfit_diagnostic_report(root=root, report=diagnostic)
     scorecard_path = write_upbit_paper_candidate_scorecard(root=root, scorecard=scorecard)
@@ -1577,6 +1840,15 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
         root=root,
         report=candidate_generation_report,
     )
+    candidate_discovery_runtime_path = None
+    if candidate_discovery_runtime is not None:
+        candidate_discovery_runtime_path = paper_candidate_generation_discovery_runtime_path(root, session_id)
+        durable_atomic_write_json(candidate_discovery_runtime_path, candidate_discovery_runtime)
+        public_review_fields = dict(public_review_fields)
+        public_review_fields["candidate_discovery_runtime_cycle_path"] = _relative_runtime_path(
+            candidate_discovery_runtime_path,
+            root,
+        )
     candidate_generation_fields = {
         "candidate_generation_report_path": _relative_runtime_path(candidate_generation_path, root),
         "candidate_generation_status": candidate_generation_report.get("generation_status"),
@@ -1589,6 +1861,7 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
         ),
         "candidate_generation_best_alternative_symbol": candidate_generation_report.get("best_alternative_symbol"),
         "candidate_generation_next_action": candidate_generation_report.get("next_action"),
+        **public_review_fields,
     }
     scorecard_candidate_id = str(scorecard.get("candidate_id") or "")
     scorecard_snapshot_path = paper_candidate_scorecard_snapshot_path(root, session_id, scorecard_candidate_id)
