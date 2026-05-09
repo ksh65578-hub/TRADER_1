@@ -29082,6 +29082,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
   </style>
   <script>
     (function () {
+      var runnerChannelLastSeenAtMs = 0;
+      var runnerChannelLastPayload = null;
       function formatAge(seconds) {
         if (!Number.isFinite(seconds) || seconds < 0) {
           return "unknown";
@@ -29103,6 +29105,34 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         var ageNode = box.querySelector("[data-dashboard-age]");
         var pill = box.querySelector("[data-client-freshness-pill]");
         var warning = box.querySelector("[data-stale-warning]");
+        var channelAgeSeconds = runnerChannelLastSeenAtMs > 0
+          ? Math.max(0, Math.floor((Date.now() - runnerChannelLastSeenAtMs) / 1000))
+          : null;
+        var channelFresh = channelAgeSeconds !== null && channelAgeSeconds <= 10;
+        if (channelFresh && runnerChannelLastPayload) {
+          var drift = runnerChannelLastPayload.live_flag_drift_detected === true;
+          var stopping = runnerChannelLastPayload.stop_requested === true || runnerChannelLastPayload.runner_status === "STOPPING";
+          if (ageNode) {
+            ageNode.textContent = "channel " + formatAge(channelAgeSeconds);
+          }
+          if (pill) {
+            pill.textContent = drift
+              ? "Runner drift blocked"
+              : stopping
+              ? "Stop requested"
+              : "Runner channel live";
+            pill.className = drift ? "pill danger" : stopping ? "pill warn" : "pill ok";
+          }
+          if (warning) {
+            warning.textContent = drift
+              ? "Runner channel detected live/scale flag drift. PAPER remains fail-closed and live orders stay blocked."
+              : stopping
+              ? "Stop requested. The local runner status channel is shutting down; this page is no longer an active process view after disconnect."
+              : "Live runner channel is fresh. Static dashboard file age is fallback only and does not mark a connected runner stale.";
+          }
+          box.className = drift || stopping ? "freshness-strip freshness-stale" : "freshness-strip freshness-fresh";
+          return;
+        }
         var ageSeconds = Number.isFinite(generatedAt) ? Math.max(0, Math.floor((Date.now() - generatedAt) / 1000)) : staleAfter + 1;
         var stale = ageSeconds > staleAfter;
         if (ageNode) {
@@ -29129,10 +29159,15 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         if (!payload || typeof payload !== "object") {
           return;
         }
+        runnerChannelLastSeenAtMs = Date.now();
+        runnerChannelLastPayload = payload;
         var drift = payload.live_flag_drift_detected === true;
+        var stopping = payload.stop_requested === true || payload.runner_status === "STOPPING";
         var running = payload.running === true && payload.runner_status === "RUNNING";
         var state = drift
           ? "LIVE FLAG DRIFT BLOCKED"
+          : stopping
+          ? "Stop requested; runner channel is shutting down"
           : running
           ? "Connected to running PAPER runner"
           : "Connected; runner " + String(payload.runner_status || "not loaded").toLowerCase();
@@ -29142,11 +29177,14 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         setRunnerChannelText("[data-runner-channel-next]", payload.next_cycle_eta || "not scheduled");
         var message = drift
           ? "Read-only dashboard detected live/scale flag drift in runner status and keeps live orders blocked."
+          : stopping
+          ? "Operator stop was requested. This live process view will disconnect when the PAPER runner status channel shuts down."
           : "Dashboard is attached to the local read-only runner status channel. Orders, private endpoints, credentials, and LIVE_READY remain blocked.";
         setRunnerChannelText("[data-runner-channel-message]", message);
         var box = document.querySelector("[data-dashboard-freshness]");
         if (box) {
-          box.className = drift ? "freshness-strip freshness-stale" : "freshness-strip freshness-fresh";
+          box.className = drift || stopping ? "freshness-strip freshness-stale" : "freshness-strip freshness-fresh";
+          updateDashboardFreshness();
         }
       }
       function initializeRunnerStatusChannel() {
@@ -29165,7 +29203,16 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
               }
             });
             events.onerror = function () {
-              setRunnerChannelText("[data-runner-channel-state]", "Runner status channel disconnected; showing last received status");
+              var stoppedAfterRequest = runnerChannelLastPayload && (
+                runnerChannelLastPayload.stop_requested === true || runnerChannelLastPayload.runner_status === "STOPPING"
+              );
+              setRunnerChannelText(
+                "[data-runner-channel-state]",
+                stoppedAfterRequest
+                  ? "Runner status channel shut down after stop request"
+                  : "Runner status channel disconnected; showing last received status"
+              );
+              updateDashboardFreshness();
             };
             return true;
           } catch (error) {
