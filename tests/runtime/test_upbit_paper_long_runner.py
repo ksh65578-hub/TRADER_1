@@ -848,6 +848,13 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             report["report_hash"] = public_replay_robustness_report_hash(report)
             return report
 
+        fallback_item = next(
+            item
+            for item in generation_report["candidate_items"]
+            if item["candidate_status"] == "REVIEW_READY"
+            and item["candidate_id"] != generation_report["best_alternative_candidate_id"]
+        )
+
         def fake_replay_with_expansion(**kwargs):
             calls.append(kwargs)
             first_item = kwargs["candidate_generation_report"]["candidate_items"][0]
@@ -861,7 +868,52 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
                     "replay_status": "PASS",
                     "sample_count": 415,
                     "replay_closed_trade_sample_count": 3,
+                    "min_required_closed_trade_sample_count": 30,
                     "replay_closed_trade_deficit": 27,
+                    "replay_closed_trade_maturity_status": "BLOCKED",
+                    "replay_closed_trade_maturity_blocker_code": "REPLAY_CLOSED_TRADES_BELOW_MIN",
+                    "candidate_review_evaluations": [
+                        {
+                            "status": "BLOCKED",
+                            "blocker_code": "REPLAY_CLOSED_TRADES_BELOW_MIN",
+                            "candidate_id": generation_report["best_alternative_candidate_id"],
+                            "sample_count": 415,
+                            "replay_closed_trade_sample_count": 3,
+                            "min_required_closed_trade_sample_count": 30,
+                            "replay_closed_trade_deficit": 27,
+                            "replay_closed_trade_maturity_status": "BLOCKED",
+                            "replay_closed_trade_maturity_blocker_code": "REPLAY_CLOSED_TRADES_BELOW_MIN",
+                        },
+                        {
+                            "status": "BLOCKED",
+                            "blocker_code": "REPLAY_CLOSED_TRADES_BELOW_MIN",
+                            "candidate_id": fallback_item["candidate_id"],
+                            "sample_count": 420,
+                            "replay_closed_trade_sample_count": 2,
+                            "min_required_closed_trade_sample_count": 30,
+                            "replay_closed_trade_deficit": 28,
+                            "replay_closed_trade_maturity_status": "BLOCKED",
+                            "replay_closed_trade_maturity_blocker_code": "REPLAY_CLOSED_TRADES_BELOW_MIN",
+                        },
+                    ],
+                    "live_order_ready": False,
+                    "live_order_allowed": False,
+                    "can_live_trade": False,
+                    "scale_up_allowed": False,
+                }
+            if len(calls) == 2:
+                self.assertEqual(str(first_item["candidate_id"]), generation_report["best_alternative_candidate_id"])
+                return {
+                    "status": "BLOCKED",
+                    "blocker_code": "REPLAY_CLOSED_TRADES_BELOW_MIN",
+                    "message": "preferred expanded replay still below maturity",
+                    "candidate_id": str(first_item["candidate_id"]),
+                    "symbol": str(first_item["symbol"]),
+                    "replay_status": "PASS",
+                    "sample_count": 6000,
+                    "replay_closed_trade_sample_count": 24,
+                    "min_required_closed_trade_sample_count": 30,
+                    "replay_closed_trade_deficit": 6,
                     "replay_closed_trade_maturity_status": "BLOCKED",
                     "replay_closed_trade_maturity_blocker_code": "REPLAY_CLOSED_TRADES_BELOW_MIN",
                     "live_order_ready": False,
@@ -869,6 +921,7 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
                     "can_live_trade": False,
                     "scale_up_allowed": False,
                 }
+            self.assertEqual(str(first_item["candidate_id"]), str(fallback_item["candidate_id"]))
             report = pass_replay_report(
                 candidate_id=str(first_item["candidate_id"]),
                 symbol=str(first_item["symbol"]),
@@ -912,7 +965,7 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
                     candidate_generation_report=generation_report,
                 )
 
-        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(calls), 3)
         expected_expansion_target = long_runner._alternative_replay_closed_trade_maturity_expansion_target(
             {
                 "sample_count": 415,
@@ -933,10 +986,14 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             calls[1]["candidate_generation_report"]["candidate_items"][0]["candidate_id"],
             generation_report["best_alternative_candidate_id"],
         )
+        self.assertEqual(calls[2]["target_count"], long_runner.DEFAULT_ALTERNATIVE_REPLAY_MATURITY_EXPANSION_MAX_TARGET_COUNT)
+        self.assertEqual(calls[2]["candidate_generation_report"]["candidate_items"][0]["candidate_id"], fallback_item["candidate_id"])
         self.assertEqual(expanded_report["generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_VALIDATED")
+        self.assertEqual(expanded_report["best_alternative_candidate_id"], fallback_item["candidate_id"])
         self.assertEqual(validate_candidate_generation_report(expanded_report, candidate_scorecard=scorecard)[0], "PASS")
         self.assertTrue(expanded_fields["alternative_public_replay_maturity_expansion_attempted"])
         self.assertEqual(expanded_fields["alternative_public_replay_maturity_expansion_status"], "PASS")
+        self.assertEqual(expanded_fields["alternative_public_replay_maturity_expansion_rotation_count"], 2)
         self.assertEqual(expanded_fields["alternative_public_replay_closed_trade_maturity_status"], "PASS")
         self.assertFalse(expanded_report["live_order_ready"])
         self.assertFalse(expanded_report["live_order_allowed"])
