@@ -12,6 +12,7 @@ import json
 import math
 import os
 import shutil
+import subprocess
 import sys
 import time
 import webbrowser
@@ -83,8 +84,11 @@ UPBIT_PAPER_LONG_RUNNER_RETENTION_SCHEMA_ID = "trader1.upbit_paper_long_runner_r
 UPBIT_PAPER_RUNNER_START_RECONCILIATION_SCHEMA_ID = "trader1.upbit_paper_runner_start_reconciliation.v1"
 UPBIT_PAPER_LONG_RUNNER_LOCK_SCHEMA_ID = "trader1.upbit_paper_long_runner_lock.v1"
 UPBIT_PAPER_OPERATOR_STOP_SCHEMA_ID = "trader1.upbit_paper_operator_stop_request.v1"
+UPBIT_PAPER_BACKGROUND_LAUNCH_SCHEMA_ID = "trader1.upbit_paper_background_launch.v1"
 
 DEFAULT_SESSION_ID = "mvp1_upbit_paper_launcher"
+BACKGROUND_LAUNCH_ENV = "TRADER1_UPBIT_PAPER_BACKGROUND_LAUNCH"
+FOREGROUND_RUNNER_ENV = "TRADER1_UPBIT_PAPER_FOREGROUND_RUNNER"
 DEFAULT_CYCLE_INTERVAL_SECONDS = 30.0
 DEFAULT_LOCK_STALE_AFTER_SECONDS = 15 * 60
 DEFAULT_RETENTION_MAX_ACTIVE_ARTIFACTS_PER_GROUP = 500
@@ -217,6 +221,14 @@ def runner_stop_request_report_path(root: Path, session_id: str = DEFAULT_SESSIO
     return runner_dir(root, session_id) / "operator_stop_request.json"
 
 
+def runner_background_launch_report_path(root: Path, session_id: str = DEFAULT_SESSION_ID) -> Path:
+    return runner_dir(root, session_id) / "background_launch_report.json"
+
+
+def runner_background_console_log_path(root: Path, session_id: str = DEFAULT_SESSION_ID) -> Path:
+    return runner_dir(root, session_id) / "background_runner_console.log"
+
+
 def runner_start_reconciliation_path(root: Path, session_id: str = DEFAULT_SESSION_ID) -> Path:
     return runner_dir(root, session_id) / "runner_start_reconciliation.json"
 
@@ -247,6 +259,12 @@ def upbit_paper_long_runner_status_hash(report: dict[str, Any]) -> str:
 def upbit_paper_operator_stop_request_hash(report: dict[str, Any]) -> str:
     payload = dict(report)
     payload.pop("stop_request_hash", None)
+    return _json_hash(payload)
+
+
+def upbit_paper_background_launch_hash(report: dict[str, Any]) -> str:
+    payload = dict(report)
+    payload.pop("background_launch_hash", None)
     return _json_hash(payload)
 
 
@@ -843,6 +861,130 @@ def request_upbit_paper_runner_stop(
             "status": report["stop_request_status"],
             "stop_file_written": report["stop_file_written"],
             "stop_confirmed": report["stop_confirmed"],
+            "blocker_code": report["primary_blocker_code"],
+            "at": generated_at,
+        },
+    )
+    return report
+
+
+def _background_runner_creation_flags() -> int:
+    if os.name != "nt":
+        return 0
+    return int(getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)) | int(
+        getattr(subprocess, "DETACHED_PROCESS", 0)
+    )
+
+
+def start_upbit_paper_background_runner(
+    root: Path,
+    session_id: str = DEFAULT_SESSION_ID,
+    *,
+    dashboard_open_result: DashboardOpenResult | None = None,
+    popen_fn: Callable[..., Any] | None = None,
+) -> dict[str, Any]:
+    root = Path(root)
+    generated_at = utc_now()
+    launcher_path = root / "UPBIT_PAPER.py"
+    log_path = runner_background_console_log_path(root, session_id)
+    report_path = runner_background_launch_report_path(root, session_id)
+    status_path = runner_status_path(root, session_id)
+    command = [sys.executable, "-B", str(launcher_path)]
+    env = os.environ.copy()
+    env[FOREGROUND_RUNNER_ENV] = "1"
+    env["TRADER1_UPBIT_PAPER_OPEN_DASHBOARD"] = "0"
+    env.setdefault("PYTHONUNBUFFERED", "1")
+    report: dict[str, Any] = {
+        "schema_id": UPBIT_PAPER_BACKGROUND_LAUNCH_SCHEMA_ID,
+        "generated_at_utc": generated_at,
+        "project_id": "TRADER_1",
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "mode": "PAPER",
+        "session_id": session_id,
+        "background_launch_status": "NOT_STARTED",
+        "background_runner_started": False,
+        "background_runner_policy": "BACKGROUND_RUNNER_STATUS_DASHBOARD",
+        "operator_console_auto_closes": True,
+        "console_close_does_not_stop_runner": True,
+        "dashboard_close_does_not_stop_runner": True,
+        "runner_pid": None,
+        "runner_status_path": str(status_path),
+        "dashboard_path": str(runner_dashboard_path(root, session_id)),
+        "stop_launcher_path": str(root / "STOP_UPBIT_PAPER.py"),
+        "stop_file_path": str(runner_stop_file_path(root, session_id)),
+        "background_console_log_path": str(log_path),
+        "background_launch_report_path": str(report_path),
+        "dashboard_open_attempted": dashboard_open_result.attempted if dashboard_open_result else False,
+        "dashboard_opened": dashboard_open_result.opened if dashboard_open_result else False,
+        "dashboard_open_method": dashboard_open_result.method if dashboard_open_result else "NOT_ATTEMPTED",
+        "dashboard_open_target": dashboard_open_result.target if dashboard_open_result else None,
+        "primary_blocker_code": None,
+        "primary_blocker_message": None,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "order_adapter_called": False,
+        "private_endpoint_called": False,
+        "credential_load_attempted": False,
+        "live_key_loaded": False,
+        "order_endpoint_called": False,
+    }
+    if not _is_relative_to(launcher_path, root):
+        report.update(
+            {
+                "background_launch_status": "BLOCKED",
+                "primary_blocker_code": "BACKGROUND_LAUNCHER_PATH_ESCAPED_WORKSPACE",
+                "primary_blocker_message": "UPBIT_PAPER launcher path is outside the configured workspace root.",
+            }
+        )
+    elif not launcher_path.exists():
+        report.update(
+            {
+                "background_launch_status": "BLOCKED",
+                "primary_blocker_code": "BACKGROUND_LAUNCHER_MISSING",
+                "primary_blocker_message": "UPBIT_PAPER launcher file is missing.",
+            }
+        )
+    else:
+        popen = popen_fn or subprocess.Popen
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with log_path.open("ab") as log_handle:
+                process = popen(
+                    command,
+                    cwd=str(root),
+                    env=env,
+                    stdin=subprocess.DEVNULL,
+                    stdout=log_handle,
+                    stderr=log_handle,
+                    creationflags=_background_runner_creation_flags(),
+                )
+            report.update(
+                {
+                    "background_launch_status": "STARTED",
+                    "background_runner_started": True,
+                    "runner_pid": int(getattr(process, "pid", 0) or 0) or None,
+                }
+            )
+        except Exception as exc:
+            report.update(
+                {
+                    "background_launch_status": "BLOCKED",
+                    "primary_blocker_code": "BACKGROUND_RUNNER_START_FAILED",
+                    "primary_blocker_message": str(exc),
+                }
+            )
+    report["background_launch_hash"] = upbit_paper_background_launch_hash(report)
+    durable_atomic_write_json(report_path, report)
+    _append_log(
+        root,
+        session_id,
+        {
+            "event": "background_runner_launch",
+            "status": report["background_launch_status"],
+            "runner_pid": report["runner_pid"],
             "blocker_code": report["primary_blocker_code"],
             "at": generated_at,
         },
@@ -3434,6 +3576,8 @@ def build_runner_status_report(
         "stop_method": STOP_FILE_METHOD,
         "stop_launcher_path": str(root / "STOP_UPBIT_PAPER.py"),
         "stop_reason": stop_reason,
+        "background_runner_policy": "BACKGROUND_RUNNER_STATUS_DASHBOARD",
+        "operator_console_auto_closes": True,
         "console_lifecycle_policy": "BACKGROUND_RUNNER_STATUS_DASHBOARD",
         "console_close_does_not_stop_runner": True,
         "dashboard_close_does_not_stop_runner": True,
@@ -4565,9 +4709,7 @@ def _should_hold_on_exit(report: dict[str, Any]) -> bool:
     raw = os.environ.get("TRADER1_UPBIT_PAPER_HOLD_ON_EXIT")
     if raw is not None:
         return raw.strip().lower() in {"1", "true", "yes", "y", "on"}
-    if report.get("runner_status") in {RUNNER_STATUS_BLOCKED, RUNNER_STATUS_LOCKED}:
-        return True
-    return report.get("stop_reason") == "MAX_CYCLES_REACHED"
+    return False
 
 
 def _hold_console_on_exit_if_needed(report: dict[str, Any], *, already_running: bool = False) -> None:
@@ -4630,7 +4772,7 @@ def root_upbit_paper_stop_main(root: Path = ROOT) -> int:
         print(f"primary_blocker_code={report.get('primary_blocker_code')}", flush=True)
         print(str(report.get("primary_blocker_message") or ""), flush=True)
     print("live_order_ready=false live_order_allowed=false can_live_trade=false scale_up_allowed=false", flush=True)
-    if sys.stdin is not None and sys.stdin.isatty():
+    if _bool_env("TRADER1_UPBIT_PAPER_STOP_HOLD_ON_EXIT", False) and sys.stdin is not None and sys.stdin.isatty():
         try:
             input("STOP_UPBIT_PAPER finished. Press Enter to close this window.")
         except EOFError:
@@ -4663,12 +4805,18 @@ def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
         "TRADER1_UPBIT_PAPER_RUNTIME_DISK_PRESSURE_MAX_BYTES",
         DEFAULT_RUNTIME_DISK_PRESSURE_MAX_BYTES,
     )
+    root_is_default_workspace = Path(root).resolve() == ROOT.resolve()
+    background_launch = (
+        not _bool_env(FOREGROUND_RUNNER_ENV, False)
+        and _bool_env(BACKGROUND_LAUNCH_ENV, root_is_default_workspace)
+    )
     canonical_running_before_start = _canonical_runner_already_running(root)
     if canonical_running_before_start:
         print("TRADER_1 UPBIT_PAPER background_runner_active=true", flush=True)
         print(f"runner_status_path={runner_status_path(root)}", flush=True)
         print(f"stop_launcher_path={root / 'STOP_UPBIT_PAPER.py'}", flush=True)
         print(f"stop_file_path={runner_stop_file_path(root)}", flush=True)
+        print("operator_console_auto_closes=true", flush=True)
         print("dashboard_close_does_not_stop_runner=true console_close_does_not_stop_runner=true", flush=True)
     if (
         not canonical_running_before_start
@@ -4693,13 +4841,13 @@ def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
     dashboard_open_result: DashboardOpenResult | None = None
     dashboard_opened = False
     dashboard_refresh_error: str | None = None
-    if refresh_dashboard:
+    if refresh_dashboard and not background_launch:
         try:
             _maybe_refresh_dashboard(root)
         except Exception as exc:
             dashboard_refresh_error = str(exc)
             print(f"TRADER_1 UPBIT_PAPER dashboard_refresh_failed={exc}", flush=True)
-    if open_dashboard:
+    if open_dashboard and not background_launch:
         if dashboard_refresh_error:
             dashboard_open_result = dashboard_preopen_refresh_failed_result(
                 root,
@@ -4716,6 +4864,77 @@ def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
             print(f"dashboard_open_blocker_code={dashboard_open_result.blocker_code}", flush=True)
             print(f"dashboard_open_blocker_message={dashboard_open_result.blocker_message}", flush=True)
         print(f"dashboard_path={runner_dashboard_path(root)}", flush=True)
+    if background_launch and canonical_running_before_start:
+        print("TRADER_1 UPBIT_PAPER already_running=true", flush=True)
+        print("background_runner_active=true", flush=True)
+        print("operator_console_auto_closes=true", flush=True)
+        print(f"stop_launcher_path={root / 'STOP_UPBIT_PAPER.py'}", flush=True)
+        print(f"stop_file_path={runner_stop_file_path(root)}", flush=True)
+        print("dashboard_is_status_only=true dashboard_close_does_not_stop_runner=true", flush=True)
+        print("live_order_ready=false live_order_allowed=false can_live_trade=false scale_up_allowed=false", flush=True)
+        return 0
+    if background_launch:
+        launch_report = start_upbit_paper_background_runner(
+            root,
+            DEFAULT_SESSION_ID,
+            dashboard_open_result=dashboard_open_result,
+        )
+        if launch_report.get("background_launch_status") == "STARTED" and refresh_dashboard:
+            deadline = time.monotonic() + 3.0
+            while time.monotonic() < deadline:
+                status_after_launch = _read_json(runner_status_path(root))
+                if (
+                    isinstance(status_after_launch, dict)
+                    and status_after_launch.get("runner_status") == RUNNER_STATUS_RUNNING
+                    and status_after_launch.get("runner_lock_pid") == launch_report.get("runner_pid")
+                ):
+                    break
+                time.sleep(0.1)
+            try:
+                _maybe_refresh_dashboard(root)
+            except Exception as exc:
+                dashboard_refresh_error = str(exc)
+                print(f"TRADER_1 UPBIT_PAPER dashboard_refresh_failed={exc}", flush=True)
+        if open_dashboard:
+            if dashboard_refresh_error:
+                dashboard_open_result = dashboard_preopen_refresh_failed_result(
+                    root,
+                    DEFAULT_SESSION_ID,
+                    error=dashboard_refresh_error,
+                )
+            else:
+                dashboard_open_result = open_runner_dashboard_result(root)
+            print(f"TRADER_1 UPBIT_PAPER dashboard_opened={str(dashboard_open_result.opened).lower()}", flush=True)
+            print(f"dashboard_open_method={dashboard_open_result.method}", flush=True)
+            print(f"dashboard_open_target={dashboard_open_result.target}", flush=True)
+            if dashboard_open_result.blocker_code:
+                print(f"dashboard_open_blocker_code={dashboard_open_result.blocker_code}", flush=True)
+                print(f"dashboard_open_blocker_message={dashboard_open_result.blocker_message}", flush=True)
+            launch_report["dashboard_open_attempted"] = dashboard_open_result.attempted
+            launch_report["dashboard_opened"] = dashboard_open_result.opened
+            launch_report["dashboard_open_method"] = dashboard_open_result.method
+            launch_report["dashboard_open_target"] = dashboard_open_result.target
+            launch_report["background_launch_hash"] = upbit_paper_background_launch_hash(launch_report)
+            durable_atomic_write_json(runner_background_launch_report_path(root), launch_report)
+        print(
+            f"TRADER_1 UPBIT_PAPER background_launch_status={launch_report.get('background_launch_status')}",
+            flush=True,
+        )
+        print(
+            f"background_runner_started={str(launch_report.get('background_runner_started') is True).lower()}",
+            flush=True,
+        )
+        print(f"runner_pid={launch_report.get('runner_pid')}", flush=True)
+        print(f"runner_status_path={launch_report.get('runner_status_path')}", flush=True)
+        print(f"dashboard_path={launch_report.get('dashboard_path')}", flush=True)
+        print(f"stop_launcher_path={launch_report.get('stop_launcher_path')}", flush=True)
+        print("operator_console_auto_closes=true", flush=True)
+        print("dashboard_close_does_not_stop_runner=true console_close_does_not_stop_runner=true", flush=True)
+        if launch_report.get("primary_blocker_code"):
+            print(f"primary_blocker_code={launch_report.get('primary_blocker_code')}", flush=True)
+            print(str(launch_report.get("primary_blocker_message") or ""), flush=True)
+        print("live_order_ready=false live_order_allowed=false can_live_trade=false scale_up_allowed=false", flush=True)
+        return 0 if launch_report.get("background_launch_status") == "STARTED" else 1
     report = run_upbit_paper_long_running_runner(
         root=root,
         cycle_interval_seconds=interval,

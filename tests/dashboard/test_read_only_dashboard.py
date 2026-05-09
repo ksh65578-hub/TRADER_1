@@ -940,6 +940,8 @@ def runner_status_fixture(session_id="test_read_only_dashboard_runner_ops", *, b
         "next_cycle_eta": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "stop_method": "STOP_UPBIT_PAPER.py_OR_STOP_FILE_OR_CTRL_C",
         "stop_launcher_path": "STOP_UPBIT_PAPER.py",
+        "background_runner_policy": "BACKGROUND_RUNNER_STATUS_DASHBOARD",
+        "operator_console_auto_closes": True,
         "console_lifecycle_policy": "BACKGROUND_RUNNER_STATUS_DASHBOARD",
         "console_close_does_not_stop_runner": True,
         "dashboard_close_does_not_stop_runner": True,
@@ -2499,6 +2501,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertTrue(runner["dashboard_open_attempted"])
         self.assertTrue(runner["dashboard_opened"])
         self.assertEqual(runner["dashboard_open_method"], "webbrowser.open")
+        self.assertEqual(runner["background_runner_policy"], "BACKGROUND_RUNNER_STATUS_DASHBOARD")
+        self.assertTrue(runner["operator_console_auto_closes"])
         self.assertEqual(runner["console_lifecycle_policy"], "BACKGROUND_RUNNER_STATUS_DASHBOARD")
         self.assertTrue(runner["console_close_does_not_stop_runner"])
         self.assertTrue(runner["dashboard_close_does_not_stop_runner"])
@@ -2543,6 +2547,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(source_by_id["PAPER_LONG_RUNNER_RETENTION"]["freshness_status"], "PASS")
         html = render_dashboard_html(dashboard)
         self.assertIn("PAPER runner", html)
+        self.assertIn("Execution mode", html)
+        self.assertIn("Background runner active", html)
+        self.assertIn("Launch console closes automatically=True", html)
         self.assertIn("Runner control", html)
         self.assertIn("STOP_UPBIT_PAPER.py", html)
         self.assertIn("Stop signal", html)
