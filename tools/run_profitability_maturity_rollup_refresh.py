@@ -332,6 +332,33 @@ def runtime_linkage_evidence(runtime_path: Path, scorecard: dict[str, Any], scor
     }
 
 
+def runtime_linkage_review_evidence(scorecard: dict[str, Any], scorecard_path: Path = SCORECARD_PATH) -> dict[str, Any]:
+    runtime_path = runtime_path_from_scorecard(scorecard)
+    try:
+        evidence = runtime_linkage_evidence(runtime_path, scorecard, scorecard_path)
+    except (OSError, json.JSONDecodeError):
+        return {
+            "status": "BLOCKED",
+            "runtime_linkage_blocker_code": "RUNTIME_CYCLE_UNREADABLE",
+            "source_runtime_cycle_path": rel(runtime_path),
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+    return {
+        "status": evidence.get("status") or "BLOCKED",
+        "runtime_linkage_blocker_code": evidence.get("runtime_linkage_blocker_code"),
+        "source_runtime_cycle_path": evidence.get("source_runtime_cycle_path"),
+        "source_runtime_cycle_id": evidence.get("source_runtime_cycle_id"),
+        "source_runtime_cycle_hash": evidence.get("source_runtime_cycle_hash"),
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
 def source_type_counts(overfit: dict[str, Any]) -> dict[str, int]:
     min_bootstrap = int(overfit.get("min_required_bootstrap_iterations") or 500)
     return {
@@ -384,7 +411,21 @@ def matching_overfit_path_for_scorecard(scorecard: dict[str, Any], scorecard_pat
     return None
 
 
-def scorecard_review_priority(scorecard: dict[str, Any], *, active_source: bool, has_matching_overfit: bool) -> tuple[Any, ...]:
+def runtime_linkage_status_rank(status: Any) -> int:
+    if status == "PASS":
+        return 2
+    if status == "UNKNOWN":
+        return 1
+    return 0
+
+
+def scorecard_review_priority(
+    scorecard: dict[str, Any],
+    *,
+    active_source: bool,
+    has_matching_overfit: bool,
+    runtime_linkage_status: str = "UNKNOWN",
+) -> tuple[Any, ...]:
     blocker_codes = {
         str(blocker.get("code"))
         for blocker in scorecard.get("blockers") or []
@@ -395,6 +436,7 @@ def scorecard_review_priority(scorecard: dict[str, Any], *, active_source: bool,
         for source_id in scorecard.get("source_evidence_ids") or []
     )
     return (
+        runtime_linkage_status_rank(runtime_linkage_status),
         1 if scorecard.get("ranking_eligible") is True else 0,
         1 if scorecard.get("performance_ready") is True else 0,
         1 if scorecard.get("robustness_ready") is True else 0,
@@ -432,6 +474,7 @@ def load_scorecard_review_inputs(active_scorecard: dict[str, Any]) -> list[dict[
         overfit_path = matching_overfit_path_for_scorecard(payload, path)
         if overfit_path is None:
             return
+        runtime_review_evidence = runtime_linkage_review_evidence(payload, path)
         seen_scorecard_ids.add(scorecard_id)
         entries.append(
             {
@@ -439,10 +482,13 @@ def load_scorecard_review_inputs(active_scorecard: dict[str, Any]) -> list[dict[
                 "scorecard_path": path,
                 "overfit_path": overfit_path,
                 "source": source,
+                "runtime_linkage_review_status": runtime_review_evidence["status"],
+                "runtime_linkage_review_blocker_code": runtime_review_evidence.get("runtime_linkage_blocker_code"),
                 "priority": scorecard_review_priority(
                     payload,
                     active_source=source == "current_scorecard",
                     has_matching_overfit=True,
+                    runtime_linkage_status=str(runtime_review_evidence.get("status") or "BLOCKED"),
                 ),
             }
         )
