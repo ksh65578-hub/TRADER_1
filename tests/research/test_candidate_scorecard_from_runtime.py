@@ -25,7 +25,10 @@ from trader1.research.profitability.candidate_scorecard import (
     validate_candidate_generation_report,
     write_upbit_paper_candidate_scorecard,
 )
-from trader1.research.replay.replay_runner import build_public_replay_robustness_report
+from trader1.research.replay.replay_runner import (
+    build_public_replay_robustness_report,
+    public_replay_source_evidence_id,
+)
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report, upbit_paper_runtime_cycle_hash
 from trader1.runtime.portfolio.paper_portfolio import build_paper_portfolio_snapshot_from_fill
 from trader1.validation.mvp0_validators import _candidate_scorecard_net_ev_errors
@@ -908,7 +911,10 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertEqual(report["best_alternative_public_replay_closed_trade_sample_count"], 0)
         self.assertTrue(
             any(
-                source_id.startswith(f"public_replay_robustness:{replay_report['replay_id']}:")
+                source_id == public_replay_source_evidence_id(
+                    replay_report["replay_id"],
+                    replay_report["report_hash"],
+                )
                 for source_id in report["source_evidence_ids"]
             )
         )

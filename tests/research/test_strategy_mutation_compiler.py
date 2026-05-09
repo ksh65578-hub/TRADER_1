@@ -10,6 +10,7 @@ from trader1.research.profitability.candidate_scorecard import (
     candidate_scorecard_from_upbit_paper_runtime_cycle,
     performance_source_evidence_id,
     robustness_source_evidence_id,
+    source_role_semantics_errors,
 )
 from trader1.research.profitability.convergence_memory import (
     optimizer_memory_state_from_scorecard,
@@ -422,6 +423,14 @@ class StrategyMutationCompilerTest(unittest.TestCase):
         self.assertFalse(spec["live_config_mutation_allowed"])
         self.assertFalse(spec["writes_live_ready_snapshot"])
         self.assertEqual(spec["spec_hash"], mutated_paper_candidate_spec_hash(spec))
+        replay_source_ids = [
+            source_id
+            for source_id in report["source_evidence_ids"]
+            if source_id.startswith("public_replay_robustness:")
+        ]
+        self.assertEqual(len(replay_source_ids), 1)
+        self.assertEqual(len(replay_source_ids[0].split(":")), 3)
+        self.assertFalse(source_role_semantics_errors(replay_source_ids))
         for flag in (
             "credential_load_attempted",
             "private_endpoint_called",

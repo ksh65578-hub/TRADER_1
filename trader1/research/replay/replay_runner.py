@@ -32,6 +32,24 @@ PUBLIC_REPLAY_MAX_WINDOW_CAP = 6000
 ROOT = Path(__file__).resolve().parents[3]
 
 
+def _safe_public_replay_source_id_component(replay_id: Any) -> str:
+    text = str(replay_id or "unknown-replay")
+    allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.")
+    safe = "".join(character if character in allowed else "_" for character in text).strip("._")
+    if not safe:
+        safe = "unknown-replay"
+    if len(safe) > 120:
+        digest = hashlib.sha256(text.encode("utf-8")).hexdigest().upper()
+        safe = f"{safe[:96]}-{digest[:16]}"
+    return safe
+
+
+def public_replay_source_evidence_id(replay_id: Any, report_hash: Any) -> str:
+    replay_component = _safe_public_replay_source_id_component(replay_id)
+    hash_text = str(report_hash or "").upper()
+    return f"public_replay_robustness:{replay_component}:{hash_text}"
+
+
 @dataclass(frozen=True)
 class ReplayConsistencyValidationResult:
     status: str
@@ -789,7 +807,7 @@ def public_replay_robustness_values_from_report(
     if result.status != "PASS":
         return [], [], []
     source_ids = [
-        f"public_replay_robustness:{report['replay_id']}:{report['report_hash']}",
+        public_replay_source_evidence_id(report["replay_id"], report["report_hash"]),
         f"public_market_data:{report['symbol']}:{report['public_market_data_hash']}",
     ]
     values: list[float] = []

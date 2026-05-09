@@ -19,6 +19,7 @@ from trader1.runtime.paper.upbit_paper_runtime import (
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
 from trader1.research.replay.replay_runner import (
     public_replay_robustness_report_hash,
+    public_replay_source_evidence_id,
     required_replay_closed_trade_threshold,
 )
 
@@ -1366,7 +1367,7 @@ def _public_replay_source_evidence_ids(report: dict[str, Any]) -> list[str]:
     market_hash = str(report.get("public_market_data_hash") or "").upper()
     source_ids: list[str] = []
     if replay_id and len(report_hash) == 64:
-        source_ids.append(f"public_replay_robustness:{replay_id}:{report_hash}")
+        source_ids.append(public_replay_source_evidence_id(replay_id, report_hash))
     if symbol and len(market_hash) == 64:
         source_ids.append(f"public_market_data:{symbol}:{market_hash}")
     return source_ids

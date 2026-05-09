@@ -13,6 +13,7 @@ from trader1.research.replay.replay_runner import (
     min_required_closed_trade_sample_count_for_public_replay,
     public_replay_robustness_report_hash,
     public_replay_robustness_values_from_report,
+    public_replay_source_evidence_id,
     required_replay_closed_trade_threshold,
     validate_public_replay_robustness_report,
     replay_consistency_hash,
@@ -427,7 +428,7 @@ class ReplayDeterminismTest(unittest.TestCase):
         self.assertEqual(len(values), report["replay_closed_trade_sample_count"])
         self.assertEqual(len(samples), report["replay_closed_trade_sample_count"])
         self.assertIn(
-            f"public_replay_robustness:{report['replay_id']}:{report['report_hash']}",
+            public_replay_source_evidence_id(report["replay_id"], report["report_hash"]),
             source_ids,
         )
         for sample in samples:
@@ -546,7 +547,7 @@ class ReplayDeterminismTest(unittest.TestCase):
         self.assertIn("SAMPLE_INSUFFICIENT", {blocker["code"] for blocker in diagnostic["blockers"]})
         self.assertIn("SURVIVORSHIP_BIAS_RISK", {blocker["code"] for blocker in diagnostic["blockers"]})
         self.assertIn(
-            f"public_replay_robustness:{report['replay_id']}:{report['report_hash']}",
+            public_replay_source_evidence_id(report["replay_id"], report["report_hash"]),
             diagnostic["source_evidence_ids"],
         )
         self.assertFalse(diagnostic["live_order_ready"])
