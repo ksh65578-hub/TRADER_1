@@ -16,6 +16,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.request
 import webbrowser
 import zipfile
 from dataclasses import dataclass
@@ -424,6 +425,16 @@ def _dashboard_status_channel_report(root: Path, session_id: str = DEFAULT_SESSI
     return report
 
 
+def _runner_status_matches_expected_pid(status: dict[str, Any], expected_runner_pid: int | None) -> bool:
+    if expected_runner_pid is None:
+        return True
+    runner_lock_pid = status.get("runner_lock_pid")
+    if isinstance(runner_lock_pid, int) and runner_lock_pid == expected_runner_pid:
+        return True
+    runner_id = str(status.get("runner_id") or "")
+    return runner_id.endswith(f"-{expected_runner_pid}")
+
+
 def _dashboard_status_channel_fields(root: Path, session_id: str = DEFAULT_SESSION_ID) -> dict[str, Any]:
     channel = _dashboard_status_channel_report(root, session_id)
     if not isinstance(channel, dict):
@@ -453,18 +464,39 @@ def _dashboard_status_channel_fields(root: Path, session_id: str = DEFAULT_SESSI
     }
 
 
-def _dashboard_status_channel_url_from_artifacts(root: Path, session_id: str = DEFAULT_SESSION_ID) -> str | None:
+def _dashboard_status_channel_url_from_artifacts(
+    root: Path,
+    session_id: str = DEFAULT_SESSION_ID,
+    *,
+    expected_runner_pid: int | None = None,
+) -> str | None:
     status = _read_json(runner_status_path(root, session_id))
     if isinstance(status, dict):
         url = _safe_local_dashboard_url(status.get("dashboard_status_channel_url"))
-        if url and status.get("dashboard_status_channel_enabled") is True:
+        if (
+            url
+            and status.get("dashboard_status_channel_enabled") is True
+            and status.get("runner_status") == RUNNER_STATUS_RUNNING
+            and status.get("running") is True
+            and _runner_status_matches_expected_pid(status, expected_runner_pid)
+        ):
             return url
+    if expected_runner_pid is not None:
+        return None
     channel = _dashboard_status_channel_report(root, session_id)
     if isinstance(channel, dict):
         url = _safe_local_dashboard_url(channel.get("dashboard_status_channel_url"))
         if url and channel.get("dashboard_status_channel_status") == "RUNNING":
             return url
     return None
+
+
+def _local_dashboard_url_is_reachable(url: str, *, timeout: float = 0.5) -> bool:
+    try:
+        with urllib.request.urlopen(url, timeout=timeout):
+            return True
+    except Exception:
+        return False
 
 
 def _json_has_runtime_permission_drift(value: Any) -> tuple[bool, str | None]:
@@ -4925,20 +4957,28 @@ def open_runner_dashboard_result(
     *,
     opener: Callable[[str], bool] | None = None,
     startfile: Callable[[str], Any] | None = None,
+    expected_runner_pid: int | None = None,
+    channel_probe: Callable[[str], bool] | None = None,
 ) -> DashboardOpenResult:
-    channel_url = _dashboard_status_channel_url_from_artifacts(root, session_id)
+    channel_url = _dashboard_status_channel_url_from_artifacts(
+        root,
+        session_id,
+        expected_runner_pid=expected_runner_pid,
+    )
     if channel_url:
-        try:
-            if bool((opener or webbrowser.open)(channel_url)):
-                return DashboardOpenResult(
-                    attempted=True,
-                    opened=True,
-                    method="local_status_channel",
-                    target=channel_url,
-                    path=str(runner_dashboard_path(root, session_id)),
-                )
-        except Exception:
-            pass
+        probe = channel_probe or _local_dashboard_url_is_reachable
+        if probe(channel_url):
+            try:
+                if bool((opener or webbrowser.open)(channel_url)):
+                    return DashboardOpenResult(
+                        attempted=True,
+                        opened=True,
+                        method="local_status_channel",
+                        target=channel_url,
+                        path=str(runner_dashboard_path(root, session_id)),
+                    )
+            except Exception:
+                pass
 
     path = runner_dashboard_path(root, session_id)
     resolved = path.resolve()
@@ -5952,7 +5992,7 @@ def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
             dashboard_open_result=dashboard_open_result,
         )
         if launch_report.get("background_launch_status") == "STARTED" and refresh_dashboard:
-            deadline = time.monotonic() + 3.0
+            deadline = time.monotonic() + 10.0
             while time.monotonic() < deadline:
                 status_after_launch = _read_json(runner_status_path(root))
                 if (
@@ -5979,7 +6019,12 @@ def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
                 and dashboard_open_result.blocker_code == DASHBOARD_PREOPEN_REFRESH_FAILED_BLOCKER_CODE
                 and dashboard_refresh_error is None
             ):
-                dashboard_open_result = open_runner_dashboard_result(root)
+                dashboard_open_result = open_runner_dashboard_result(
+                    root,
+                    expected_runner_pid=launch_report.get("runner_pid")
+                    if isinstance(launch_report.get("runner_pid"), int)
+                    else None,
+                )
             if dashboard_open_result is not None:
                 status_after_launch = _read_json(runner_status_path(root))
                 if isinstance(status_after_launch, dict):

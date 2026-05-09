@@ -2414,8 +2414,9 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
                 path=str(runner_dashboard_path(root)),
             )
 
-            def fake_open(_root):
+            def fake_open(_root, *, expected_runner_pid=None):
                 events.append("open")
+                self.assertEqual(expected_runner_pid, 434343)
                 return dashboard_result
 
             with patch.dict(
@@ -2444,7 +2445,7 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
 
             self.assertEqual(exit_code, 0)
             self.assertEqual(len(popen_calls), 1)
-            open_mock.assert_called_once_with(root)
+            open_mock.assert_called_once_with(root, expected_runner_pid=434343)
             self.assertEqual(events, ["start", "refresh", "open"])
             report = _load_json(runner_background_launch_report_path(root))
             self.assertEqual(report["background_launch_status"], "STARTED")
@@ -3162,12 +3163,87 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
                 root,
                 "dashboard_channel_session",
                 opener=lambda uri: opened.append(uri) is None or True,
+                channel_probe=lambda _url: True,
             )
 
             self.assertTrue(result.attempted)
             self.assertTrue(result.opened)
             self.assertEqual(result.method, "local_status_channel")
             self.assertEqual(opened, ["http://127.0.0.1:12345/"])
+
+    def test_runner_dashboard_opener_ignores_stale_blocked_status_channel(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "stale_dashboard_channel_session"
+            path = runner_dashboard_path(root, session_id)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("<!doctype html><title>TRADER_1</title>", encoding="utf-8")
+            status_path = runner_status_path(root, session_id)
+            status_path.parent.mkdir(parents=True, exist_ok=True)
+            status_path.write_text(
+                json.dumps(
+                    {
+                        "runner_status": RUNNER_STATUS_BLOCKED,
+                        "running": False,
+                        "dashboard_status_channel_enabled": True,
+                        "dashboard_status_channel_url": "http://127.0.0.1:12345/",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            opened: list[str] = []
+
+            result = open_runner_dashboard_result(
+                root,
+                session_id,
+                opener=lambda uri: opened.append(uri) is None or True,
+                channel_probe=lambda _url: True,
+            )
+
+            self.assertTrue(result.attempted)
+            self.assertTrue(result.opened)
+            self.assertEqual(result.method, "webbrowser.open")
+            self.assertEqual(len(opened), 1)
+            self.assertNotEqual(opened[0], "http://127.0.0.1:12345/")
+            self.assertTrue(opened[0].startswith("file:///"))
+
+    def test_runner_dashboard_opener_requires_expected_background_runner_pid(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "expected_runner_dashboard_channel_session"
+            path = runner_dashboard_path(root, session_id)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("<!doctype html><title>TRADER_1</title>", encoding="utf-8")
+            status_path = runner_status_path(root, session_id)
+            status_path.parent.mkdir(parents=True, exist_ok=True)
+            status_path.write_text(
+                json.dumps(
+                    {
+                        "runner_id": "upbit-paper-runner-old-111",
+                        "runner_lock_pid": 111,
+                        "runner_status": RUNNER_STATUS_RUNNING,
+                        "running": True,
+                        "dashboard_status_channel_enabled": True,
+                        "dashboard_status_channel_url": "http://127.0.0.1:12345/",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            opened: list[str] = []
+
+            result = open_runner_dashboard_result(
+                root,
+                session_id,
+                opener=lambda uri: opened.append(uri) is None or True,
+                expected_runner_pid=222,
+                channel_probe=lambda _url: True,
+            )
+
+            self.assertTrue(result.attempted)
+            self.assertTrue(result.opened)
+            self.assertEqual(result.method, "webbrowser.open")
+            self.assertEqual(len(opened), 1)
+            self.assertNotEqual(opened[0], "http://127.0.0.1:12345/")
 
     def test_runner_dashboard_status_channel_serves_read_only_runner_status(self):
         with tempfile.TemporaryDirectory() as tmp:
