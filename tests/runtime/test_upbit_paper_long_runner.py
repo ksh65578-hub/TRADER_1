@@ -1410,6 +1410,58 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertFalse(loaded["live_order_allowed"])
             self.assertFalse(loaded["can_live_trade"])
 
+    def test_runner_status_inherits_background_dashboard_open_result_for_same_pid(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "test_background_dashboard_open_status"
+            runner_id = "upbit-paper-runner-test-777777"
+            path = runner_background_launch_report_path(root, session_id)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                json.dumps(
+                    {
+                        "schema_id": "trader1.upbit_paper_background_launch.v1",
+                        "background_launch_status": "STARTED",
+                        "exchange": "UPBIT",
+                        "market_type": "KRW_SPOT",
+                        "mode": "PAPER",
+                        "session_id": session_id,
+                        "runner_pid": 777777,
+                        "dashboard_open_attempted": True,
+                        "dashboard_opened": True,
+                        "dashboard_open_method": "os.startfile",
+                        "dashboard_open_target": str(runner_dashboard_path(root, session_id).resolve()),
+                        "live_order_ready": False,
+                        "live_order_allowed": False,
+                        "can_live_trade": False,
+                        "scale_up_allowed": False,
+                    },
+                    indent=2,
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+
+            report = build_runner_status_report(
+                root=root,
+                runner_id=runner_id,
+                session_id=session_id,
+                runner_status=RUNNER_STATUS_RUNNING,
+                started_at_utc=utc_now(),
+                completed_cycle_count=0,
+                failed_cycle_count=0,
+                cycle_interval_seconds=30,
+            )
+
+            self.assertTrue(report["dashboard_open_attempted"])
+            self.assertTrue(report["dashboard_opened"])
+            self.assertEqual(report["dashboard_open_method"], "os.startfile")
+            self.assertEqual(validate_upbit_paper_long_runner_status_report(report)["status"], "PASS")
+            self.assertFalse(report["live_order_ready"])
+            self.assertFalse(report["live_order_allowed"])
+            self.assertFalse(report["can_live_trade"])
+            self.assertFalse(report["scale_up_allowed"])
+
     def test_runner_blocks_when_non_live_profitability_refresh_integrity_fails(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
 
@@ -1727,6 +1779,67 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertEqual(report["runner_pid"], 424242)
             self.assertFalse(report["live_order_allowed"])
             self.assertFalse(report["can_live_trade"])
+
+    def test_root_operator_background_launch_opens_dashboard_before_console_auto_closes(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "UPBIT_PAPER.py").write_text(
+                "from trader1.runtime.paper.upbit_paper_long_runner import root_upbit_paper_long_runner_main\n"
+                "raise SystemExit(root_upbit_paper_long_runner_main())\n",
+                encoding="utf-8",
+            )
+            popen_calls: list[dict] = []
+
+            class FakeProcess:
+                pid = 434343
+
+            def fake_popen(command, **kwargs):
+                popen_calls.append({"command": command, "kwargs": kwargs})
+                return FakeProcess()
+
+            dashboard_result = DashboardOpenResult(
+                attempted=True,
+                opened=True,
+                method="os.startfile",
+                target=str(runner_dashboard_path(root).resolve()),
+                path=str(runner_dashboard_path(root)),
+            )
+
+            with patch.dict(
+                os.environ,
+                {
+                    "TRADER1_UPBIT_PAPER_SAFE_CHECK_ONLY": "false",
+                    "TRADER1_UPBIT_PAPER_BACKGROUND_LAUNCH": "true",
+                    "TRADER1_UPBIT_PAPER_REFRESH_DASHBOARD": "false",
+                    "TRADER1_UPBIT_PAPER_OPEN_DASHBOARD": "true",
+                    "TRADER1_UPBIT_PAPER_HOLD_ON_EXIT": "false",
+                },
+            ), patch.object(long_runner.subprocess, "Popen", side_effect=fake_popen), patch.object(
+                long_runner,
+                "open_runner_dashboard_result",
+                return_value=dashboard_result,
+            ) as open_mock, patch.object(
+                long_runner,
+                "run_upbit_paper_long_running_runner",
+                side_effect=AssertionError("foreground runner must not run in operator background launch"),
+            ):
+                exit_code = long_runner.root_upbit_paper_long_runner_main(root)
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(len(popen_calls), 1)
+            open_mock.assert_called_once_with(root)
+            report = _load_json(runner_background_launch_report_path(root))
+            self.assertEqual(report["background_launch_status"], "STARTED")
+            self.assertTrue(report["operator_console_auto_closes"])
+            self.assertTrue(report["dashboard_open_attempted"])
+            self.assertTrue(report["dashboard_opened"])
+            self.assertEqual(report["dashboard_open_method"], "os.startfile")
+            self.assertFalse(report["live_order_ready"])
+            self.assertFalse(report["live_order_allowed"])
+            self.assertFalse(report["can_live_trade"])
+            self.assertFalse(report["scale_up_allowed"])
 
     def test_root_operator_duplicate_start_does_not_clear_active_stop_request(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
