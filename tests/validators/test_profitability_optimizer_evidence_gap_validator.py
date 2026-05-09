@@ -8,6 +8,7 @@ from tools.run_profitability_maturity_rollup_refresh import (
     paper_shadow_next_required_evidence,
     refresh_current_scorecard_inputs,
     robustness_source_type_evidence,
+    runtime_sample_history_evidence,
     scorecard_review_priority,
     update_overfit_component,
     update_promotion_thresholds,
@@ -153,6 +154,66 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
             self.assertFalse(rollup["paper_scorecard_input_allowed"])
         self.assertFalse(runtime_linkage["live_order_allowed"])
         self.assertFalse(runtime_linkage["can_live_trade"])
+
+    def test_maturity_rollup_binds_runtime_sample_history_evidence(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        sample_history = rollup["runtime_sample_history_evidence"]
+        refreshed = runtime_sample_history_evidence(
+            {
+                "status": "PASS",
+                "runtime_sample_history_path": sample_history["source_artifact_path"],
+                "scorecard_runtime_selection_source": sample_history["scorecard_runtime_selection_source"],
+                "scorecard_runtime_sample_candidate_id": sample_history["scorecard_runtime_sample_candidate_id"],
+                "scorecard_candidate_identity_alignment_status": sample_history[
+                    "scorecard_candidate_identity_alignment_status"
+                ],
+            }
+        )
+
+        self.assertEqual(sample_history["status"], "PASS")
+        self.assertEqual(sample_history["validation_status"], "PASS")
+        self.assertEqual(refreshed["history_hash"], sample_history["history_hash"])
+        self.assertGreaterEqual(sample_history["accepted_cycle_sample_count"], 1)
+        self.assertIn("upbit_paper_runtime_sample_history.json", sample_history["source_artifact_path"])
+        self.assertEqual(
+            sample_history["primary_blocker_code"],
+            "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+        )
+        for field in (
+            "credential_load_attempted",
+            "private_endpoint_called",
+            "order_endpoint_called",
+            "order_adapter_called",
+            "live_key_loaded",
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "scale_up_allowed",
+        ):
+            self.assertFalse(sample_history[field])
+        self.assertEqual(_profitability_evidence_maturity_rollup_errors(rollup), [])
+
+    def test_maturity_rollup_helper_rejects_sample_history_false_pass(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        tampered["runtime_sample_history_evidence"]["accepted_cycle_sample_count"] += 1
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("accepted_cycle_sample_count" in error for error in errors), errors)
+
+    def test_maturity_rollup_helper_rejects_scorecard_input_without_sample_history_pass(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        tampered["paper_scorecard_input_allowed"] = True
+        tampered["runtime_sample_history_evidence"]["status"] = "BLOCKED"
+        tampered["runtime_sample_history_evidence"]["validation_status"] = "BLOCKED"
+        tampered["runtime_sample_history_evidence"]["validation_blocker_code"] = "RECONCILIATION_REQUIRED"
+        tampered["runtime_sample_history_evidence"]["primary_blocker_code"] = "RECONCILIATION_REQUIRED"
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("runtime sample history" in error for error in errors), errors)
 
     def test_maturity_rollup_binds_strategy_and_regime_components_from_scorecard(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)

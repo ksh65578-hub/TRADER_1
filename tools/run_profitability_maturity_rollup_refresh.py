@@ -14,6 +14,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from trader1.runtime.paper.upbit_paper_runtime import validate_upbit_paper_runtime_cycle_report
+from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
+    validate_upbit_paper_runtime_sample_history_sources,
+)
 from trader1.research.profitability.candidate_scorecard import safe_candidate_scorecard_filename
 
 
@@ -357,6 +360,123 @@ def runtime_linkage_review_evidence(scorecard: dict[str, Any], scorecard_path: P
         "can_live_trade": False,
         "scale_up_allowed": False,
     }
+
+
+def runtime_sample_history_evidence(
+    scorecard_refresh: dict[str, Any],
+    *,
+    history_path: Path = SAMPLE_HISTORY_PATH,
+) -> dict[str, Any]:
+    def base(
+        *,
+        status: str,
+        validation_status: str,
+        validation_blocker_code: str | None,
+        validation_message: str,
+        primary_blocker_code: str,
+        history: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        active_scope = history.get("active_candidate_scope") if isinstance(history, dict) else {}
+        active_scope = active_scope if isinstance(active_scope, dict) else {}
+        source_hashes = history.get("source_runtime_cycle_hashes") if isinstance(history, dict) else []
+        source_hashes = source_hashes if isinstance(source_hashes, list) else []
+        refresh_path = str(scorecard_refresh.get("runtime_sample_history_path") or "")
+        return {
+            "status": status,
+            "source_artifact_path": rel(history_path),
+            "refresh_status": str(scorecard_refresh.get("status") or "MISSING"),
+            "refresh_runtime_sample_history_path": refresh_path,
+            "validation_status": validation_status,
+            "validation_blocker_code": validation_blocker_code,
+            "validation_message": validation_message,
+            "runtime_sample_status": str(history.get("runtime_sample_status") or "MISSING") if isinstance(history, dict) else "MISSING",
+            "accepted_cycle_sample_count": safe_int(history.get("accepted_cycle_sample_count")) if isinstance(history, dict) else 0,
+            "active_candidate_scope_candidate_id": (
+                str(active_scope.get("candidate_id")) if active_scope.get("candidate_id") else None
+            ),
+            "active_candidate_scope_sample_count": safe_int(history.get("active_candidate_scope_sample_count"))
+            if isinstance(history, dict)
+            else 0,
+            "active_candidate_scope_sample_deficit": safe_int(history.get("active_candidate_scope_sample_deficit"))
+            if isinstance(history, dict)
+            else 0,
+            "source_loop_report_count": safe_int(history.get("source_loop_report_count")) if isinstance(history, dict) else 0,
+            "accepted_loop_report_count": safe_int(history.get("accepted_loop_report_count")) if isinstance(history, dict) else 0,
+            "invalid_source_count": safe_int(history.get("invalid_source_count")) if isinstance(history, dict) else 0,
+            "unique_runtime_cycle_hash_count": safe_int(history.get("unique_runtime_cycle_hash_count"))
+            if isinstance(history, dict)
+            else 0,
+            "duplicate_cycle_hash_count": safe_int(history.get("duplicate_cycle_hash_count")) if isinstance(history, dict) else 0,
+            "history_hash": str(history.get("history_hash") or "") if isinstance(history, dict) else "",
+            "source_runtime_cycle_hash_count": len(source_hashes),
+            "scorecard_runtime_selection_source": str(scorecard_refresh.get("scorecard_runtime_selection_source") or ""),
+            "scorecard_runtime_sample_candidate_id": (
+                str(scorecard_refresh.get("scorecard_runtime_sample_candidate_id"))
+                if scorecard_refresh.get("scorecard_runtime_sample_candidate_id")
+                else None
+            ),
+            "scorecard_candidate_identity_alignment_status": str(
+                scorecard_refresh.get("scorecard_candidate_identity_alignment_status") or "UNBOUND"
+            ),
+            "long_run_evidence_eligible": False,
+            "primary_blocker_code": primary_blocker_code,
+            "credential_load_attempted": False,
+            "private_endpoint_called": False,
+            "order_endpoint_called": False,
+            "order_adapter_called": False,
+            "live_key_loaded": False,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+    if not history_path.is_file():
+        return base(
+            status="MISSING",
+            validation_status="MISSING",
+            validation_blocker_code="ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+            validation_message="runtime sample history artifact is missing",
+            primary_blocker_code="ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+        )
+    try:
+        history = load_json(history_path)
+    except (OSError, json.JSONDecodeError) as exc:
+        return base(
+            status="BLOCKED",
+            validation_status="FAIL",
+            validation_blocker_code="SCHEMA_IDENTITY_MISMATCH",
+            validation_message=f"runtime sample history artifact is unreadable: {exc}",
+            primary_blocker_code="SCHEMA_IDENTITY_MISMATCH",
+        )
+
+    validation = validate_upbit_paper_runtime_sample_history_sources(root=ROOT, history=history)
+    refresh_path_matches = str(scorecard_refresh.get("runtime_sample_history_path") or "") == rel(history_path)
+    if scorecard_refresh.get("status") != "PASS":
+        status = "BLOCKED"
+        blocker = str(scorecard_refresh.get("blocker_code") or "CURRENT_SCORECARD_REFRESH_BLOCKED")
+        message = str(scorecard_refresh.get("message") or "current scorecard refresh did not pass")
+    elif validation.status != "PASS":
+        status = "BLOCKED"
+        blocker = validation.blocker_code or "RUNTIME_SAMPLE_HISTORY_SOURCE_BINDING_MISMATCH"
+        message = validation.message
+    elif not refresh_path_matches:
+        status = "BLOCKED"
+        blocker = "RUNTIME_SAMPLE_HISTORY_SOURCE_BINDING_MISMATCH"
+        message = "scorecard refresh did not write the canonical runtime sample history path"
+    else:
+        status = "PASS"
+        blocker = "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
+        message = validation.message
+
+    return base(
+        status=status,
+        validation_status=validation.status,
+        validation_blocker_code=validation.blocker_code,
+        validation_message=message,
+        primary_blocker_code=blocker,
+        history=history,
+    )
 
 
 def source_type_counts(overfit: dict[str, Any]) -> dict[str, int]:
@@ -1276,6 +1396,7 @@ def refresh_rollup(
     *,
     now: str,
     authority: dict[str, str],
+    scorecard_refresh: dict[str, Any],
     scorecard: dict[str, Any],
     scorecard_path: Path,
     overfit: dict[str, Any],
@@ -1288,6 +1409,7 @@ def refresh_rollup(
     rollup["generated_at_utc"] = now
     rollup["authority"] = authority
     rollup["runtime_linkage_evidence"] = runtime_linkage_evidence(runtime_path, scorecard, scorecard_path)
+    rollup["runtime_sample_history_evidence"] = runtime_sample_history_evidence(scorecard_refresh)
     rollup["robustness_source_type_evidence"] = robustness_source_type_evidence(
         scorecard,
         overfit,
@@ -1314,6 +1436,7 @@ def refresh_rollup(
     )
     rollup["paper_scorecard_input_allowed"] = (
         rollup["runtime_linkage_evidence"]["status"] == "PASS"
+        and rollup["runtime_sample_history_evidence"]["status"] == "PASS"
         and rollup["robustness_source_type_evidence"]["status"] == "PASS"
         and strategy_components_ready
     )
@@ -1331,6 +1454,12 @@ def refresh_rollup(
             "Resolve the blocked PAPER scorecard runtime linkage reason, then continue PAPER/SHADOW evidence "
             "collection; live remains blocked until long-run PAPER/SHADOW evidence, replay coverage, read-only burn-in, "
             "manual order evidence, live safety proof, and operator approval are complete."
+        )
+    elif rollup["runtime_sample_history_evidence"]["status"] != "PASS":
+        rollup["next_operator_action"] = (
+            "Refresh source-bound PAPER runtime sample history before using scorecard input; live remains blocked "
+            "until long-run PAPER/SHADOW evidence, replay coverage, read-only burn-in, manual order evidence, "
+            "live safety proof, and operator approval are complete."
         )
     elif rollup["robustness_source_type_evidence"]["status"] != "PASS":
         rollup["next_operator_action"] = IMPLEMENTATION_GATE_NEXT_ACTION
@@ -1445,6 +1574,7 @@ def main() -> int:
         now=now,
         authority=authority,
         scorecard=scorecard,
+        scorecard_refresh=scorecard_refresh,
         scorecard_path=scorecard_path,
         overfit=overfit,
         overfit_path=overfit_path,
@@ -1456,6 +1586,7 @@ def main() -> int:
         now=now,
         authority=authority,
         scorecard=scorecard,
+        scorecard_refresh=scorecard_refresh,
         scorecard_path=scorecard_path,
         overfit=overfit,
         overfit_path=overfit_path,
