@@ -3492,6 +3492,55 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
         self.assertFalse(payload["can_live_trade"])
         self.assertFalse(payload["scale_up_allowed"])
 
+    def test_dashboard_status_channel_uses_running_channel_during_start_status_gap(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "dashboard_channel_start_gap_session"
+            status = build_runner_status_report(
+                root=root,
+                runner_id="upbit-paper-runner-old-111",
+                session_id=session_id,
+                runner_status=RUNNER_STATUS_STOPPED,
+                started_at_utc=utc_now(),
+                completed_cycle_count=10,
+                failed_cycle_count=0,
+                cycle_interval_seconds=30,
+                stop_reason="STOP_FILE",
+            )
+            status_path = runner_status_path(root, session_id)
+            status_path.parent.mkdir(parents=True, exist_ok=True)
+            status_path.write_text(json.dumps(status), encoding="utf-8")
+            runner_dashboard_status_channel_path(root, session_id).write_text(
+                json.dumps(
+                    long_runner._dashboard_status_channel_report_payload(
+                        root=root,
+                        session_id=session_id,
+                        url="http://127.0.0.1:34567/",
+                        status=RUNNER_STATUS_RUNNING,
+                    )
+                ),
+                encoding="utf-8",
+            )
+
+            payload = _dashboard_status_channel_payload(root, session_id)
+
+        self.assertEqual(payload["runner_status_source_status"], RUNNER_STATUS_STOPPED)
+        self.assertEqual(payload["runner_status"], RUNNER_STATUS_RUNNING)
+        self.assertEqual(payload["channel_status"], RUNNER_STATUS_RUNNING)
+        self.assertTrue(payload["running"])
+        self.assertEqual(
+            payload["runner_status_channel_transition_status"],
+            "RUNNER_STARTING_STATUS_FILE_PENDING",
+        )
+        self.assertEqual(payload["next_cycle_eta_status"], "RUNNER_STARTING_STATUS_FILE_PENDING")
+        self.assertIn("runner starting", payload["next_cycle_eta_display"])
+        self.assertFalse(payload["live_order_ready"])
+        self.assertFalse(payload["live_order_allowed"])
+        self.assertFalse(payload["can_live_trade"])
+        self.assertFalse(payload["scale_up_allowed"])
+
     def test_dashboard_status_channel_reports_stopped_when_stop_file_remains(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
