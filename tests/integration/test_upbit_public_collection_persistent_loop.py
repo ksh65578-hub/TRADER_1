@@ -2,6 +2,7 @@ import hashlib
 import json
 import unittest
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -26,6 +27,7 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
 from trader1.runtime.paper.upbit_paper_runtime import (
     build_upbit_paper_runtime_cycle_report,
     upbit_paper_runtime_cycle_hash,
+    validate_upbit_paper_runtime_cycle_report,
 )
 from trader1.runtime.paper.upbit_public_collector import (
     build_upbit_public_market_data_collection_report,
@@ -517,6 +519,70 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
         self.assertEqual(wlfi_pullback["recent_failure_feedback_kind"], "PRELIMINARY_ROBUSTNESS_FAIL")
         self.assertEqual(wlfi_pullback["no_trade_reason"], "COOLDOWN")
         self.assertFalse(latest["live_order_allowed"])
+
+    def test_persistent_loop_extracts_prior_execution_cost_feedback_for_next_candidate(self):
+        session_id = "execution-cost-feedback-session"
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_cycle = build_upbit_paper_runtime_cycle_report(
+                cycle_id="execution-cost-feedback-source-cycle",
+                session_id=session_id,
+                starting_cash="50000000",
+                paper_cash_available="50000000",
+                paper_equity="50000000",
+            )
+            source_result = validate_upbit_paper_runtime_cycle_report(source_cycle)
+            self.assertEqual(source_result.status, "PASS", source_result.message)
+            selected_candidate = source_cycle["selected_candidate"]
+            expected_execution_cost = sum(
+                Decimal(selected_candidate["cost_breakdown_bps"][field])
+                for field in ("slippage_bps", "spread_bps", "market_impact_bps", "latency_bps")
+            )
+            realized_execution_cost = Decimal(source_cycle["paper_broker_execution"]["slippage_bps"])
+            partial_fill_rate = Decimal("1") if source_cycle["paper_broker_execution"]["partial_fill"] else Decimal("0")
+            expected_adjustment = min(
+                Decimal("35"),
+                max(Decimal("0"), realized_execution_cost - expected_execution_cost) + Decimal("8") * partial_fill_rate,
+            )
+            cycles_dir = (
+                root
+                / "system/runtime/upbit/krw_spot/paper"
+                / session_id
+                / "paper_runtime/cycles"
+            )
+            cycles_dir.mkdir(parents=True)
+            (cycles_dir / f"{source_cycle['cycle_id']}.runtime_cycle.json").write_text(
+                json.dumps(source_cycle, indent=2),
+                encoding="utf-8",
+            )
+
+            feedback = persistent_loop_module._recent_execution_cost_feedback(
+                root=root,
+                session_id=session_id,
+            )
+            adjusted_cycle = build_upbit_paper_runtime_cycle_report(
+                cycle_id="execution-cost-feedback-next-cycle",
+                session_id=session_id,
+                execution_cost_feedback=feedback,
+            )
+            adjusted_result = validate_upbit_paper_runtime_cycle_report(adjusted_cycle)
+
+        self.assertEqual(len(feedback), 1)
+        self.assertEqual(feedback[0]["source"], "PAPER_RUNTIME_EXECUTION_COST_FEEDBACK")
+        self.assertEqual(feedback[0]["candidate_id"], selected_candidate["candidate_id"])
+        self.assertEqual(Decimal(feedback[0]["adjustment_bps"]), expected_adjustment)
+        self.assertFalse(feedback[0]["live_order_allowed"])
+        self.assertFalse(feedback[0]["order_adapter_called"])
+        self.assertEqual(adjusted_result.status, "PASS", adjusted_result.message)
+        adjusted_candidate = next(
+            candidate
+            for candidate in adjusted_cycle["strategy_candidates"]
+            if candidate["candidate_id"] == selected_candidate["candidate_id"]
+        )
+        self.assertEqual(adjusted_candidate["execution_cost_feedback_status"], "ACTIVE")
+        self.assertEqual(Decimal(adjusted_candidate["execution_cost_feedback_adjustment_bps"]), expected_adjustment)
+        self.assertFalse(adjusted_candidate["live_order_allowed"])
+        self.assertFalse(adjusted_cycle["live_order_allowed"])
 
     def test_persistent_loop_applies_aged_preliminary_robustness_feedback_until_replaced(self):
         repeated_wlfi = build_upbit_public_candle_fixture(

@@ -29,6 +29,10 @@ from trader1.runtime.ledger.paper_ledger_rollup import (
     write_paper_ledger_rollup_report,
 )
 from trader1.runtime.paper.upbit_paper_runtime import (
+    EXECUTION_COST_FEEDBACK_FORMULA,
+    EXECUTION_COST_FEEDBACK_MAX_ADJUSTMENT_BPS,
+    EXECUTION_COST_FEEDBACK_PARTIAL_FILL_PENALTY_BPS,
+    EXECUTION_COST_FEEDBACK_TERMINAL_ATTEMPT_PENALTY_BPS,
     POSITION_ROTATION_EXIT_FIELDS,
     UpbitPaperRuntimeCycleValidationResult,
     build_upbit_paper_runtime_cycle_report,
@@ -78,6 +82,7 @@ DEFAULT_UPBIT_PAPER_SYMBOL_UNIVERSE = (
 )
 DEFAULT_PUBLIC_DISCOVERY_EVALUATION_LIMIT = DEFAULT_DISCOVERY_EVALUATION_LIMIT
 RECENT_FAILURE_FEEDBACK_LOOKBACK_CYCLES = 30
+EXECUTION_COST_FEEDBACK_LOOKBACK_CYCLES = 12
 RECENT_FAILURE_FEEDBACK_COOLDOWN_CYCLES = 3
 RUNTIME_QUALITY_FEEDBACK_COOLDOWN_CYCLES = 5
 RUNTIME_QUALITY_FEEDBACK_MIN_PRELIMINARY_SAMPLE_COUNT = 20
@@ -570,6 +575,143 @@ def _recent_negative_exit_failure_feedback(*, root: Path, session_id: str) -> li
                 "live_order_allowed": False,
                 "can_live_trade": False,
                 "scale_up_allowed": False,
+            }
+        )
+    return feedback
+
+
+def _paper_broker_attempt_unsafe_for_execution_feedback(attempt: dict[str, Any]) -> bool:
+    for field in (
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "order_adapter_called",
+        "private_endpoint_called",
+        "credential_load_attempted",
+        "live_key_loaded",
+        "can_submit_order",
+        "order_endpoint_called",
+    ):
+        if attempt.get(field):
+            return True
+    return False
+
+
+def _selected_expected_execution_cost_bps(selected_candidate: dict[str, Any]) -> Decimal:
+    breakdown = selected_candidate.get("cost_breakdown_bps")
+    if not isinstance(breakdown, dict):
+        return Decimal("-1")
+    return sum(
+        (
+            max(Decimal("0"), _decimal(breakdown.get(field)))
+            for field in ("slippage_bps", "spread_bps", "market_impact_bps", "latency_bps")
+        ),
+        Decimal("0"),
+    )
+
+
+def _recent_execution_cost_feedback(*, root: Path, session_id: str) -> list[dict[str, Any]]:
+    base = _runtime_base_dir(root, session_id)
+    cycles_dir = base / "paper_runtime" / "cycles"
+    if not cycles_dir.exists():
+        return []
+    cycle_paths = sorted(cycles_dir.glob("*.runtime_cycle.json"))[-EXECUTION_COST_FEEDBACK_LOOKBACK_CYCLES:]
+    buckets: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    for path in cycle_paths:
+        cycle, error = _safe_read_json(path)
+        if error is not None or not isinstance(cycle, dict):
+            continue
+        if not _safe_paper_only_cycle_for_failure_feedback(cycle):
+            continue
+        runtime_result = validate_upbit_paper_runtime_cycle_report(cycle)
+        if runtime_result.status != "PASS":
+            continue
+        attempt = cycle.get("paper_broker_execution")
+        if not isinstance(attempt, dict) or _paper_broker_attempt_unsafe_for_execution_feedback(attempt):
+            continue
+        selected_candidate = cycle.get("selected_candidate")
+        if not isinstance(selected_candidate, dict):
+            selected_candidate = {}
+        lifecycle_state = str(attempt.get("order_lifecycle_state") or "")
+        if lifecycle_state not in {"FILLED", "PARTIALLY_FILLED", "REJECTED", "CANCELLED"}:
+            continue
+        expected_execution_cost_bps = _selected_expected_execution_cost_bps(selected_candidate)
+        if expected_execution_cost_bps <= 0:
+            continue
+        terminal_attempt = lifecycle_state in {"REJECTED", "CANCELLED"}
+        realized_execution_cost_bps = (
+            expected_execution_cost_bps + EXECUTION_COST_FEEDBACK_TERMINAL_ATTEMPT_PENALTY_BPS
+            if terminal_attempt
+            else max(Decimal("0"), _decimal(attempt.get("slippage_bps")))
+        )
+        symbol = str(
+            attempt.get("symbol")
+            or selected_candidate.get("symbol")
+            or cycle.get("selected_symbol")
+            or ""
+        )
+        candidate_id = str(selected_candidate.get("candidate_id") or "")
+        strategy_family = str(selected_candidate.get("strategy_family") or "")
+        if not symbol or (not candidate_id and not strategy_family):
+            continue
+        buckets.setdefault((symbol, candidate_id, strategy_family), []).append(
+            {
+                "realized_execution_cost_bps": realized_execution_cost_bps,
+                "expected_execution_cost_bps": expected_execution_cost_bps,
+                "partial_fill": bool(attempt.get("partial_fill")),
+                "terminal_attempt": terminal_attempt,
+                "source_runtime_cycle_id": cycle.get("cycle_id"),
+                "source_runtime_cycle_hash": cycle.get("cycle_hash"),
+                "source_generated_at_utc": cycle.get("generated_at_utc"),
+            }
+        )
+
+    feedback: list[dict[str, Any]] = []
+    for (symbol, candidate_id, strategy_family), samples in sorted(buckets.items()):
+        if not samples:
+            continue
+        sample_count = len(samples)
+        avg_realized = sum((sample["realized_execution_cost_bps"] for sample in samples), Decimal("0")) / Decimal(sample_count)
+        avg_expected = sum((sample["expected_execution_cost_bps"] for sample in samples), Decimal("0")) / Decimal(sample_count)
+        partial_fill_rate = Decimal(sum(1 for sample in samples if sample["partial_fill"])) / Decimal(sample_count)
+        terminal_attempt_rate = Decimal(sum(1 for sample in samples if sample["terminal_attempt"])) / Decimal(sample_count)
+        adjustment_bps = min(
+            EXECUTION_COST_FEEDBACK_MAX_ADJUSTMENT_BPS,
+            max(Decimal("0"), avg_realized - avg_expected)
+            + (EXECUTION_COST_FEEDBACK_PARTIAL_FILL_PENALTY_BPS * partial_fill_rate)
+            + (EXECUTION_COST_FEEDBACK_TERMINAL_ATTEMPT_PENALTY_BPS * terminal_attempt_rate),
+        )
+        if adjustment_bps <= 0:
+            continue
+        latest_sample = samples[-1]
+        feedback.append(
+            {
+                "source": "PAPER_RUNTIME_EXECUTION_COST_FEEDBACK",
+                "exchange": "UPBIT",
+                "market_type": "KRW_SPOT",
+                "mode": "PAPER",
+                "symbol": symbol,
+                "candidate_id": candidate_id,
+                "strategy_family": strategy_family,
+                "sample_count": sample_count,
+                "realized_execution_cost_bps": _decimal_text(avg_realized),
+                "expected_execution_cost_bps": _decimal_text(avg_expected),
+                "partial_fill_rate": _decimal_text(partial_fill_rate),
+                "terminal_attempt_rate": _decimal_text(terminal_attempt_rate),
+                "adjustment_bps": _decimal_text(adjustment_bps),
+                "source_runtime_cycle_id": latest_sample.get("source_runtime_cycle_id"),
+                "source_runtime_cycle_hash": latest_sample.get("source_runtime_cycle_hash"),
+                "source_generated_at_utc": latest_sample.get("source_generated_at_utc"),
+                "formula": EXECUTION_COST_FEEDBACK_FORMULA,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+                "order_adapter_called": False,
+                "private_endpoint_called": False,
+                "credential_load_attempted": False,
+                "live_key_loaded": False,
             }
         )
     return feedback
@@ -1890,6 +2032,7 @@ def run_upbit_paper_persistent_loop(
             cycle: dict[str, Any] | None = None
             cycle_writer: dict[str, Any] | None = None
             recent_failure_feedback: list[dict[str, Any]] = []
+            execution_cost_feedback: list[dict[str, Any]] = []
             cycle_result_status = "BLOCKED"
             cycle_result_blocker = next((result.blocker_code for result in collection_results if result.blocker_code), None)
             if collection_pass:
@@ -1909,6 +2052,7 @@ def run_upbit_paper_persistent_loop(
                     *_recent_negative_exit_failure_feedback(root=root, session_id=session_id),
                     *_recent_unfavorable_runtime_quality_feedback(root=root, session_id=session_id),
                 ]
+                execution_cost_feedback = _recent_execution_cost_feedback(root=root, session_id=session_id)
                 cycle = build_upbit_paper_runtime_cycle_report(
                     cycle_id=cycle_id,
                     session_id=session_id,
@@ -1920,6 +2064,7 @@ def run_upbit_paper_persistent_loop(
                     paper_cash_source=cash_guard["source"],
                     current_paper_portfolio_snapshot=cash_guard.get("portfolio_snapshot"),
                     recent_failure_feedback=recent_failure_feedback,
+                    execution_cost_feedback=execution_cost_feedback,
                     paper_scope_focus=normalized_paper_scope_focus,
                 )
                 runtime_result = validate_upbit_paper_runtime_cycle_report(cycle)
@@ -2003,6 +2148,20 @@ def run_upbit_paper_persistent_loop(
                     "selected_candidate_recent_failure_reason_code": selected_candidate.get("recent_failure_reason_code"),
                     "selected_candidate_recent_failure_feedback_kind": selected_candidate.get(
                         "recent_failure_feedback_kind"
+                    ),
+                    "execution_cost_feedback_count": len(execution_cost_feedback),
+                    "execution_cost_feedback_candidate_ids": sorted(
+                        {
+                            str(item.get("candidate_id"))
+                            for item in execution_cost_feedback
+                            if item.get("candidate_id")
+                        }
+                    ),
+                    "selected_candidate_execution_cost_feedback_status": selected_candidate.get(
+                        "execution_cost_feedback_status"
+                    ),
+                    "selected_candidate_execution_cost_feedback_adjustment_bps": selected_candidate.get(
+                        "execution_cost_feedback_adjustment_bps"
                     ),
                     "runtime_quality_feedback_count": sum(
                         1 for item in recent_failure_feedback if item.get("feedback_kind") == "PRELIMINARY_ROBUSTNESS_FAIL"
