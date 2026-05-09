@@ -3271,6 +3271,8 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             try:
                 with urllib.request.urlopen(handle.url + "api/runner-status", timeout=5) as response:
                     payload = json.loads(response.read().decode("utf-8"))
+                with urllib.request.urlopen(handle.url + "runner_status.json", timeout=5) as response:
+                    alias_payload = json.loads(response.read().decode("utf-8"))
                 stopped_status = dict(status)
                 stopped_status.update(
                     {
@@ -3290,6 +3292,8 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             channel_report = _load_json(runner_dashboard_status_channel_path(root, session_id))
             self.assertEqual(channel_report["dashboard_status_channel_status"], "STOPPED")
             self.assertEqual(payload["schema_id"], "trader1.dashboard_status_channel_payload.v1")
+            self.assertEqual(alias_payload["schema_id"], "trader1.dashboard_status_channel_payload.v1")
+            self.assertEqual(alias_payload["runner_status"], RUNNER_STATUS_RUNNING)
             self.assertEqual(payload["runner_status"], RUNNER_STATUS_RUNNING)
             self.assertEqual(payload["channel_status"], RUNNER_STATUS_RUNNING)
             self.assertEqual(payload["status_channel_heartbeat_status"], "FRESH")
@@ -3306,6 +3310,38 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertEqual(stopped_payload["runner_status"], RUNNER_STATUS_STOPPED)
             self.assertFalse(stopped_payload["running"])
             self.assertEqual(stopped_payload["stop_reason"], "STOP_FILE")
+
+    def test_dashboard_status_channel_marks_past_eta_as_current_cycle_running(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "dashboard_channel_current_cycle_session"
+            status = build_runner_status_report(
+                root=root,
+                runner_id="runner-channel-current-cycle-test",
+                session_id=session_id,
+                runner_status=RUNNER_STATUS_RUNNING,
+                started_at_utc=utc_now(),
+                completed_cycle_count=6,
+                failed_cycle_count=0,
+                cycle_interval_seconds=30,
+                next_cycle_eta="2000-01-01T00:00:00Z",
+            )
+            status_path = runner_status_path(root, session_id)
+            status_path.parent.mkdir(parents=True, exist_ok=True)
+            status_path.write_text(json.dumps(status), encoding="utf-8")
+
+            payload = _dashboard_status_channel_payload(root, session_id)
+
+        self.assertEqual(payload["runner_status"], RUNNER_STATUS_RUNNING)
+        self.assertTrue(payload["running"])
+        self.assertEqual(payload["next_cycle_eta_status"], "CURRENT_CYCLE_RUNNING")
+        self.assertTrue(payload["cycle_in_progress"])
+        self.assertIn("current cycle running", payload["next_cycle_eta_display"])
+        self.assertIsNone(payload["seconds_until_next_cycle"])
+        self.assertFalse(payload["live_order_ready"])
+        self.assertFalse(payload["live_order_allowed"])
+        self.assertFalse(payload["can_live_trade"])
+        self.assertFalse(payload["scale_up_allowed"])
 
     def test_dashboard_status_channel_reports_stopped_when_stop_file_remains(self):
         with tempfile.TemporaryDirectory() as tmp:

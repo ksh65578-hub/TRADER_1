@@ -29241,6 +29241,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
           return "Wait for the local runner channel to disconnect after the stop request.";
         }
         if (payload.running === true && payload.runner_status === "RUNNING") {
+          if (payload.next_cycle_eta_status === "CURRENT_CYCLE_RUNNING") {
+            return "Current PAPER cycle is still running; keep collecting source-bound samples for " + String(candidate) + ".";
+          }
           if (Number.isFinite(deficit) && deficit > 0) {
             return "Collect " + String(deficit) + " more PAPER samples for " + String(candidate) + ".";
           }
@@ -29297,7 +29300,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         setRunnerChannelText("[data-runner-channel-state]", state);
         setRunnerChannelText("[data-runner-channel-runner-status]", payload.runner_status);
         setRunnerChannelText("[data-runner-channel-cycles]", payload.completed_cycle_count);
-        setRunnerChannelText("[data-runner-channel-next]", payload.next_cycle_eta || "not scheduled");
+        setRunnerChannelText("[data-runner-channel-next]", payload.next_cycle_eta_display || payload.next_cycle_eta || "not scheduled");
         var message = drift
           ? "Read-only dashboard detected live/scale flag drift in runner status and keeps live orders blocked."
           : stopped
