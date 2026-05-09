@@ -44,6 +44,8 @@ PUBLIC_MARK_PRICE_SOURCE = "PUBLIC_REST_READ_ONLY_1M_CLOSE"
 MARK_TO_MARKET_PASS_STATUS = "PASS_PUBLIC_MARK_TO_MARKET"
 MARK_TO_MARKET_NOT_REQUIRED_STATUS = "NOT_REQUIRED_NO_POSITION"
 MARK_TO_MARKET_BLOCKED_STATUS = "BLOCKED_PUBLIC_MARK_UNAVAILABLE"
+PUBLIC_MARK_PARENT_SNAPSHOT_HASH_FIELD = "source_mark_to_market_parent_snapshot_hash"
+PUBLIC_MARK_PARENT_SNAPSHOT_GENERATED_AT_FIELD = "source_mark_to_market_parent_generated_at_utc"
 PUBLIC_MARK_PRICE_BASIS_MISMATCH = "PUBLIC_MARK_PRICE_BASIS_MISMATCH"
 PUBLIC_MARK_PRICE_BASIS_MIN_RATIO = Decimal("0.2")
 PUBLIC_MARK_PRICE_BASIS_MAX_RATIO = Decimal("5")
@@ -341,9 +343,14 @@ def mark_paper_portfolio_snapshot_to_public_market(
         blocked["snapshot_hash"] = paper_portfolio_hash(blocked)
         return blocked
 
+    parent_snapshot_hash = base.get("snapshot_hash") if isinstance(base.get("snapshot_hash"), str) else None
+    parent_generated_at = base.get("generated_at_utc") if isinstance(base.get("generated_at_utc"), str) else None
+
     if not base_positions:
         marked = dict(base)
         marked["generated_at_utc"] = generated_at_utc or utc_now()
+        marked[PUBLIC_MARK_PARENT_SNAPSHOT_HASH_FIELD] = parent_snapshot_hash
+        marked[PUBLIC_MARK_PARENT_SNAPSHOT_GENERATED_AT_FIELD] = parent_generated_at
         marked["mark_to_market_status"] = MARK_TO_MARKET_NOT_REQUIRED_STATUS
         marked["mark_price_source"] = "NO_OPEN_POSITION"
         marked["source_public_market_data_hash"] = None
@@ -517,6 +524,8 @@ def mark_paper_portfolio_snapshot_to_public_market(
         {
             "generated_at_utc": generated_at_utc or utc_now(),
             "source": "PAPER_LEDGER_ROLLUP_PUBLIC_MARK",
+            PUBLIC_MARK_PARENT_SNAPSHOT_HASH_FIELD: parent_snapshot_hash,
+            PUBLIC_MARK_PARENT_SNAPSHOT_GENERATED_AT_FIELD: parent_generated_at,
             "position_market_value": _decimal_text(position_market_value),
             "equity": _decimal_text(equity),
             "unrealized_pnl": _decimal_text(unrealized_pnl),

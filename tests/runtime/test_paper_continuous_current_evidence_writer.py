@@ -26,7 +26,10 @@ from trader1.runtime.portfolio.paper_continuous_current_evidence_writer import (
 )
 from trader1.runtime.paper.upbit_public_collector import build_upbit_public_market_data_collection_report
 from trader1.runtime.portfolio.paper_current_truth_refresh import build_paper_current_truth_refresh_report
-from trader1.runtime.portfolio.paper_portfolio import paper_portfolio_hash
+from trader1.runtime.portfolio.paper_portfolio import (
+    mark_paper_portfolio_snapshot_to_public_market,
+    paper_portfolio_hash,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -317,6 +320,48 @@ class PaperContinuousCurrentEvidenceWriterTest(unittest.TestCase):
             portfolio["price_basis_repair_source"],
             "LEGACY_STATIC_FIXTURE_PRICE_BASIS_TO_UPBIT_KRW_SPOT_PUBLIC_MARK",
         )
+        self.assertFalse(report["live_order_ready"])
+        self.assertFalse(report["live_order_allowed"])
+        self.assertFalse(report["can_live_trade"])
+        self.assertFalse(report["scale_up_allowed"])
+
+    def test_public_mark_refresh_derivative_remains_hash_bound_to_audited_portfolio(self):
+        with TemporaryDirectory() as tmp:
+            writer, current_evidence, portfolio, _ = self._repaired_altcoin_writer_bundle(Path(tmp))
+            marked_portfolio = mark_paper_portfolio_snapshot_to_public_market(
+                paper_portfolio_snapshot=portfolio,
+                public_market_data_collection_report=self._public_collection(close="410", symbol="KRW-ADA"),
+                generated_at_utc=plus_seconds(portfolio["generated_at_utc"], 1),
+            )
+            refresh = build_paper_current_truth_refresh_report(
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id=SESSION_ID,
+                paper_portfolio_snapshot=marked_portfolio,
+                heartbeat=None,
+                startup_probe=None,
+                generated_at_utc=plus_seconds(writer["generated_at_utc"], 1),
+            )
+            report = build_paper_continuous_current_evidence_writer_report(
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id=SESSION_ID,
+                audited_writer_report=writer,
+                audited_current_evidence_snapshot=current_evidence,
+                audited_paper_portfolio_snapshot=portfolio,
+                paper_current_truth_refresh_report=refresh,
+                generated_at_utc=plus_seconds(writer["generated_at_utc"], 2),
+            )
+            result = validate_paper_continuous_current_evidence_writer_report(report)
+
+        self.assertNotEqual(refresh["source_portfolio_snapshot_hash"], portfolio["snapshot_hash"])
+        self.assertEqual(refresh["source_mark_to_market_parent_snapshot_hash"], portfolio["snapshot_hash"])
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["continuous_writer_status"], PAPER_CONTINUOUS_WRITER_WRITING_STATUS)
+        self.assertTrue(report["source_hash_bound"])
+        self.assertTrue(report["writer_active_for_paper_current_truth"])
         self.assertFalse(report["live_order_ready"])
         self.assertFalse(report["live_order_allowed"])
         self.assertFalse(report["can_live_trade"])

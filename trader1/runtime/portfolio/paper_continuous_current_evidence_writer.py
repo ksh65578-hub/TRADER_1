@@ -24,6 +24,10 @@ from trader1.runtime.portfolio.paper_current_truth_refresh import (
     validate_paper_current_truth_refresh_report,
 )
 from trader1.runtime.portfolio.paper_portfolio import validate_paper_portfolio_snapshot
+from trader1.runtime.portfolio.paper_portfolio import (
+    MARK_TO_MARKET_NOT_REQUIRED_STATUS,
+    MARK_TO_MARKET_PASS_STATUS,
+)
 
 
 PAPER_CONTINUOUS_CURRENT_EVIDENCE_WRITER_SCHEMA_ID = (
@@ -108,6 +112,39 @@ def _hash_from(report: dict[str, Any] | None, field: str) -> str | None:
         return None
     value = report.get(field)
     return value if isinstance(value, str) and len(value) == 64 else None
+
+
+def _refresh_portfolio_hash_binds_audited_source(
+    *,
+    paper_current_truth_refresh_report: dict[str, Any],
+    audited_writer_report: dict[str, Any],
+    audited_paper_portfolio_snapshot: dict[str, Any],
+) -> bool:
+    audited_hashes = {
+        value
+        for value in (
+            audited_paper_portfolio_snapshot.get("snapshot_hash"),
+            audited_writer_report.get("source_portfolio_snapshot_hash"),
+        )
+        if isinstance(value, str) and len(value) == 64
+    }
+    refresh_hash = paper_current_truth_refresh_report.get("source_portfolio_snapshot_hash")
+    if isinstance(refresh_hash, str) and refresh_hash in audited_hashes:
+        return True
+
+    parent_hash = paper_current_truth_refresh_report.get("source_mark_to_market_parent_snapshot_hash")
+    if not isinstance(parent_hash, str) or parent_hash not in audited_hashes:
+        return False
+    if paper_current_truth_refresh_report.get("mark_to_market_status") == MARK_TO_MARKET_NOT_REQUIRED_STATUS:
+        return True
+    if paper_current_truth_refresh_report.get("mark_to_market_status") != MARK_TO_MARKET_PASS_STATUS:
+        return False
+    return (
+        isinstance(paper_current_truth_refresh_report.get("source_public_market_data_hash"), str)
+        and len(paper_current_truth_refresh_report.get("source_public_market_data_hash")) == 64
+        and isinstance(paper_current_truth_refresh_report.get("source_public_market_event_hash"), str)
+        and len(paper_current_truth_refresh_report.get("source_public_market_event_hash")) == 64
+    )
 
 
 def _blocker(code: str, message: str, severity: str = "HIGH") -> dict[str, str]:
@@ -236,6 +273,11 @@ def build_paper_continuous_current_evidence_writer_report(
 
     hash_bound = False
     if writer_source_valid and current_snapshot_valid and portfolio_valid and refresh_valid:
+        refresh_portfolio_hash_bound = _refresh_portfolio_hash_binds_audited_source(
+            paper_current_truth_refresh_report=paper_current_truth_refresh_report,
+            audited_writer_report=audited_writer_report,
+            audited_paper_portfolio_snapshot=audited_paper_portfolio_snapshot,
+        )
         hash_bound = (
             audited_current_evidence_snapshot.get("source_ledger_rollup_hash")
             == audited_writer_report.get("source_ledger_rollup_hash")
@@ -249,8 +291,7 @@ def build_paper_continuous_current_evidence_writer_report(
             == paper_current_truth_refresh_report.get("source_runtime_cycle_id")
             and audited_current_evidence_snapshot.get("source_portfolio_snapshot_hash")
             == audited_paper_portfolio_snapshot.get("snapshot_hash")
-            and paper_current_truth_refresh_report.get("source_portfolio_snapshot_hash")
-            in {audited_paper_portfolio_snapshot.get("snapshot_hash"), audited_writer_report.get("source_portfolio_snapshot_hash")}
+            and refresh_portfolio_hash_bound
         )
     unverified_collection_hash_bound = bool(
         writer_source_valid

@@ -246,6 +246,20 @@
       "minLength": 64,
       "maxLength": 64
     },
+    "source_mark_to_market_parent_snapshot_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "source_mark_to_market_parent_generated_at_utc": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "snapshot_status": {
       "enum": [
         "PASS",
