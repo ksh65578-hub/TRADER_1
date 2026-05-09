@@ -87,6 +87,15 @@ DEFAULT_PERFORMANCE_METRICS = {
 ROBUSTNESS_SOURCE_PREFIXES = ("oos:", "walk_forward:", "bootstrap:")
 PERFORMANCE_SOURCE_PREFIXES = ("closed_trades:", "execution_quality:", "performance_summary:")
 RUNTIME_CYCLE_SOURCE_PREFIX = "upbit_paper_runtime_cycle:"
+SOURCE_ROLE_BY_PREFIX = {
+    "closed_trades": "CLOSED_TRADES",
+    "execution_quality": "EXECUTION_QUALITY",
+    "performance_summary": "PERFORMANCE_SUMMARY",
+    "oos": "OOS",
+    "walk_forward": "WALK_FORWARD",
+    "bootstrap": "BOOTSTRAP",
+    "public_replay_robustness": "PUBLIC_REPLAY_ROBUSTNESS",
+}
 TOP_SYMBOL_SCORECARD_LIMIT = 5
 REGIME_OUTCOME_REGIMES = ("UPTREND", "RANGE", "DOWNTREND", "RISK_OFF")
 SPOT_LONG_NEW_ENTRY_BLOCKED_REGIMES = {"DOWNTREND", "RISK_OFF"}
@@ -163,14 +172,78 @@ def robustness_source_evidence_id(prefix: str, cycle_id: str, cycle_hash: str) -
     return f"{normalized}:{cycle_id}:{cycle_hash}"
 
 
+def _is_64_hex(value: str) -> bool:
+    return len(value) == 64 and all(character in "0123456789abcdefABCDEF" for character in value)
+
+
 def runtime_cycle_binding_from_source_ids(source_evidence_ids: list[str] | None) -> tuple[str, str] | None:
     for source_id in source_evidence_ids or []:
         if not isinstance(source_id, str) or not source_id.startswith(RUNTIME_CYCLE_SOURCE_PREFIX):
             continue
         parts = source_id.split(":")
-        if len(parts) == 3 and parts[1] and len(parts[2]) == 64:
+        if len(parts) == 3 and parts[1] and _is_64_hex(parts[2]):
             return parts[1], parts[2]
     return None
+
+
+def source_role_for_evidence_id(source_id: str) -> str | None:
+    prefix = str(source_id or "").split(":", 1)[0]
+    return SOURCE_ROLE_BY_PREFIX.get(prefix)
+
+
+def source_role_semantics_errors(source_evidence_ids: list[str] | None) -> list[str]:
+    errors: list[str] = []
+    for source_id in source_evidence_ids or []:
+        if not isinstance(source_id, str) or ":" not in source_id:
+            continue
+        prefix = source_id.split(":", 1)[0]
+        role = SOURCE_ROLE_BY_PREFIX.get(prefix)
+        if role is None:
+            continue
+        parts = source_id.split(":")
+        if prefix in {"oos", "walk_forward", "bootstrap", "public_replay_robustness"}:
+            if len(parts) != 3 or not parts[1] or not _is_64_hex(parts[2]):
+                errors.append(f"{prefix} source evidence must use {prefix}:<cycle_id>:<64hex>")
+        elif prefix in {"closed_trades", "execution_quality", "performance_summary"}:
+            if len(parts) != 4 or not parts[1] or not parts[2] or not _is_64_hex(parts[3]):
+                errors.append(f"{prefix} source evidence must use {prefix}:<candidate_id>:<history_id>:<64hex>")
+        if role != SOURCE_ROLE_BY_PREFIX[prefix]:
+            errors.append(f"{prefix} source role mismatch: expected {SOURCE_ROLE_BY_PREFIX[prefix]}, got {role}")
+    return errors
+
+
+def strict_robustness_triplet_binding_from_source_ids(
+    source_evidence_ids: list[str] | None,
+    *,
+    cycle_id: str | None = None,
+    cycle_hash: str | None = None,
+) -> tuple[str, str] | None:
+    ids = source_evidence_ids or []
+    matched_binding: tuple[str, str] | None = None
+    for prefix in ROBUSTNESS_SOURCE_PREFIXES:
+        normalized = prefix[:-1]
+        prefix_binding: tuple[str, str] | None = None
+        for source_id in ids:
+            if not isinstance(source_id, str) or not source_id.startswith(prefix):
+                continue
+            parts = source_id.split(":")
+            if len(parts) != 3 or parts[0] != normalized or not parts[1] or not _is_64_hex(parts[2]):
+                return None
+            current_binding = (parts[1], parts[2])
+            if cycle_id is not None and current_binding[0] != cycle_id:
+                return None
+            if cycle_hash is not None and current_binding[1].upper() != cycle_hash.upper():
+                return None
+            if prefix_binding is not None and prefix_binding != current_binding:
+                return None
+            prefix_binding = current_binding
+        if prefix_binding is None:
+            return None
+        if matched_binding is None:
+            matched_binding = prefix_binding
+        elif matched_binding != prefix_binding:
+            return None
+    return matched_binding
 
 
 def has_required_robustness_source_ids(
@@ -179,6 +252,13 @@ def has_required_robustness_source_ids(
     cycle_id: str | None = None,
     cycle_hash: str | None = None,
 ) -> bool:
+    strict_binding = strict_robustness_triplet_binding_from_source_ids(
+        source_evidence_ids,
+        cycle_id=cycle_id,
+        cycle_hash=cycle_hash,
+    )
+    if strict_binding is not None:
+        return True
     ids = source_evidence_ids or []
     if cycle_id and cycle_hash:
         required = {
@@ -1830,6 +1910,7 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
     source_ids = [runtime_cycle_source_evidence_id(source_runtime_cycle_id, source_runtime_cycle_hash)]
     source_ids.extend(robustness_source_evidence_ids or [])
     source_ids.extend(performance_source_evidence_ids or [])
+    source_role_errors = source_role_semantics_errors(source_ids)
     public_replay_robustness_bound = _has_public_replay_robustness_source(source_ids)
     enough_robustness_sources = has_required_robustness_source_ids(
         source_ids,
@@ -1848,6 +1929,7 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         and net_ev >= min_required_edge_bps
         and robustness_ready
         and enough_robustness_sources
+        and not source_role_errors
         and performance_ready
         and enough_performance_sources
     )
@@ -1924,8 +2006,15 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
     if robustness_ready and not enough_robustness_sources:
         blockers.append(
             blocker(
-                "SCORECARD_MISSING",
-                "OOS, walk-forward, and bootstrap source evidence ids are required before PAPER scorecard ranking",
+                "ROBUSTNESS_TRIPLET_MISMATCH",
+                "OOS, walk-forward, and bootstrap source evidence ids must form one complete runtime cycle/hash triplet before PAPER scorecard ranking",
+            )
+        )
+    if source_role_errors:
+        blockers.append(
+            blocker(
+                "SOURCE_ROLE_SEMANTICS_MISMATCH",
+                "; ".join(source_role_errors[:3]),
             )
         )
     if not performance_ready:
