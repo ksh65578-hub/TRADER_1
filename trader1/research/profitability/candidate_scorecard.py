@@ -9,6 +9,7 @@ from typing import Any
 
 from trader1.runtime.paper.upbit_paper_runtime import (
     BREAKOUT_RETEST_EXIT_VARIATION,
+    EXECUTION_COST_FEEDBACK_FORMULA,
     STRATEGY_EXIT_ACTION_FULL_EXIT,
     STRATEGY_EXIT_POLICY_ID,
     TREND_PULLBACK_EXIT_VARIATION,
@@ -87,6 +88,7 @@ DEFAULT_PERFORMANCE_METRICS = {
 ROBUSTNESS_SOURCE_PREFIXES = ("oos:", "walk_forward:", "bootstrap:")
 PERFORMANCE_SOURCE_PREFIXES = ("closed_trades:", "execution_quality:", "performance_summary:")
 RUNTIME_CYCLE_SOURCE_PREFIX = "upbit_paper_runtime_cycle:"
+RUNTIME_EXECUTION_COST_FEEDBACK_SOURCE = "PAPER_RUNTIME_EXECUTION_COST_FEEDBACK"
 SOURCE_ROLE_BY_PREFIX = {
     "closed_trades": "CLOSED_TRADES",
     "execution_quality": "EXECUTION_QUALITY",
@@ -161,6 +163,78 @@ def number_value(value: Any) -> float:
 
 def blocker(code: str, message: str, severity: str = "HIGH") -> dict[str, str]:
     return {"code": code, "severity": severity, "message": message}
+
+
+def _runtime_execution_cost_feedback_from_candidate(
+    candidate: dict[str, Any],
+    *,
+    max_allowed_delta_bps: Any,
+) -> dict[str, Any]:
+    status = str(candidate.get("execution_cost_feedback_status") or "CLEAR")
+    source = str(candidate.get("execution_cost_feedback_source") or "NONE")
+    sample_count = int(max(Decimal("0"), decimal_value(candidate.get("execution_cost_feedback_sample_count"))))
+    adjustment_bps = max(Decimal("0"), decimal_value(candidate.get("execution_cost_feedback_adjustment_bps")))
+    realized_cost_bps = max(Decimal("0"), decimal_value(candidate.get("execution_cost_feedback_realized_cost_bps")))
+    expected_cost_bps = max(Decimal("0"), decimal_value(candidate.get("execution_cost_feedback_expected_cost_bps")))
+    realized_minus_expected_bps = max(Decimal("0"), realized_cost_bps - expected_cost_bps)
+    delta_bps = max(adjustment_bps, realized_minus_expected_bps)
+    max_allowed_bps = max(Decimal("0"), decimal_value(max_allowed_delta_bps))
+    partial_fill_rate = max(Decimal("0"), min(Decimal("1"), decimal_value(candidate.get("execution_cost_feedback_partial_fill_rate"))))
+    terminal_attempt_rate = max(
+        Decimal("0"),
+        min(Decimal("1"), decimal_value(candidate.get("execution_cost_feedback_terminal_attempt_rate"))),
+    )
+    live_flags_clear = not any(
+        candidate.get(field)
+        for field in (
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "scale_up_allowed",
+            "order_adapter_called",
+            "private_endpoint_called",
+            "credential_load_attempted",
+            "live_key_loaded",
+            "order_endpoint_called",
+        )
+    )
+    formula = str(candidate.get("execution_cost_feedback_formula") or "")
+
+    binding_status = "CLEAR"
+    blocker_code: str | None = None
+    if status == "ACTIVE":
+        source_valid = source == RUNTIME_EXECUTION_COST_FEEDBACK_SOURCE
+        formula_valid = formula == EXECUTION_COST_FEEDBACK_FORMULA
+        if not source_valid or not formula_valid or not live_flags_clear:
+            binding_status = "FAIL"
+            blocker_code = "SOURCE_ROLE_SEMANTICS_MISMATCH"
+        elif sample_count <= 0 or adjustment_bps <= 0 or delta_bps > max_allowed_bps:
+            binding_status = "FAIL"
+            blocker_code = "EXECUTION_FEEDBACK_DIVERGENT"
+        else:
+            binding_status = "PASS"
+    elif status != "CLEAR":
+        binding_status = "FAIL"
+        blocker_code = "EXECUTION_FEEDBACK_DIVERGENT"
+
+    return {
+        "runtime_execution_cost_feedback_status": status,
+        "runtime_execution_cost_feedback_source": source,
+        "runtime_execution_cost_feedback_binding_status": binding_status,
+        "runtime_execution_cost_feedback_blocker_code": blocker_code,
+        "runtime_execution_cost_feedback_sample_count": sample_count,
+        "runtime_execution_cost_feedback_adjustment_bps": float(adjustment_bps),
+        "runtime_execution_cost_feedback_realized_cost_bps": float(realized_cost_bps),
+        "runtime_execution_cost_feedback_expected_cost_bps": float(expected_cost_bps),
+        "runtime_execution_cost_feedback_delta_bps": float(delta_bps),
+        "runtime_execution_cost_feedback_max_allowed_delta_bps": float(max_allowed_bps),
+        "runtime_execution_cost_feedback_partial_fill_rate": float(partial_fill_rate),
+        "runtime_execution_cost_feedback_terminal_attempt_rate": float(terminal_attempt_rate),
+        "runtime_execution_cost_feedback_source_cycle_id": candidate.get("execution_cost_feedback_source_cycle_id"),
+        "runtime_execution_cost_feedback_source_cycle_hash": candidate.get("execution_cost_feedback_source_cycle_hash"),
+        "runtime_execution_cost_feedback_formula": formula or EXECUTION_COST_FEEDBACK_FORMULA,
+        "runtime_execution_cost_feedback_live_flags_clear": live_flags_clear,
+    }
 
 
 def runtime_cycle_source_evidence_id(cycle_id: str, cycle_hash: str) -> str:
@@ -1875,6 +1949,30 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
     performance_values = dict(DEFAULT_PERFORMANCE_METRICS)
     if performance_metrics:
         performance_values.update(performance_metrics)
+    runtime_execution_feedback = _runtime_execution_cost_feedback_from_candidate(
+        selected,
+        max_allowed_delta_bps=performance_values["max_allowed_execution_cost_delta_bps"],
+    )
+    if runtime_execution_feedback["runtime_execution_cost_feedback_status"] == "ACTIVE":
+        feedback_sample_count = int(runtime_execution_feedback["runtime_execution_cost_feedback_sample_count"])
+        performance_values["execution_cost_sample_count"] = max(
+            int(performance_values["execution_cost_sample_count"]),
+            feedback_sample_count,
+        )
+        performance_values["expected_total_execution_cost_bps"] = max(
+            float(performance_values["expected_total_execution_cost_bps"]),
+            float(runtime_execution_feedback["runtime_execution_cost_feedback_expected_cost_bps"]),
+        )
+        performance_values["realized_total_execution_cost_bps"] = max(
+            float(performance_values["realized_total_execution_cost_bps"]),
+            float(runtime_execution_feedback["runtime_execution_cost_feedback_realized_cost_bps"]),
+        )
+        performance_values["execution_cost_delta_bps"] = max(
+            float(performance_values["execution_cost_delta_bps"]),
+            float(runtime_execution_feedback["runtime_execution_cost_feedback_delta_bps"]),
+        )
+    if runtime_execution_feedback["runtime_execution_cost_feedback_binding_status"] == "FAIL":
+        performance["execution_cost_comparison_status"] = "FAIL"
 
     net_ev = number_value(selected["net_ev_after_cost_bps"])
     robustness_ready = all(robustness[field] == expected for field, expected in ROBUSTNESS_PASS.items())
@@ -2086,6 +2184,14 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
                 "closed trade, execution quality, and performance summary evidence ids are required before PAPER scorecard ranking",
             )
         )
+    if runtime_execution_feedback["runtime_execution_cost_feedback_binding_status"] == "FAIL":
+        feedback_blocker_code = str(runtime_execution_feedback.get("runtime_execution_cost_feedback_blocker_code") or "EXECUTION_FEEDBACK_DIVERGENT")
+        blockers.append(
+            blocker(
+                feedback_blocker_code,
+                "selected PAPER candidate runtime execution-cost feedback is not safe enough for PAPER ranking",
+            )
+        )
 
     if ranking_eligible:
         blockers = []
@@ -2189,6 +2295,7 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         "realized_total_execution_cost_bps": float(performance_values["realized_total_execution_cost_bps"]),
         "execution_cost_delta_bps": float(performance_values["execution_cost_delta_bps"]),
         "max_allowed_execution_cost_delta_bps": float(performance_values["max_allowed_execution_cost_delta_bps"]),
+        **runtime_execution_feedback,
         "performance_ready": performance_ready,
         "performance_source_evidence_required": list(PERFORMANCE_SOURCE_PREFIXES),
         "performance_source_binding_status": "PASS" if enough_performance_sources else "MISSING_OR_MISMATCHED",

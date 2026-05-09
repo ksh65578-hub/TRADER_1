@@ -40,6 +40,44 @@ def performance_source_evidence_ids(runtime: dict[str, str], candidate_id: str |
     ]
 
 
+def _runtime_with_execution_cost_feedback(*, cycle_id: str, adjustment_bps: str = "10") -> dict:
+    baseline = build_upbit_paper_runtime_cycle_report(cycle_id=f"{cycle_id}-feedback-target")
+    feedback = [
+        {
+            "source": "PAPER_RUNTIME_EXECUTION_COST_FEEDBACK",
+            "exchange": "UPBIT",
+            "market_type": "KRW_SPOT",
+            "mode": "PAPER",
+            "symbol": candidate["symbol"],
+            "candidate_id": candidate["candidate_id"],
+            "strategy_family": candidate["strategy_family"],
+            "sample_count": 4,
+            "realized_execution_cost_bps": "32",
+            "expected_execution_cost_bps": "20",
+            "partial_fill_rate": "0",
+            "terminal_attempt_rate": "0",
+            "adjustment_bps": adjustment_bps,
+            "source_runtime_cycle_id": f"{cycle_id}-prior-paper-cost",
+            "source_runtime_cycle_hash": "C" * 64,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+            "order_adapter_called": False,
+            "private_endpoint_called": False,
+            "credential_load_attempted": False,
+            "live_key_loaded": False,
+        }
+        for candidate in baseline["strategy_candidates"]
+    ]
+    runtime = build_upbit_paper_runtime_cycle_report(
+        cycle_id=cycle_id,
+        execution_cost_feedback=feedback,
+    )
+    assert runtime["selected_candidate"]["execution_cost_feedback_status"] == "ACTIVE"
+    return runtime
+
+
 PASS_PERFORMANCE_METRICS = {
     "closed_trade_sample_count": 42,
     "min_closed_trade_sample_count": 30,
@@ -1003,6 +1041,36 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertFalse(scorecard["performance_ready"])
         self.assertFalse(scorecard["ranking_eligible"])
         self.assertEqual(scorecard["execution_cost_comparison_status"], "FAIL")
+        self.assertIn("EXECUTION_FEEDBACK_DIVERGENT", {blocker["code"] for blocker in scorecard["blockers"]})
+
+    def test_runtime_execution_cost_feedback_blocks_paper_ranking_even_with_pass_metrics(self):
+        runtime = _runtime_with_execution_cost_feedback(cycle_id="scorecard-runtime-active-cost-feedback")
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses=ROBUSTNESS_PASS,
+            robustness_source_evidence_ids=[
+                robustness_source_evidence_id("oos", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("walk_forward", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("bootstrap", runtime["cycle_id"], runtime["cycle_hash"]),
+            ],
+            performance_statuses=PERFORMANCE_PASS,
+            performance_metrics=PASS_PERFORMANCE_METRICS,
+            performance_source_evidence_ids=performance_source_evidence_ids(runtime),
+        )
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        self.assertEqual(scorecard["runtime_execution_cost_feedback_status"], "ACTIVE")
+        self.assertEqual(scorecard["runtime_execution_cost_feedback_binding_status"], "FAIL")
+        self.assertEqual(scorecard["runtime_execution_cost_feedback_blocker_code"], "EXECUTION_FEEDBACK_DIVERGENT")
+        self.assertEqual(scorecard["execution_cost_comparison_status"], "FAIL")
+        self.assertGreater(scorecard["runtime_execution_cost_feedback_delta_bps"], scorecard["max_allowed_execution_cost_delta_bps"])
+        self.assertFalse(scorecard["performance_ready"])
+        self.assertFalse(scorecard["ranking_eligible"])
+        self.assertFalse(scorecard["live_order_allowed"])
+        self.assertFalse(scorecard["can_live_trade"])
+        self.assertFalse(scorecard["scale_up_allowed"])
         self.assertIn("EXECUTION_FEEDBACK_DIVERGENT", {blocker["code"] for blocker in scorecard["blockers"]})
 
     def test_generic_performance_sources_cannot_make_scorecard_rank(self):

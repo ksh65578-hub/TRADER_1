@@ -21700,6 +21700,16 @@ def _overfit_diagnostic_errors(report: dict[str, Any]) -> list[str]:
             errors.append("diagnostic_status cannot be ROBUST_FOR_PAPER_REVIEW when robustness_eligible=false")
         if not blockers:
             errors.append("non-eligible overfit diagnostic must carry explicit blocker evidence")
+    if report.get("runtime_execution_cost_feedback_blocked") is True:
+        if robustness_eligible:
+            errors.append("runtime execution-cost feedback block cannot be robustness_eligible")
+        if not any(blocker.get("code") == "EXECUTION_FEEDBACK_DIVERGENT" for blocker in blockers):
+            errors.append("blocked runtime execution-cost feedback must carry EXECUTION_FEEDBACK_DIVERGENT blocker")
+    if report.get("runtime_execution_cost_feedback_diagnostic_status") == "PASS":
+        feedback_delta = float(report.get("runtime_execution_cost_feedback_delta_bps", 0) or 0)
+        feedback_max = float(report.get("runtime_execution_cost_feedback_max_allowed_delta_bps", 0) or 0)
+        if feedback_delta > feedback_max:
+            errors.append("PASS runtime execution-cost feedback diagnostic cannot exceed allowed delta")
 
     if report.get("overfit_status") == "HIGH" and not any(
         blocker.get("code") == "OVERFIT_RISK_HIGH" for blocker in blockers
@@ -21797,6 +21807,28 @@ def _candidate_scorecard_net_ev_errors(scorecard: dict[str, Any]) -> list[str]:
         errors.append("ranking_eligible scorecard must remain PAPER_SCORECARD_INPUT_ONLY")
     if not ranking_eligible and scorecard.get("scorecard_scope") == "PAPER_SCORECARD_INPUT_ONLY":
         errors.append("PAPER_SCORECARD_INPUT_ONLY scorecard must be ranking_eligible")
+    runtime_execution_feedback_status = scorecard.get("runtime_execution_cost_feedback_status")
+    if runtime_execution_feedback_status == "ACTIVE":
+        runtime_execution_feedback_binding = scorecard.get("runtime_execution_cost_feedback_binding_status")
+        runtime_execution_feedback_delta = float(scorecard.get("runtime_execution_cost_feedback_delta_bps", 0) or 0)
+        runtime_execution_feedback_max = float(
+            scorecard.get(
+                "runtime_execution_cost_feedback_max_allowed_delta_bps",
+                scorecard.get("max_allowed_execution_cost_delta_bps", 0),
+            )
+            or 0
+        )
+        if scorecard.get("runtime_execution_cost_feedback_live_flags_clear") is not True:
+            errors.append("active runtime execution-cost feedback requires live/order/private/key flags clear")
+        if runtime_execution_feedback_binding == "FAIL":
+            if ranking_eligible:
+                errors.append("ranking_eligible scorecard cannot carry failed runtime execution-cost feedback")
+            feedback_blocker_codes = {blocker.get("code") for blocker in blockers if isinstance(blocker, dict)}
+            expected_feedback_blocker = scorecard.get("runtime_execution_cost_feedback_blocker_code")
+            if expected_feedback_blocker and expected_feedback_blocker not in feedback_blocker_codes:
+                errors.append("failed runtime execution-cost feedback requires matching blocker code")
+        if runtime_execution_feedback_binding == "PASS" and runtime_execution_feedback_delta > runtime_execution_feedback_max:
+            errors.append("PASS runtime execution-cost feedback cannot exceed allowed execution cost delta")
 
     evaluated_symbol_count = scorecard.get("evaluated_symbol_count")
     paper_entry_review_symbol_count = scorecard.get("paper_entry_review_symbol_count")
