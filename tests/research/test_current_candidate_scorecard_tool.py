@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from tools.run_upbit_paper_candidate_scorecard import (
     _build_and_write_alternative_public_replay,
+    _build_and_write_strategy_mutation_report,
     _select_scorecard_runtime_sample,
     build_current_upbit_paper_candidate_scorecard,
 )
@@ -20,6 +21,7 @@ from trader1.adapters.upbit.market_data import (
 )
 from trader1.research.profitability.candidate_scorecard import (
     PERFORMANCE_PASS,
+    ROBUSTNESS_PASS,
     candidate_generation_report_from_upbit_paper_runtime_cycle,
     candidate_scorecard_from_upbit_paper_runtime_cycle,
     performance_source_evidence_id,
@@ -31,6 +33,7 @@ from trader1.research.profitability.overfit_diagnostic import (
     overfit_diagnostic_from_upbit_paper_runtime,
     overfit_diagnostic_report_hash,
 )
+from trader1.research.profitability.strategy_mutation_compiler import validate_strategy_mutation_compiler_report
 from trader1.research.replay.replay_runner import (
     build_public_replay_robustness_report,
     public_replay_robustness_report_hash,
@@ -99,6 +102,178 @@ def _public_replay_fixture(*, symbol: str, session_id: str, count: int) -> dict:
     market_data["private_endpoint_called"] = False
     market_data["order_endpoint_called"] = False
     return market_data
+
+
+def _mutation_pass_performance_metrics() -> dict:
+    return {
+        "closed_trade_sample_count": 42,
+        "min_closed_trade_sample_count": 30,
+        "strategy_exit_policy_sample_count": 42,
+        "min_strategy_exit_policy_sample_count": 30,
+        "strategy_exit_policy_match_count": 42,
+        "strategy_exit_policy_mismatch_count": 0,
+        "strategy_exit_reason_count": 42,
+        "strategy_exit_reason_counts": [{"reason_code": "TRAILING_STOP", "count": 42}],
+        "regime_outcome_sample_count": 42,
+        "min_regime_outcome_sample_count": 4,
+        "regime_outcome_covered_count": 4,
+        "min_regime_outcome_covered_count": 4,
+        "regime_outcome_trade_count": 39,
+        "regime_outcome_no_trade_count": 3,
+        "regime_outcome_mismatch_count": 0,
+        "regime_outcome_counts": [
+            {
+                "regime": "UPTREND",
+                "sample_count": 39,
+                "trade_count": 39,
+                "no_trade_count": 0,
+                "mismatch_count": 0,
+                "trade_allowed": True,
+                "primary_blocker_code": None,
+            },
+            {
+                "regime": "RANGE",
+                "sample_count": 1,
+                "trade_count": 0,
+                "no_trade_count": 1,
+                "mismatch_count": 0,
+                "trade_allowed": True,
+                "primary_blocker_code": "REGIME_MISMATCH",
+            },
+            {
+                "regime": "DOWNTREND",
+                "sample_count": 1,
+                "trade_count": 0,
+                "no_trade_count": 1,
+                "mismatch_count": 0,
+                "trade_allowed": False,
+                "primary_blocker_code": "REGIME_MISMATCH",
+            },
+            {
+                "regime": "RISK_OFF",
+                "sample_count": 1,
+                "trade_count": 0,
+                "no_trade_count": 1,
+                "mismatch_count": 0,
+                "trade_allowed": False,
+                "primary_blocker_code": "RISK_VETO",
+            },
+        ],
+        "realized_vs_expected_sample_count": 42,
+        "fill_quality_sample_count": 42,
+        "execution_cost_sample_count": 42,
+        "profit_factor": 1.42,
+        "min_profit_factor": 1.25,
+        "max_drawdown_pct": 4.8,
+        "max_allowed_drawdown_pct": 8.0,
+        "realized_vs_expected_edge_bps": 2.5,
+        "min_realized_vs_expected_edge_bps": 0.0,
+        "fill_quality_score": 0.91,
+        "min_fill_quality_score": 0.80,
+        "realized_fee_bps": 5.0,
+        "realized_slippage_bps": 16.0,
+        "realized_impact_bps": 3.0,
+        "expected_total_execution_cost_bps": 20.0,
+        "realized_total_execution_cost_bps": 21.0,
+        "execution_cost_delta_bps": 1.0,
+        "max_allowed_execution_cost_delta_bps": 2.0,
+    }
+
+
+def _mutation_ready_scorecard() -> dict:
+    runtime = build_upbit_paper_runtime_cycle_report(cycle_id="current-scorecard-mutation-bridge")
+    candidate_id = runtime["selected_candidate"]["candidate_id"]
+    history_id = "current-scorecard-mutation-history"
+    history_hash = "A" * 64
+    return candidate_scorecard_from_upbit_paper_runtime_cycle(
+        runtime,
+        robustness_statuses=ROBUSTNESS_PASS,
+        robustness_source_evidence_ids=[
+            robustness_source_evidence_id("oos", runtime["cycle_id"], runtime["cycle_hash"]),
+            robustness_source_evidence_id("walk_forward", runtime["cycle_id"], runtime["cycle_hash"]),
+            robustness_source_evidence_id("bootstrap", runtime["cycle_id"], runtime["cycle_hash"]),
+        ],
+        performance_statuses=PERFORMANCE_PASS,
+        performance_metrics=_mutation_pass_performance_metrics(),
+        performance_source_evidence_ids=[
+            performance_source_evidence_id("closed_trades", history_id, history_hash, candidate_id),
+            performance_source_evidence_id("execution_quality", history_id, history_hash, candidate_id),
+            performance_source_evidence_id("performance_summary", history_id, history_hash, candidate_id),
+        ],
+    )
+
+
+def _mutation_overfit_for(scorecard: dict) -> dict:
+    diagnostic = {
+        "diagnostic_id": f"overfit:{scorecard['scorecard_id']}",
+        "exchange": scorecard["exchange"],
+        "market_type": scorecard["market_type"],
+        "mode": "PAPER",
+        "session_id": scorecard["session_id"],
+        "candidate_id": scorecard["candidate_id"],
+        "strategy_id": scorecard["strategy_id"],
+        "strategy_build_id": scorecard["strategy_build_id"],
+        "parameter_hash": scorecard["parameter_hash"],
+        "symbol": scorecard["symbol"],
+        "oos_status": "PASS",
+        "walk_forward_status": "PASS",
+        "bootstrap_status": "PASS",
+        "overfit_status": "LOW",
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    diagnostic["diagnostic_hash"] = overfit_diagnostic_report_hash(diagnostic)
+    return diagnostic
+
+
+def _mutation_mature_replay_for(scorecard: dict) -> dict:
+    replay = build_public_replay_robustness_report(
+        candidate_scorecard=scorecard,
+        market_data=_public_replay_fixture(symbol=scorecard["symbol"], session_id=scorecard["session_id"], count=70),
+        min_required_sample_count=30,
+        max_replay_windows=40,
+    )
+    for row in replay["sample_rows"]:
+        row.update(
+            {
+                "closed_trade": True,
+                "realized_trade_pnl_bps": 14.0,
+                "realized_vs_expected_edge_bps": 2.0,
+                "strategy_exit_policy_observed": True,
+                "strategy_exit_policy_matched": True,
+                "execution_cost_delta_bps": 0.2,
+            }
+        )
+    sample_count = len(replay["sample_rows"])
+    replay.update(
+        {
+            "replay_closed_trade_sample_count": sample_count,
+            "replay_closed_trade_status": "PASS",
+            "min_required_closed_trade_sample_count": 30,
+            "replay_closed_trade_deficit": 0,
+            "replay_closed_trade_maturity_status": "PASS",
+            "replay_closed_trade_maturity_blocker_code": None,
+            "replay_strategy_exit_policy_sample_count": sample_count,
+            "replay_strategy_exit_policy_match_count": sample_count,
+            "replay_strategy_exit_policy_mismatch_count": 0,
+            "replay_strategy_exit_policy_status": "PASS",
+            "replay_profit_factor": 2.4,
+            "replay_profit_factor_status": "PASS",
+            "replay_max_drawdown_bps": 8.0,
+            "replay_realized_vs_expected_edge_bps": 2.0,
+            "replay_realized_vs_expected_edge_status": "PASS",
+            "replay_fill_quality_score": 0.95,
+            "replay_execution_cost_delta_bps": 0.2,
+            "replay_execution_cost_status": "PASS",
+            "replay_status": "PASS",
+            "primary_blocker_code": None,
+            "blockers": [],
+        }
+    )
+    replay["report_hash"] = public_replay_robustness_report_hash(replay)
+    return replay
 
 
 def _paper_shadow_evidence_path(root: Path) -> Path:
@@ -1656,6 +1831,76 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(shadow_profit_cycle["paper_shadow_evidence_accumulation_validator_status"], "PASS")
         self.assertFalse(shadow_profit_cycle["candidate_ranking_allowed_for_paper"])
         self.assertFalse(shadow_profit_cycle["live_order_allowed"])
+
+    def test_strategy_mutation_bridge_writes_paper_only_spec_from_robust_alternative(self):
+        scorecard = _mutation_ready_scorecard()
+        diagnostic = _mutation_overfit_for(scorecard)
+        replay = _mutation_mature_replay_for(scorecard)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            context = _build_and_write_strategy_mutation_report(
+                root=root,
+                session_id=scorecard["session_id"],
+                candidate_scorecard=scorecard,
+                overfit_diagnostic=diagnostic,
+                convergence_memory={},
+                replay_robustness_report=None,
+                alternative_replay_context={"status": "PASS", "report": replay},
+                alternative_review_scorecard_context={
+                    "status": "PASS",
+                    "scorecard": scorecard,
+                    "overfit_diagnostic": diagnostic,
+                },
+            )
+            report = json.loads((root / context["path"]).read_text(encoding="utf-8"))
+
+        status, message, blocker_code = validate_strategy_mutation_compiler_report(report)
+        self.assertEqual((status, blocker_code), ("PASS", None), message)
+        self.assertEqual(context["status"], "PASS")
+        self.assertEqual(context["source"], "ROBUST_ALTERNATIVE_REPLAY")
+        self.assertIsNotNone(context["mutation_id"])
+        self.assertFalse(context["ranking_eligible"])
+        spec = report["mutated_paper_candidate_spec"]
+        self.assertEqual(spec["mode"], "PAPER")
+        self.assertEqual(spec["allowed_output_modes"], ["REPLAY", "PAPER"])
+        self.assertTrue(spec["replay_input_allowed"])
+        self.assertTrue(spec["paper_input_allowed"])
+        self.assertFalse(spec["live_config_mutation_allowed"])
+        self.assertFalse(spec["writes_live_ready_snapshot"])
+        self.assertFalse(spec["ranking_eligible"])
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            self.assertFalse(report[field])
+            self.assertFalse(spec[field])
+
+    def test_strategy_mutation_bridge_writes_blocked_report_when_replay_evidence_missing(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="current-scorecard-mutation-bridge-blocked")
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+        diagnostic = _mutation_overfit_for(scorecard)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            context = _build_and_write_strategy_mutation_report(
+                root=root,
+                session_id=scorecard["session_id"],
+                candidate_scorecard=scorecard,
+                overfit_diagnostic=diagnostic,
+                convergence_memory={},
+                replay_robustness_report=None,
+                alternative_replay_context={"status": "NOT_REQUIRED"},
+                alternative_review_scorecard_context={"status": "NOT_REQUIRED"},
+            )
+            report = json.loads((root / context["path"]).read_text(encoding="utf-8"))
+
+        status, message, blocker_code = validate_strategy_mutation_compiler_report(report)
+        self.assertEqual((status, blocker_code), ("PASS", None), message)
+        self.assertEqual(context["status"], "BLOCKED")
+        self.assertEqual(context["source"], "CURRENT_SCORECARD")
+        self.assertEqual(report["primary_blocker_code"], "MEASUREMENT_MISSING")
+        self.assertIsNone(report["mutated_paper_candidate_spec"])
+        self.assertFalse(report["ranking_eligible"])
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            self.assertFalse(report[field])
 
 
 if __name__ == "__main__":
