@@ -473,6 +473,7 @@ def _alternative_replay_context(
     contract_status: str | None = None,
     contract_blocker_code: str | None = None,
     report_path: str | None = None,
+    preserved_existing_replay_report: bool = False,
     candidate_id: str | None = None,
     symbol: str | None = None,
     replay_status: str | None = None,
@@ -508,6 +509,7 @@ def _alternative_replay_context(
         "contract_status": contract_status or status,
         "contract_blocker_code": contract_blocker_code,
         "report_path": report_path,
+        "preserved_existing_replay_report": preserved_existing_replay_report,
         "candidate_id": candidate_id,
         "symbol": symbol,
         "replay_status": replay_status,
@@ -883,6 +885,7 @@ def _public_candidate_review_evaluations(evaluations: list[dict[str, Any]]) -> l
                 "symbol": item.get("symbol"),
                 "status": item.get("status"),
                 "blocker_code": item.get("blocker_code"),
+                "preserved_existing_replay_report": bool(item.get("preserved_existing_replay_report")),
                 "replay_status": item.get("replay_status"),
                 "sample_count": int(item.get("sample_count") or 0),
                 "replay_closed_trade_sample_count": int(item.get("replay_closed_trade_sample_count") or 0),
@@ -919,6 +922,19 @@ def _public_candidate_review_evaluations(evaluations: list[dict[str, Any]]) -> l
             }
         )
     return compact
+
+
+def _public_replay_report_preserve_priority(report: dict[str, Any]) -> tuple[int, int, int, int, float]:
+    maturity = _replay_closed_trade_maturity(report)
+    replay_score = 2 if str(report.get("replay_status") or "") == "PASS" else 1
+    maturity_score = 1 if maturity["replay_closed_trade_maturity_status"] == "PASS" else 0
+    return (
+        replay_score,
+        maturity_score,
+        int(report.get("replay_closed_trade_sample_count") or 0),
+        int(report.get("sample_count") or 0),
+        _safe_float(report.get("replay_realized_vs_expected_edge_bps")),
+    )
 
 
 def _build_alternative_public_replay_evaluation(
@@ -1017,6 +1033,26 @@ def _build_alternative_public_replay_evaluation(
         replay_report,
         candidate_scorecard=alternative_scorecard,
     )
+    preserved_existing_replay_report = False
+    existing_replay_report = load_public_replay_robustness_report(
+        root=root,
+        session_id=session_id,
+        candidate_id=candidate_id,
+    )
+    if isinstance(existing_replay_report, dict):
+        existing_validation = validate_public_replay_robustness_report(
+            existing_replay_report,
+            candidate_scorecard=alternative_scorecard,
+        )
+        if (
+            existing_validation.status == "PASS"
+            and replay_validation.status == "PASS"
+            and _public_replay_report_preserve_priority(existing_replay_report)
+            >= _public_replay_report_preserve_priority(replay_report)
+        ):
+            replay_report = existing_replay_report
+            replay_validation = existing_validation
+            preserved_existing_replay_report = True
     report_path = write_public_replay_robustness_report(root=root, report=replay_report)
     replay_status = str(replay_report.get("replay_status") or "BLOCKED")
     gate_status = replay_validation.status
@@ -1099,6 +1135,7 @@ def _build_alternative_public_replay_evaluation(
         "contract_status": replay_validation.status,
         "contract_blocker_code": replay_validation.blocker_code,
         "report_path": _relative_path(report_path, root),
+        "preserved_existing_replay_report": preserved_existing_replay_report,
         "replay_status": replay_status,
         "sample_count": int(replay_report.get("sample_count") or 0),
         "primary_blocker_code": replay_report.get("primary_blocker_code"),
@@ -1206,6 +1243,7 @@ def _build_and_write_alternative_public_replay(
             contract_status=str(first.get("contract_status") or first.get("status") or "BLOCKED"),
             contract_blocker_code=first.get("contract_blocker_code"),
             report_path=first.get("report_path"),
+            preserved_existing_replay_report=bool(first.get("preserved_existing_replay_report")),
             replay_status=str(first.get("replay_status") or "BLOCKED"),
             sample_count=int(first.get("sample_count") or 0),
             primary_blocker_code=first.get("primary_blocker_code"),
@@ -1265,6 +1303,7 @@ def _build_and_write_alternative_public_replay(
         contract_status=str(selected.get("contract_status") or selected.get("status") or "BLOCKED"),
         contract_blocker_code=selected.get("contract_blocker_code"),
         report_path=selected.get("report_path"),
+        preserved_existing_replay_report=bool(selected.get("preserved_existing_replay_report")),
         candidate_id=str(selected.get("candidate_id") or ""),
         symbol=str(selected.get("symbol") or ""),
         replay_status=str(selected.get("replay_status") or "BLOCKED"),

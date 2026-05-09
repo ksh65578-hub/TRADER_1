@@ -787,6 +787,157 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertFalse(context["live_key_loaded"])
         self.assertFalse(context["live_order_allowed"])
 
+    def test_alternative_public_replay_preserves_stronger_existing_report_when_fetch_degrades(self):
+        weak_btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="WEAK_RANGE",
+        )
+        for candle in weak_btc["candles"]:
+            candle["volume"] = "1"
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(strong_eth["candles"], start=1):
+            candle["volume"] = str(8 + index * 2)
+        focus_orca = build_upbit_public_candle_fixture(
+            symbol="KRW-ORCA",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        orca_closes = ["980000", "988000", "1004000", "997000", "1009000", "1002050"]
+        for index, candle in enumerate(focus_orca["candles"], start=1):
+            price = int(orca_closes[index - 1])
+            candle["open"] = str(price - 1200)
+            candle["high"] = str(price + 2500)
+            candle["low"] = str(price - 2500)
+            candle["close"] = orca_closes[index - 1]
+            candle["volume"] = str(1 + index * 0.1)
+        mark_price = weak_btc["candles"][-1]["close"]
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.005",
+            fill_price=mark_price,
+            mark_price=mark_price,
+            fee_amount="2.5",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-current-scorecard-preserve-existing-replay",
+            source_paper_ledger_head_hash="D" * 64,
+        )
+        focus_candidate_id = "KRW-ORCA-pullback-trend-long"
+        focus_parameter_hash = stable_hash(f"{focus_candidate_id}:PULLBACK_TREND_LONG:KRW-ORCA")
+        runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="current-scorecard-preserve-existing-replay",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            market_data_universe=[weak_btc, strong_eth, focus_orca],
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+            paper_scope_focus={
+                "source": "TEST_ACTIVE_CANDIDATE_SCOPE",
+                "candidate_id": focus_candidate_id,
+                "symbol": "KRW-ORCA",
+                "strategy_id": "trend_pullback",
+                "parameter_hash": focus_parameter_hash,
+                "sample_count": 1,
+                "sample_deficit": 29,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+        )
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses={
+                "oos_status": "FAIL",
+                "walk_forward_status": "FAIL",
+                "bootstrap_status": "FAIL",
+                "overfit_status": "HIGH",
+            },
+            robustness_source_evidence_ids=[
+                "public_replay_robustness:replay-current-scorecard-preserve-existing-replay:" + "A" * 64,
+                "public_market_data:KRW-BTC:" + "B" * 64,
+            ],
+        )
+        generation_report = candidate_generation_report_from_upbit_paper_runtime_cycle(
+            runtime,
+            candidate_scorecard=scorecard,
+        )
+
+        def good_replay_history_fetcher(
+            *,
+            symbol: str,
+            session_id: str,
+            target_count: int,
+            page_size: int,
+            timeout_seconds: float,
+        ):
+            del target_count, page_size, timeout_seconds
+            return _public_replay_fixture(symbol=symbol, session_id=session_id, count=70)
+
+        def failing_replay_history_fetcher(
+            *,
+            symbol: str,
+            session_id: str,
+            target_count: int,
+            page_size: int,
+            timeout_seconds: float,
+        ):
+            del symbol, session_id, target_count, page_size, timeout_seconds
+            raise TimeoutError("expanded public replay read timed out")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first_context = _build_and_write_alternative_public_replay(
+                root=root,
+                session_id=runtime["session_id"],
+                candidate_generation_report=generation_report,
+                history={"history_id": "preserve-existing-history", "history_hash": "H" * 64, "samples": []},
+                runtime_cycle_report=runtime,
+                candidate_discovery_runtime=None,
+                target_count=70,
+                page_size=200,
+                timeout_seconds=1.0,
+                max_replay_windows=10,
+                min_required_sample_count=1,
+                candidate_limit=1,
+                public_replay_history_fetcher=good_replay_history_fetcher,
+            )
+            first_report = _load_written(root, first_context, "report_path")
+            second_context = _build_and_write_alternative_public_replay(
+                root=root,
+                session_id=runtime["session_id"],
+                candidate_generation_report=generation_report,
+                history={"history_id": "preserve-existing-history", "history_hash": "H" * 64, "samples": []},
+                runtime_cycle_report=runtime,
+                candidate_discovery_runtime=None,
+                target_count=6000,
+                page_size=200,
+                timeout_seconds=10.0,
+                max_replay_windows=6000,
+                min_required_sample_count=1,
+                candidate_limit=1,
+                public_replay_history_fetcher=failing_replay_history_fetcher,
+            )
+            second_report = _load_written(root, second_context, "report_path")
+
+        self.assertEqual(generation_report["generation_status"], "ALTERNATIVE_REVIEW_READY")
+        self.assertTrue(second_context["preserved_existing_replay_report"])
+        self.assertEqual(second_report["report_hash"], first_report["report_hash"])
+        self.assertEqual(second_context["sample_count"], first_context["sample_count"])
+        self.assertGreater(second_context["sample_count"], 0)
+        self.assertNotEqual(second_context["primary_blocker_code"], "DATA_QUALITY_INSUFFICIENT")
+        self.assertFalse(second_context["live_order_allowed"])
+
     def test_alternative_public_replay_prefers_robust_candidate_over_raw_ev(self):
         cycle_hash = "A" * 64
         generation_report = {
