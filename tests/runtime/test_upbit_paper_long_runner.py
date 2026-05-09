@@ -1383,6 +1383,48 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertTrue(paper_shadow_evidence_accumulation_path(root, "test_long_runner").exists())
             self.assertFalse(runner_lock_path(root, "test_long_runner").exists())
 
+    def test_runner_refreshes_dashboard_immediately_after_initial_running_status(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "initial_running_dashboard_refresh_session"
+            refresh_seen: list[dict] = []
+
+            def fake_dashboard_refresh(refresh_root: Path, *, session_id: str = "mvp1_upbit_paper_launcher") -> None:
+                self.assertEqual(Path(refresh_root), root)
+                refresh_seen.append(_load_json(runner_status_path(root, session_id)))
+
+            with patch.object(long_runner, "_maybe_refresh_dashboard", side_effect=fake_dashboard_refresh):
+                report = run_upbit_paper_long_running_runner(
+                    root=root,
+                    session_id=session_id,
+                    runner_id="initial-running-dashboard-refresh-runner",
+                    cycle_interval_seconds=0,
+                    max_cycles=1,
+                    attempt_public_symbol_discovery=False,
+                    attempt_network_market_data=False,
+                    refresh_dashboard=True,
+                )
+
+            self.assertGreaterEqual(len(refresh_seen), 1)
+            self.assertEqual(refresh_seen[0]["runner_status"], RUNNER_STATUS_RUNNING)
+            self.assertTrue(refresh_seen[0]["running"])
+            self.assertEqual(refresh_seen[0]["completed_cycle_count"], 0)
+            self.assertEqual(report["runner_status"], RUNNER_STATUS_STOPPED)
+            self.assertEqual(report["stop_reason"], "MAX_CYCLES_REACHED")
+            for field in (
+                "live_order_ready",
+                "live_order_allowed",
+                "can_live_trade",
+                "scale_up_allowed",
+                "order_adapter_called",
+                "private_endpoint_called",
+                "credential_load_attempted",
+                "live_key_loaded",
+            ):
+                self.assertFalse(refresh_seen[0][field], field)
+
     def test_runner_status_records_dashboard_open_result_while_running(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
